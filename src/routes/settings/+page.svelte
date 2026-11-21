@@ -93,7 +93,7 @@
   {/each}
 </div>
 
-<section class="card panel" id="panel" role="tabpanel" aria-labelledby="tab-{tab}">
+<div class="card panel" id="panel" role="tabpanel" aria-labelledby="tab-{tab}">
   {#if tab === 'general'}
     <div class="cols">
       <div>
@@ -202,7 +202,7 @@
     </form>
     <p class="muted small">Forgot your password? Your administrator can reset it. Your progress is always kept.</p>
   {/if}
-</section>
+</div>
 
 <style>
   .head { display: flex; gap: 18px; align-items: center; margin: 0 0 22px; }
