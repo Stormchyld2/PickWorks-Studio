@@ -29,7 +29,9 @@ import {
   type ChannelChoice,
   type InputDevice,
 } from '$lib/services/audio/mic-input';
+import { audioEngine } from '$lib/services/audio/audio-engine';
 import { playInTuneChime, playReferenceTone } from '$lib/services/audio/tones';
+import { session } from '$lib/services/session';
 
 export type TunerMode = 'guided' | 'chromatic';
 const FRAME_MS = 50;
@@ -70,6 +72,11 @@ class TunerStore {
   private detector: PitchDetector | null = null;
   private stabilizer = createStabilizer();
   private timer: ReturnType<typeof setInterval> | null = null;
+
+  constructor() {
+    // Sign-out and the idle limit stop all audio; the tuner returns to idle with it.
+    audioEngine.onStopAll(() => void this.stop());
+  }
   private wasInTune = false;
 
   readonly supported = micSupported();
@@ -165,6 +172,8 @@ class TunerStore {
     this.level = Math.min(1, est.rms * 6);
     const r = this.stabilizer.push(est);
     if (r.status === 'pitch') {
+      // Playing into the tuner is activity, even with no mouse or keyboard input.
+      session.activity();
       this.frequency = r.frequency;
       this.stable = r.stable;
       this.clarity = r.clarity;

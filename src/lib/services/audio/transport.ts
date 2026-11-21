@@ -25,6 +25,10 @@ class TransportService {
   private scheduledUntil = 0;
   private listeners = new Set<BeatListener>();
 
+  constructor() {
+    audioEngine.onStopAll(() => this.stop());
+  }
+
   get running(): boolean {
     return this.timer !== null;
   }

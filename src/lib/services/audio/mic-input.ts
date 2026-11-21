@@ -23,6 +23,7 @@ export class MicInput {
   private analyser: AnalyserNode | null = null;
   private buffer = new Float32Array(FRAME_SIZE);
   private full = new Float32Array(4096);
+  private unhook: (() => void) | null = null;
 
   get channelCount(): number {
     return this.input?.channelCount ?? 1;
@@ -44,6 +45,7 @@ export class MicInput {
     analyser.smoothingTimeConstant = 0;
     this.input.node.connect(analyser);
     this.analyser = analyser;
+    this.unhook = audioEngine.onStopAll(() => void this.stop());
   }
 
   /** Latest FRAME_SIZE samples, or null if not running. */
@@ -59,5 +61,7 @@ export class MicInput {
     this.analyser = null;
     this.input?.close();
     this.input = null;
+    this.unhook?.();
+    this.unhook = null;
   }
 }

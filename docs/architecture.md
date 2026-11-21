@@ -36,7 +36,9 @@ backups/
 - **Sessions.** One session at a time. Every data call carries its token; signing out or signing in as someone else ends the old token, so a delayed save from a previous student is refused.
 - **Passwords.** At least 8 characters, Argon2id with unique salts, verified locally. Failed sign-ins wait 30 s, 1 min, then 5 min (saved on disk; never a permanent lockout; the administrator can unlock). Administrator resets only replace the hash: progress, mastery, XP and history are untouched, and the student sets a new password at next sign-in.
 - **Administrator recovery.** A recovery key is shown once at setup and stored only as a hash. If both password and key are lost, recovery needs Windows administrator rights (an elevated process); it replaces only the administrator credential and is audited.
-- **Idle limits.** Students 20 minutes, administrator 5 minutes (enforced by the session lifecycle, Milestone D).
+- **Idle limits.** Students 20 minutes, administrator 5 minutes, with a one-minute warning. Keyboard, mouse, touch and wheel input count as activity, and so does playing into the tuner; recordings and timed exercises hold the session awake while they run. An open window on its own does not (`engines/session/activity.ts`).
+- **One sign-out pipeline** (`services/session-lifecycle.ts`). The Sign Out button, the idle limit, closing the app and switching profile all run the same steps: screens save their place (assessments are marked interrupted and award nothing), all audio and inputs stop, failed saves are retried, the native session ends, then state is cleared. Anything still unsaved is reported. A manual sign-out stops to ask first; the idle limit, shutdown and profile switch always finish.
+- **Student data** (`services/student-data.ts`). Attempts record their context (lesson, practice, assessment, placement) and evidence kind. Only objective evidence counts; free practice builds proficiency but only lessons and assessments open curriculum gates. Mastery is a permanent event log, so history survives later drops in accuracy. Lessons resume from checkpoints; assessments restart and save only when finished.
 
 ## Offline enforcement
 

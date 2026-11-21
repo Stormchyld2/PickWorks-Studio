@@ -51,6 +51,8 @@ class AudioEngine {
   private ctx: SinkContext | null = null;
   private out: GainNode | null = null;
   private outputId = '';
+  private openInputs = new Set<InputHandle>();
+  private stopHooks = new Set<() => void>();
 
   get inputSupported(): boolean {
     return typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
@@ -140,17 +142,43 @@ class AudioEngine {
       source.connect(splitter);
       splitter.connect(mono, Math.min(channel, channelCount - 1));
     }
-    return {
+    const inputs = this.openInputs;
+    const handle: InputHandle = {
       node: mono,
       channelCount,
       deviceId,
       close() {
+        inputs.delete(handle);
         stream.getTracks().forEach((t) => t.stop());
         source.disconnect();
         splitter?.disconnect();
         mono.disconnect();
       },
     };
+    inputs.add(handle);
+    return handle;
+  }
+
+  /** Lets players (metronome, transport) stop themselves when everything stops. */
+  onStopAll(fn: () => void): () => void {
+    this.stopHooks.add(fn);
+    return () => this.stopHooks.delete(fn);
+  }
+
+  /**
+   * Stops every sound and closes every input (sign-out, idle limit, shutdown).
+   * Inputs are released so the microphone light goes off.
+   */
+  async stopAll(): Promise<void> {
+    for (const fn of this.stopHooks) {
+      try {
+        fn();
+      } catch {
+        // Keep stopping the rest.
+      }
+    }
+    for (const h of [...this.openInputs]) h.close();
+    if (this.ctx && this.ctx.state === 'running') await this.ctx.suspend();
   }
 }
 

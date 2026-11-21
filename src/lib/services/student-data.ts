@@ -149,6 +149,14 @@ export class StudentData {
     return parsed.success ? parsed.data : null;
   }
 
+  /**
+   * Records that an assessment was cut short (sign-out, idle limit, shutdown).
+   * Nothing is committed and no mastery is awarded; the student restarts it.
+   */
+  async markAssessmentInterrupted(refId: string, now = new Date()): Promise<void> {
+    await this.saveCheckpoint({ kind: 'assessment', refId, state: { interrupted: true } }, now);
+  }
+
   /** Marks a checkpoint finished (an empty state means nothing to resume). */
   async clearCheckpoint(kind: Checkpoint['kind'], refId: string, now = new Date()): Promise<void> {
     await this.saveCheckpoint({ kind, refId, state: null }, now);
