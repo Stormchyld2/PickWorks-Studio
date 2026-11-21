@@ -9,6 +9,11 @@
   import Clock from '@lucide/svelte/icons/clock';
   import Avatar from './Avatar.svelte';
   import { auth } from '$lib/stores/auth.svelte';
+  import { highlightedProfileId } from '$lib/stores/preferences.svelte';
+
+  // "Highlight my profile first": that profile is shown first and outlined. A password is still required.
+  const highlight = highlightedProfileId();
+  const ordered = $derived([...auth.profiles].sort((a, b) => Number(b.id === highlight) - Number(a.id === highlight)));
 
   const notice = $derived.by(() => {
     const r = auth.lastSignOut;
@@ -30,9 +35,9 @@
   {/if}
 
   <ul class="grid">
-    {#each auth.profiles as p (p.id)}
+    {#each ordered as p (p.id)}
       <li>
-        <button class="glow-card prof" onclick={() => auth.choose(p)} aria-label="Sign in as {p.displayName}">
+        <button class="glow-card prof" class:hl={p.id === highlight} onclick={() => auth.choose(p)} aria-label="Sign in as {p.displayName}">
           <Avatar src={p.avatar} />
           <strong>{p.displayName}</strong>
           <span class="lock" aria-hidden="true"><Lock size={15} /></span>
@@ -80,6 +85,7 @@
   .prof { position: relative; width: 200px; min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px 14px 20px; color: var(--pw-text); cursor: pointer; font: inherit; transition: box-shadow var(--pw-transition), border-color var(--pw-transition); }
   .prof strong { font-size: 1.25rem; margin-top: 8px; }
   .prof:hover, .prof:focus-visible { border-color: var(--pw-primary-hover); box-shadow: 0 0 0 1px var(--pw-primary-hover), 0 0 28px rgba(35, 139, 235, 0.35); }
+  .prof.hl { border-color: var(--pw-primary-hover); box-shadow: 0 0 0 1px var(--pw-primary-hover), 0 0 28px rgba(35, 139, 235, 0.35); }
   .lock { position: absolute; top: 12px; right: 12px; color: var(--pw-text-faint); }
   .add { background: transparent; border: 2px dashed var(--pw-border-strong); border-radius: var(--pw-radius-lg); }
   .plus { width: 104px; height: 104px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--pw-border-strong); color: var(--pw-text-muted); }

@@ -14,7 +14,7 @@
 </header>
 
 <style>
-  .head { display: flex; align-items: center; gap: 18px; margin: 0 260px 24px 0; }
+  .head { display: flex; align-items: center; gap: 18px; margin: 0 0 24px; }
   .ic { color: var(--pw-amber); display: grid; }
   h1 { font-size: 2.4rem; }
   p { margin: 2px 0 0; color: var(--pw-text-muted); font-size: 1.1rem; }

@@ -29,7 +29,7 @@
         <span class="txt"><b>{auth.info.displayName}</b><small>View profile</small></span>
       </button>
     {/if}
-    <button class="out" onclick={() => auth.signOut('manual')} aria-label="Sign out" title="Sign out"><LogOut size={20} /></button>
+    <button class="out" onclick={() => auth.requestSignOut()} aria-label="Sign out" title="Sign out"><LogOut size={20} /></button>
   </div>
   {#if open}<ProfileQuickView {avatar} onclose={() => (open = false)} />{/if}
 {/if}

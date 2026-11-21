@@ -83,7 +83,7 @@
     <div class="actions">
       <button class="pw-btn" onclick={() => ((changing = true), (done = false), (error = ''))}><KeyRound size={18} /> Change password</button>
       <span class="spacer"></span>
-      <button class="pw-btn warn" onclick={() => auth.signOut('manual')}><LogOut size={18} /> Sign out</button>
+      <button class="pw-btn warn" onclick={() => auth.requestSignOut()}><LogOut size={18} /> Sign out</button>
     </div>
   {/if}
 </Dialog>

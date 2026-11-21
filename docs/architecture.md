@@ -43,6 +43,14 @@ backups/
 - **Permanent deletion** is only possible for archived students, after typing the student's name, and is audited.
 - **Student data** (`services/student-data.ts`). Attempts record their context (lesson, practice, assessment, placement) and evidence kind. Only objective evidence counts; free practice builds proficiency but only lessons and assessments open curriculum gates. Mastery is a permanent event log, so history survives later drops in accuracy. Lessons resume from checkpoints; assessments restart and save only when finished.
 
+## Preferences and accessibility (Phase 1, milestone H)
+
+- **Per-student settings** (`stores/preferences.svelte.ts`) load at sign-in, apply across the app (tuner, audio devices and volume, left-handed fretboards, text size, high contrast, reduced motion) and save to the student's profile on every change. A failed save is shown.
+- "Highlight my profile first" stores only which profile to show first, in the app's local web storage; a password is always required.
+- "Ask before signing out" adds a confirmation to the Sign Out buttons. The idle limit never asks.
+- Running the metronome holds the session awake, like a recording or a timed exercise.
+- Every card uses the approved glow treatment (`.card` in `base.css`).
+
 ## Chords and scales (Phase 1, milestone G)
 
 - **Theory data** (`engines/music-theory/chords.ts`, `scales.ts`). Chord qualities and scales are interval lists. Note names are calculated and spelled one letter per degree (F major has Bb, Ab minor has Cb), never typed in.

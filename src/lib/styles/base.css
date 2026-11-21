@@ -42,10 +42,12 @@ button {
   outline-offset: 2px;
 }
 
+/* Every card uses the glow treatment from the approved dashboard mockup (subtle, no new colours). */
 .card {
-  background: var(--pw-surface);
-  border: 1px solid var(--pw-border);
+  background: linear-gradient(180deg, #1b2b3c 0%, #152231 100%);
+  border: 1px solid rgba(67, 169, 255, 0.22);
   border-radius: var(--pw-radius-lg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 30px rgba(0, 0, 0, 0.28);
   padding: 20px 24px;
 }
 
@@ -55,6 +57,24 @@ button {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--pw-text-muted);
+}
+
+/* Accessibility settings (per student). Sizes are in rem, so text size scales everything. */
+html[data-text-size='large'] { font-size: 18px; }
+html[data-text-size='larger'] { font-size: 20px; }
+html[data-text-size='large'] body { font-size: 18px; }
+html[data-text-size='larger'] body { font-size: 20px; }
+html[data-high-contrast] {
+  --pw-text-muted: #d5dde8;
+  --pw-text-faint: #aab7c7;
+  --pw-border: #5a7390;
+  --pw-border-strong: #7f9bbb;
+}
+html[data-reduced-motion] *,
+html[data-reduced-motion] *::before,
+html[data-reduced-motion] *::after {
+  transition: none !important;
+  animation: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

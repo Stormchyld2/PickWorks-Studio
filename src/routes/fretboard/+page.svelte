@@ -1,5 +1,6 @@
 <script lang="ts">
   import Fretboard from '$lib/components/fretboard/Fretboard.svelte';
+  import { preferences } from '$lib/stores/preferences.svelte';
   import type { FretHighlight } from '$lib/components/fretboard/types';
   import {
     allPositions,
@@ -96,6 +97,7 @@
     </div>
   </div>
   <Fretboard
+    leftHanded={preferences.value.display.leftHanded}
     {range}
     {highlights}
     {accidentals}

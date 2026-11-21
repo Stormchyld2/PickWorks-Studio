@@ -80,4 +80,31 @@ describe('account screens flow', () => {
     await expect(old.saveCheckpoint({ kind: 'lesson', refId: 'l1', state: {} })).rejects.toMatchObject({ code: 'no-session' });
     expect(auth.info?.displayName).toBe('Alex');
   });
+
+  it("keeps each student's settings separate and applies them at sign-in", async () => {
+    const { auth, preview } = await app();
+    const { preferences } = await import('../../src/lib/stores/preferences.svelte');
+    const { tuner } = await import('../../src/lib/stores/tuner.svelte');
+    await preview.seed();
+    await auth.init();
+    const [jamie, alex] = auth.profiles;
+    auth.choose(jamie);
+    await auth.signIn('student-pass');
+    await preferences.load();
+    await preferences.update((p) => ((p.tuner.a4 = 442), (p.display.leftHanded = true)));
+    expect(tuner.a4).toBe(442);
+    await auth.signOut('manual', true);
+    preferences.reset();
+    auth.choose(alex);
+    await auth.signIn('student-pass');
+    await preferences.load();
+    expect(preferences.value.display.leftHanded).toBe(false);
+    expect(tuner.a4).toBe(440);
+    await auth.signOut('manual', true);
+    auth.choose(jamie);
+    await auth.signIn('student-pass');
+    await preferences.load();
+    expect(preferences.value.tuner.a4).toBe(442);
+    expect(auth.shouldConfirmSignOut()).toBe(true);
+  });
 });

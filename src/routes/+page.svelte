@@ -1,5 +1,6 @@
 <script lang="ts">
   import Fretboard from '$lib/components/fretboard/Fretboard.svelte';
+  import { preferences } from '$lib/stores/preferences.svelte';
 </script>
 
 <header class="welcome">
@@ -19,6 +20,7 @@
   <h2>Interactive Fretboard</h2>
   <p class="sub">Notes on the A string, calculated from standard tuning.</p>
   <Fretboard
+    leftHanded={preferences.value.display.leftHanded}
     interactive={false}
     focusString={5}
     highlights={[3, 5, 7, 12].map((fret) => ({ string: 5, fret }))}

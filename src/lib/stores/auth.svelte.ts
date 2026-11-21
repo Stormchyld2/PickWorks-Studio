@@ -31,6 +31,10 @@ class AuthStore {
   lastSignOut = $state<SignOutReport | null>(null);
   /** Set when a manual sign-out stopped because something couldn't be saved. */
   unsaved = $state<string[] | null>(null);
+  /** Showing the "Sign out?" question (the student's "Ask before signing out" setting). */
+  confirmingSignOut = $state(false);
+  /** Set by the preferences store. */
+  shouldConfirmSignOut: () => boolean = () => false;
   /** The signed-in student's data service (not reactive: it holds the token). */
   data: StudentData | null = null;
 
@@ -95,11 +99,18 @@ class AuthStore {
     this.screen = { name: 'app' };
   }
 
+  /** The Sign Out buttons: asks first if the student chose that. */
+  requestSignOut(): void {
+    if (!this.isAdmin && this.shouldConfirmSignOut()) this.confirmingSignOut = true;
+    else void this.signOut('manual');
+  }
+
   /**
    * Signs out. A manual sign-out with unsaved work stops and sets `unsaved`
    * so the shell can ask; call again with `force` to sign out anyway.
    */
   async signOut(reason: SignOutReason = 'manual', force = false): Promise<SignOutReport> {
+    this.confirmingSignOut = false;
     const report = await session.signOut(reason, { force: force || reason !== 'manual' });
     this.unsaved = report.signedOut ? null : report.unsaved;
     return report;
