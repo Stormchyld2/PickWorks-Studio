@@ -9,7 +9,12 @@
 import type { FretPosition } from '../fretboard/fretboard';
 import type { PitchClass } from '../music-theory/notes';
 
-export type ObservationSource = 'fretboard-ui' | 'keyboard' | 'microphone' | 'camera';
+/**
+ * Where an observation came from. Microphones and direct guitar input
+ * (an audio interface) both carry sound; MIDI carries note events and is
+ * never treated as audio.
+ */
+export type ObservationSource = 'fretboard-ui' | 'keyboard' | 'microphone' | 'direct-input' | 'midi' | 'camera';
 
 /** 0..1. UI input is certain (1); detectors report their own confidence. */
 export type Confidence = number;
@@ -25,7 +30,8 @@ export type Observation =
   | (ObservationBase & { kind: 'position-selected'; position: FretPosition })
   | (ObservationBase & { kind: 'note-named'; pitchClass: PitchClass })
   | (ObservationBase & { kind: 'pitch-detected'; midi: number; cents: number })
-  | (ObservationBase & { kind: 'onset'; })
+  | (ObservationBase & { kind: 'onset' })
+  | (ObservationBase & { kind: 'midi-note'; midi: number; velocity: number; on: boolean; channel?: number })
   | (ObservationBase & { kind: 'hand-pose'; fretEstimate?: number; stringEstimate?: number });
 
 /** Anything that produces observations: the fretboard UI now, a mic or camera later. */
@@ -40,7 +46,9 @@ export type ExpectedPerformance =
   | { kind: 'select-position'; tuningId: string; accept: readonly FretPosition[] }
   | { kind: 'select-all-positions'; tuningId: string; accept: readonly FretPosition[] }
   | { kind: 'name-note'; pitchClass: PitchClass }
-  | { kind: 'play-pitch'; midi: number; toleranceCents: number };
+  | { kind: 'play-pitch'; midi: number; toleranceCents: number }
+  /** For exercise types registered by other courses; evaluated by their own evaluator. */
+  | { kind: 'custom'; exerciseType: string; data: unknown };
 
 /**
  * How sure the evaluation is. The coach must never present a "probable" or

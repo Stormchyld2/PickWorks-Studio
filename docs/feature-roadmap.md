@@ -62,9 +62,9 @@ This file keeps four things apart:
 | Practice and Assessment Engine | 3, 5, 6, 14, 20, 22, 23 | `engines/practice` |
 | Progress and Mastery Engine | 6, 14, 15, 16, 32 | `engines/mastery` |
 | Fretboard and Music Theory Engine | 2, 3, 7, 8, 13, 19, 21, 22, 24, 27 | `engines/music-theory`, `engines/fretboard` |
-| Audio Input/Output and Device Management | 17, 18, 25, 26, 28, 29, 31 | `services/audio/mic-input.ts` (input only) |
+| Audio Input/Output and Device Management | 17, 18, 25, 26, 28, 29, 31 | `services/audio/audio-engine.ts` |
 | Pitch and Performance Analysis | 17, 31, 32 | `engines/audio/pitch` |
-| Playback, Timing and Transport | 18, 20, 24, 25, 26 | `engines/audio/metronome.ts` |
+| Playback, Timing and Transport | 18, 20, 24, 25, 26 | `engines/audio/transport.ts`, `services/audio/transport.ts` |
 | TAB Import and Interpretation | 24, 12 | — |
 | Recording and Audio Processing | 28, 29, 31 | — |
 | MIDI Input/Output | 30 | — |
@@ -89,14 +89,14 @@ The current navigation is locked for v1 (see requirements). New features are **n
 - Audio Recording: storage limits and whether recordings may be kept (the tuner never records).
 - Practice Journal: what is logged automatically vs written by the student.
 
-## Foundation changes worth making early
+## Foundation changes made early (approved 2026-11-21)
 
-Items in the current engines that would be cheaper to adjust before more features build on them. See the PR discussion; none are made without approval.
+Made before more features build on them. Engine-level only; no new screens or features.
 
-1. **One shared audio context and device service** (input and output selection) instead of separate contexts in the tuner, tones and metronome. Needed by recording, effects, loop trainer and backing tracks, and for consistent output-device selection and latency.
-2. **A shared transport** (tempo, bar/beat clock, start/stop, loop points) with the metronome as one consumer. Needed by backing tracks, loop trainer, TAB playback and the chord transition trainer.
-3. **A pluggable exercise registry** (type → generator + evaluator) so chord, scale, rhythm and ear exercises add new types without editing the fretboard ones.
-4. **A generic `tool` lesson step** (e.g. embed the metronome, tuner or chord library with settings) added to the lesson schema while it is still version 1 and no content exists.
-5. **`midi` and `direct-input` observation sources** in the performance seam, so MIDI and guitar-interface input slot in without changing evaluation code.
+1. **Shared audio system** (`services/audio/audio-engine.ts`): one AudioContext, master output, input and output device selection, input channel choice. The tuner, reference tones and metronome all use it.
+2. **Shared transport** (`engines/audio/transport.ts`, `services/audio/transport.ts`): tempo, bars and beats, tempo changes without jumps, loop regions. The metronome is a consumer.
+3. **Exercise registry** (`engines/practice/registry.ts`): each type supplies a generator and optional evaluator; the six fretboard exercises are registered built-ins.
+4. **Lesson `tool` step**: embeds a standalone tool with settings; content checks flag unknown tools and exercise types.
+5. **Input sources**: `direct-input` and `midi` observation sources and a `midi-note` observation, kept separate from audio.
 
 Later, not now: moving audio capture to an AudioWorklet when recording or effects are approved (the current frame interface stays the same).

@@ -4,7 +4,8 @@ const id = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'ids use lowercase letters, 
 const position = z.object({ string: z.number().int().min(1).max(6), fret: z.number().int().min(0).max(24) });
 const range = z.object({ minFret: z.number().int().min(0).max(24), maxFret: z.number().int().min(0).max(24) }).refine((r) => r.minFret <= r.maxFret, 'minFret must not exceed maxFret');
 
-export const exerciseTypeSchema = z.enum(['find-note', 'name-note', 'identify-position', 'find-all', 'anchor', 'octave']);
+/** Any exercise type id; checked against the exercise registry by validateCourseContent. */
+export const exerciseTypeSchema = z.string().regex(/^[a-z0-9][a-z0-9-]*$/);
 
 /** Learning cycle: Discover -> Recall -> Play -> Review. */
 export const stepSchema = z.discriminatedUnion('kind', [
@@ -31,6 +32,21 @@ export const stepSchema = z.discriminatedUnion('kind', [
   }),
   z.object({ kind: z.literal('play'), id, title: z.string().min(1), body: z.string().min(1) }),
   z.object({ kind: z.literal('review'), id, title: z.string().min(1), body: z.string().min(1) }),
+  /**
+   * Embeds a standalone tool inside the lesson (tuner, metronome, chord
+   * library, loop trainer, ...) with lesson-specific settings, so lessons
+   * and standalone tools share one implementation.
+   */
+  z.object({
+    kind: z.literal('tool'),
+    id,
+    title: z.string().min(1),
+    tool: id,
+    body: z.string().optional(),
+    settings: z.record(z.string(), z.unknown()).default({}),
+    /** If true the student must finish the tool step (e.g. tune up) before continuing. */
+    required: z.boolean().default(false),
+  }),
 ]);
 
 export const lessonSchema = z.object({
@@ -78,8 +94,20 @@ function validate<T>(schema: z.ZodType<T>, data: unknown, label: string): Valida
 export const validateLesson = (data: unknown) => validate(lessonSchema, data, 'lesson');
 export const validateCourse = (data: unknown) => validate(courseSchema, data, 'course');
 
-/** Cross-file checks: every lesson a course lists exists, matches, and has known prerequisites. */
-export function validateCourseContent(course: Course, lessons: readonly Lesson[]): string[] {
+/** Tools a lesson step may embed today. Extended as tools are approved and built. */
+export const KNOWN_LESSON_TOOLS: readonly string[] = ['tuner', 'metronome', 'fretboard-explorer'];
+
+export interface ContentCheckOptions {
+  /** Registered exercise types (from the practice registry). */
+  exerciseTypes?: readonly string[];
+  tools?: readonly string[];
+}
+
+/**
+ * Cross-file checks: every lesson a course lists exists and matches, has
+ * prerequisites that come first, and only uses known exercise types and tools.
+ */
+export function validateCourseContent(course: Course, lessons: readonly Lesson[], options: ContentCheckOptions = {}): string[] {
   const errors: string[] = [];
   const byId = new Map(lessons.map((l) => [l.id, l]));
   const listed = course.modules.flatMap((m) => m.lessons.map((lessonId) => ({ module: m.id, lessonId })));
@@ -95,6 +123,12 @@ export function validateCourseContent(course: Course, lessons: readonly Lesson[]
     if (l.courseId !== course.id) errors.push(`Lesson ${lessonId} belongs to course ${l.courseId}, not ${course.id}`);
     if (l.moduleId !== module) errors.push(`Lesson ${lessonId} says module ${l.moduleId} but is listed in ${module}`);
     for (const p of l.prerequisites) if (!seen.has(p)) errors.push(`Lesson ${lessonId} requires ${p}, which does not come before it`);
+    const tools = options.tools ?? KNOWN_LESSON_TOOLS;
+    for (const step of l.steps) {
+      if (step.kind === 'recall' && options.exerciseTypes)
+        for (const t of step.exercise.types) if (!options.exerciseTypes.includes(t)) errors.push(`Lesson ${lessonId} step ${step.id} uses unknown exercise type ${t}`);
+      if (step.kind === 'tool' && !tools.includes(step.tool)) errors.push(`Lesson ${lessonId} step ${step.id} uses unknown tool ${step.tool}`);
+    }
   }
   return errors;
 }

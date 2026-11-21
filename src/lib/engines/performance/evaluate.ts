@@ -35,6 +35,9 @@ export const ruleEvaluator: PerformanceEvaluator = {
           findings: correct ? [] : [{ code: 'wrong-note', certainty: 'confirmed', detail: { named: last.pitchClass } }],
         };
       }
+      case 'custom':
+        // Registered exercise types supply their own evaluator.
+        break;
       case 'play-pitch':
         // Microphone evaluation is a Virtual Instructor feature; requirements not finalised.
         break;

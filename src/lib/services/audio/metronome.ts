@@ -1,68 +1,51 @@
-import { beatsBetween, type MetronomeSettings } from '$lib/engines/audio/metronome';
+import type { TransportBeat } from '$lib/engines/audio/transport';
+import { audioEngine } from './audio-engine';
+import { transport } from './transport';
 
-/** Web Audio metronome using look-ahead scheduling for steady timing. */
+/**
+ * Metronome clicks as a consumer of the shared transport, so it stays in
+ * time with backing tracks, loops and lesson playback that use the same clock.
+ */
 export class Metronome {
-  private ctx: AudioContext | null = null;
-  private gain: GainNode | null = null;
-  private timer: ReturnType<typeof setInterval> | null = null;
-  private startTime = 0;
-  private scheduledUntil = 0;
-  settings: MetronomeSettings = { bpm: 80, beatsPerBar: 4, accentFirst: true };
   volume = 0.6;
   muted = false;
+  accentFirst = true;
   onBeat?: (beatInBar: number) => void;
+  private unsubscribe: (() => void) | null = null;
 
   get running(): boolean {
-    return this.timer !== null;
+    return this.unsubscribe !== null;
   }
 
-  start() {
-    this.ctx ??= new AudioContext();
-    void this.ctx.resume();
-    this.gain = this.ctx.createGain();
-    this.gain.connect(this.ctx.destination);
-    this.startTime = this.ctx.currentTime + 0.1;
-    this.scheduledUntil = this.startTime;
-    this.timer = setInterval(() => this.schedule(), 25);
+  /** Starts clicking. Starts the transport too if nothing else has. */
+  start(bpm?: number, beatsPerBar?: number) {
+    if (!transport.running) transport.start(bpm, beatsPerBar);
+    else if (bpm) transport.setBpm(bpm);
+    this.unsubscribe ??= transport.subscribe((beat, ctx) => this.click(beat, ctx));
   }
 
-  stop() {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = null;
-    this.gain?.disconnect();
-    this.gain = null;
+  stop({ stopTransport = true } = {}) {
+    this.unsubscribe?.();
+    this.unsubscribe = null;
+    if (stopTransport) transport.stop();
   }
 
-  /** Changing tempo restarts the beat grid from the next beat. */
   setBpm(bpm: number) {
-    this.settings = { ...this.settings, bpm };
-    if (this.ctx && this.running) {
-      this.startTime = this.scheduledUntil;
-    }
+    transport.setBpm(bpm);
   }
 
-  private schedule() {
-    if (!this.ctx || !this.gain) return;
-    const until = this.ctx.currentTime + 0.12;
-    for (const beat of beatsBetween(this.settings, this.startTime, this.scheduledUntil, until)) this.click(beat.time, beat.accent, beat.beatInBar);
-    this.scheduledUntil = until;
-  }
-
-  private click(time: number, accent: boolean, beatInBar: number) {
-    if (!this.ctx || !this.gain) return;
-    const osc = this.ctx.createOscillator();
-    const env = this.ctx.createGain();
+  private click(beat: TransportBeat, ctx: AudioContext) {
+    const accent = this.accentFirst && beat.downbeat;
+    const osc = ctx.createOscillator();
+    const env = ctx.createGain();
     osc.frequency.value = accent ? 1760 : 1175;
     const level = this.muted ? 0 : this.volume * (accent ? 1 : 0.7);
-    env.gain.setValueAtTime(0.0001, time);
-    env.gain.exponentialRampToValueAtTime(Math.max(0.0001, level), time + 0.002);
-    env.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
-    osc.connect(env).connect(this.gain);
-    osc.start(time);
-    osc.stop(time + 0.06);
-    if (this.onBeat) {
-      const delay = Math.max(0, (time - this.ctx.currentTime) * 1000);
-      setTimeout(() => this.onBeat?.(beatInBar), delay);
-    }
+    env.gain.setValueAtTime(0.0001, beat.time);
+    env.gain.exponentialRampToValueAtTime(Math.max(0.0001, level), beat.time + 0.002);
+    env.gain.exponentialRampToValueAtTime(0.0001, beat.time + 0.05);
+    osc.connect(env).connect(audioEngine.output());
+    osc.start(beat.time);
+    osc.stop(beat.time + 0.06);
+    if (this.onBeat) setTimeout(() => this.onBeat?.(beat.beatInBar), Math.max(0, (beat.time - ctx.currentTime) * 1000));
   }
 }

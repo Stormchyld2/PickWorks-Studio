@@ -1,8 +1,8 @@
 import type { Attempt } from '../mastery/attempts';
 import { weakestSkills } from '../mastery/mastery';
 import type { Evaluation, Observation } from '../performance/types';
-import { ruleEvaluator } from '../performance/evaluate';
-import { generateExercise, type Exercise, type ExerciseType, type GenerateOptions } from './exercises';
+import type { Exercise, ExerciseType, GenerateOptions } from './exercises';
+import { evaluateExercise, getExerciseDefinition } from './registry';
 
 export type PracticeMode = 'untimed' | 'timed';
 export type PracticeSource = 'mixed' | 'weak-areas' | 'single';
@@ -53,6 +53,7 @@ const positionFromKey = (key: string) => {
  */
 export function createPracticeSession(config: PracticeConfig, history: readonly Attempt[] = [], now = new Date()): PracticeSession {
   if (config.types.length === 0) throw new Error('Choose at least one exercise type');
+  config.types.forEach((t) => getExerciseDefinition(t)); // fail fast on unknown types
   const exercises: Exercise[] = [];
   const typeAt = (i: number) => config.types[config.source === 'mixed' ? Math.floor(config.generate.rng() * config.types.length) : i % config.types.length];
 
@@ -62,10 +63,10 @@ export function createPracticeSession(config: PracticeConfig, history: readonly 
       .filter((p) => p !== undefined && p.fret <= config.generate.range.maxFret && p.fret >= config.generate.range.minFret);
     for (const target of weak) {
       if (exercises.length >= config.count) break;
-      exercises.push(generateExercise(typeAt(exercises.length), { ...config.generate, target }));
+      exercises.push(getExerciseDefinition(typeAt(exercises.length)).generate({ ...config.generate, target }));
     }
   }
-  while (exercises.length < config.count) exercises.push(generateExercise(typeAt(exercises.length), config.generate));
+  while (exercises.length < config.count) exercises.push(getExerciseDefinition(typeAt(exercises.length)).generate(config.generate));
   if (config.assessment) for (const ex of exercises) delete ex.hint;
 
   return {
@@ -108,7 +109,7 @@ export function submitAnswer(
   const timedOut = s.config.mode === 'timed' && s.config.timeLimitMs !== undefined && responseMs > s.config.timeLimitMs;
   const evaluation = timedOut
     ? { correct: false, certainty: 'confirmed' as const, findings: [{ code: 'timed-out', certainty: 'confirmed' as const }], responseMs }
-    : ruleEvaluator.evaluate(ex.expected, observations);
+    : evaluateExercise(ex, observations);
 
   const attempt: Attempt = {
     exerciseType: ex.type,

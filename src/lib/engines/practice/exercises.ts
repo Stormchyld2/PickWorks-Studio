@@ -18,13 +18,19 @@ import { ordinal, type Tuning } from '../music-theory/tuning';
 import type { ExpectedPerformance } from '../performance/types';
 import { pick, type Rng } from './rng';
 
-export type ExerciseType =
+/** Built-in fretboard exercise types. Other courses register their own via the exercise registry. */
+export type FretboardExerciseType =
   | 'find-note' // find a named note (optionally on a given string)
   | 'name-note' // name the highlighted note
   | 'identify-position' // say which string and fret is highlighted
   | 'find-all' // locate every occurrence of a note
   | 'anchor' // find an anchor note on the 6th or 5th string
   | 'octave'; // find the octave of a highlighted note using octave shapes
+
+/** Any registered exercise type: the built-ins above or a type added by another course. */
+export type ExerciseType = FretboardExerciseType | (string & {});
+
+export const FRETBOARD_EXERCISE_TYPES: readonly FretboardExerciseType[] = ['find-note', 'name-note', 'identify-position', 'find-all', 'anchor', 'octave'];
 
 export type SkillDimension = 'fretboard' | 'chords' | 'rhythm' | 'technique' | 'ear';
 
@@ -57,6 +63,8 @@ export interface GenerateOptions {
   pitchClasses?: PitchClass[];
   /** Explicit target (used by weak-area review). */
   target?: FretPosition;
+  /** Free-form settings for exercise types registered by other courses. */
+  params?: Record<string, unknown>;
 }
 
 /** Default anchor notes: the landmarks on the two bass strings that locate chord roots. */
@@ -97,7 +105,8 @@ function where(p: FretPosition): string {
   return `${ordinal(p.string)} string, ${p.fret === 0 ? 'open' : `${ordinal(p.fret)} fret`}`;
 }
 
-export function generateExercise(type: ExerciseType, o: GenerateOptions): Exercise {
+/** Generator for the built-in fretboard exercises. Use the registry (`getExerciseDefinition`) from sessions. */
+export function generateExercise(type: FretboardExerciseType, o: GenerateOptions): Exercise {
   const acc = o.accidentals ?? 'sharp';
   const strings = o.tuning.strings;
   const label = (n: number) => strings.find((s) => s.number === n)?.label ?? String(n);
