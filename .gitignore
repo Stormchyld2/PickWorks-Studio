@@ -1,0 +1,14 @@
+node_modules/
+/build/
+/.svelte-kit/
+/package/
+.env
+.env.*
+!.env.example
+vite.config.*.timestamp-*
+coverage/
+src-tauri/target/
+src-tauri/gen/schemas/
+*.log
+.DS_Store
+Thumbs.db
