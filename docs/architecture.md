@@ -15,7 +15,34 @@ The full plan, with decisions and roadmap, lives in the project document "PickWo
 2. Components (`src/lib/components`)
 3. Stores (Svelte 5 runes; from Milestone 4)
 4. Engines (`src/lib/engines`): `music-theory`, `fretboard`, `performance` (seams), `lessons`, `practice`, `mastery`, `audio` (pitch detection, tuner, metronome), `print`
-5. Services: JSON file storage through Rust commands with atomic writes and backups (Milestone 5)
+5. Services (`src/lib/services`): shared audio, the connectivity policy, and `core-client.ts`, the typed client for the native core.
+6. Native core (`src-tauri/core`, crate `pickworks-core`): plain Rust with no Tauri dependency, tested on its own and reusable on Android. It owns storage, accounts, sessions and the audit log. `src-tauri/src` only wires it into the app and adds platform checks.
+
+## Storage, accounts and sessions (Phase 1)
+
+Data lives in the app data folder, laid out as in Planning Update 04:
+
+```
+application/            app-wide settings
+accounts/               account-index.json (public facts), credentials.json (Argon2id hashes only), throttle.json
+students/{student-id}/  one folder per student, keyed by a permanent id; renaming never moves records
+administration/         audit-log/YYYY-MM.jsonl (append-only), recovery/
+backups/
+```
+
+- **Crash-safe writes.** Each JSON file is written to a temporary file, flushed, the previous copy kept as `.bak`, then renamed into place. Reads fall back to `.bak` if the main file is damaged. Logs (attempts, mastery events, XP, audit) are append-only, so a crash can only lose the last line.
+- **Versioned files.** Every file is `{ schemaVersion, data }`. Older versions are upgraded through ordered migrations; files from a newer app are refused rather than misread.
+- **Ownership is enforced in Rust.** The interface never passes file paths, only a session token and a record name such as `progress` or `checkpoints/lesson-01`. Rust resolves the path inside the signed-in student's folder.
+- **Sessions.** One session at a time. Every data call carries its token; signing out or signing in as someone else ends the old token, so a delayed save from a previous student is refused.
+- **Passwords.** At least 8 characters, Argon2id with unique salts, verified locally. Failed sign-ins wait 30 s, 1 min, then 5 min (saved on disk; never a permanent lockout; the administrator can unlock). Administrator resets only replace the hash: progress, mastery, XP and history are untouched, and the student sets a new password at next sign-in.
+- **Administrator recovery.** A recovery key is shown once at setup and stored only as a hash. If both password and key are lost, recovery needs Windows administrator rights (an elevated process); it replaces only the administrator credential and is audited.
+- **Idle limits.** Students 20 minutes, administrator 5 minutes (enforced by the session lifecycle, Milestone D).
+
+## Offline enforcement
+
+- `services/connectivity.ts` is the only sanctioned path to the network; in Phase 1 it refuses every request.
+- The Tauri content security policy allows no remote hosts (`connect-src 'self' ipc:`), so a missed check still cannot reach the internet.
+- No opener, shell or file-system plugins are installed, and a navigation guard refuses any page outside the app.
 
 ## Performance pipeline (Virtual Instructor seams)
 

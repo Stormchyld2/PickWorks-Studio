@@ -14,14 +14,20 @@ edition = "2024"
 name = "pickworks_studio_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[workspace]
+members = ["core"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
-tauri-plugin-opener = "2"
+pickworks-core = { path = "core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security", "Win32_System_Threading"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
