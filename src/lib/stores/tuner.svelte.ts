@@ -11,6 +11,7 @@ import {
   getPreset,
   guidedAdvice,
   nearestString,
+  skipString,
   startTuneAll,
   type ChromaticReading,
   type GuidedAdvice,
@@ -203,6 +204,10 @@ class TunerStore {
   startTuneAll() {
     this.mode = 'guided';
     this.tuneAll = startTuneAll(this.preset);
+  }
+
+  skipTuneAllString() {
+    if (this.tuneAll) this.tuneAll = skipString(this.tuneAll);
   }
 
   cancelTuneAll() {

@@ -4,7 +4,7 @@ import type { Evaluation, ExpectedPerformance, Observation, PerformanceEvaluator
 /** Below this, a detector's observation is not trusted enough to judge. */
 export const MIN_CONFIDENCE = 0.8;
 
-/** Rule-based evaluator for Phase 1 inputs (fretboard taps, note naming, detected pitch). */
+/** Rule-based evaluator for Phase 1 inputs (fretboard taps and note naming). */
 export const ruleEvaluator: PerformanceEvaluator = {
   evaluate(expected: ExpectedPerformance, observations: Observation[]): Evaluation {
     const trusted = observations.filter((o) => o.confidence >= MIN_CONFIDENCE);
@@ -35,17 +35,9 @@ export const ruleEvaluator: PerformanceEvaluator = {
           findings: correct ? [] : [{ code: 'wrong-note', certainty: 'confirmed', detail: { named: last.pitchClass } }],
         };
       }
-      case 'play-pitch': {
-        if (last.kind !== 'pitch-detected') break;
-        const offCents = (last.midi - expected.midi) * 100 + last.cents;
-        const correct = Math.abs(offCents) <= expected.toleranceCents;
-        return {
-          correct,
-          certainty: 'confirmed',
-          responseMs,
-          findings: correct ? [] : [{ code: offCents > 0 ? 'pitch-sharp' : 'pitch-flat', certainty: 'confirmed', detail: { offCents } }],
-        };
-      }
+      case 'play-pitch':
+        // Microphone evaluation is a Virtual Instructor feature; requirements not finalised.
+        break;
       case 'select-all-positions':
         // Implemented with the practice engine in Milestone 4.
         break;

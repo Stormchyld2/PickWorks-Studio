@@ -25,12 +25,4 @@ describe('rule evaluator', () => {
     ]);
     expect(e).toMatchObject({ correct: null, certainty: 'insufficient-evidence' });
   });
-
-  it('judges detected pitch against tolerance', () => {
-    const sharp = ruleEvaluator.evaluate({ kind: 'play-pitch', midi: 48, toleranceCents: 20 }, [
-      { kind: 'pitch-detected', source: 'microphone', confidence: 0.95, atMs: 500, midi: 48, cents: 35 },
-    ]);
-    expect(sharp.correct).toBe(false);
-    expect(sharp.findings[0].code).toBe('pitch-sharp');
-  });
 });
