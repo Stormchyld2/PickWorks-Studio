@@ -10,6 +10,8 @@ This file keeps four things apart:
 3. **Proposed shared architecture**: below. Responsibilities, not mandated modules or processes.
 4. **Unresolved decisions**: below.
 
+See also [planning-update-02.md](planning-update-02.md) (offline resilience, connectivity policy, chord diagram generator).
+
 ## Principles
 
 - Every tool works **standalone** and **inside** lessons, guided practice, assessments and (later) the Virtual Instructor, using the same engine.
