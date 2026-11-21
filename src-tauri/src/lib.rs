@@ -59,6 +59,8 @@ pub fn run() {
             commands::auth_change_password,
             commands::auth_recover_with_key,
             commands::auth_recover_with_windows_admin,
+            commands::auth_launch_mode,
+            commands::auth_relaunch_elevated,
             commands::admin_list_students,
             commands::admin_create_student,
             commands::admin_rename_student,

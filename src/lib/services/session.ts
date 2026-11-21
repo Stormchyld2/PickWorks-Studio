@@ -3,11 +3,11 @@
  * keep the session awake during recordings, and register sign-out work.
  */
 import { audioEngine } from './audio/audio-engine';
-import { core } from './core-client';
+import { backend } from './backend';
 import { SessionLifecycle } from './session-lifecycle';
 
 export const session = new SessionLifecycle({
-  endNativeSession: (token) => core.signOut(token),
+  endNativeSession: (token) => backend.signOut(token),
   stopAudio: () => audioEngine.stopAll(),
   now: () => Date.now(),
 });

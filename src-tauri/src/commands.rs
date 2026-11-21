@@ -67,6 +67,25 @@ pub fn auth_recover_with_windows_admin(state: State<CoreState>, new_password: St
     with(&state, |c| c.recover_with_windows_admin(ElevationProof::verified_by_platform(), &new_password))
 }
 
+/// How the app was started: "recover-admin" after an approved elevated relaunch.
+#[tauri::command]
+pub fn auth_launch_mode() -> &'static str {
+    crate::platform::launch_mode()
+}
+
+/// Relaunches through the Windows UAC prompt for administrator recovery and
+/// closes this copy once the elevated one has started.
+#[tauri::command]
+pub fn auth_relaunch_elevated(app: tauri::AppHandle) -> Result<(), ErrorPayload> {
+    crate::platform::relaunch_elevated().map_err(|message| ErrorPayload {
+        code: pickworks_core::CoreError::ElevationRequired.code(),
+        message,
+        retry_after_secs: None,
+    })?;
+    app.exit(0);
+    Ok(())
+}
+
 #[tauri::command]
 pub fn admin_list_students(state: State<CoreState>, token: String) -> Res<Vec<StudentAdminView>> {
     with(&state, |c| c.admin_list_students(&token))

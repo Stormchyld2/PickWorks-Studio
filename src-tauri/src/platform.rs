@@ -32,6 +32,52 @@ pub fn is_elevated_admin() -> bool {
     false
 }
 
+/// Command-line flag the app passes to itself when relaunching elevated for
+/// administrator recovery.
+pub const RECOVER_ADMIN_FLAG: &str = "--recover-admin";
+
+/// Starts a second copy of the app through the Windows UAC prompt, so a
+/// Windows administrator can approve the PickWorks administrator recovery.
+/// Returns an error if the prompt was declined or this isn't Windows.
+#[cfg(windows)]
+pub fn relaunch_elevated() -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::UI::Shell::ShellExecuteW;
+    use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+
+    fn wide(s: &std::ffi::OsStr) -> Vec<u16> {
+        s.encode_wide().chain(Some(0)).collect()
+    }
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let verb = wide("runas".as_ref());
+    let file = wide(exe.as_os_str());
+    let params = wide(RECOVER_ADMIN_FLAG.as_ref());
+    let result = unsafe {
+        ShellExecuteW(std::ptr::null_mut(), verb.as_ptr(), file.as_ptr(), params.as_ptr(), std::ptr::null(), SW_SHOWNORMAL)
+    };
+    // ShellExecuteW reports success with a value greater than 32.
+    if result as isize > 32 {
+        Ok(())
+    } else {
+        Err("Windows administrator approval was not given.".into())
+    }
+}
+
+#[cfg(not(windows))]
+pub fn relaunch_elevated() -> Result<(), String> {
+    Err("Administrator recovery with system approval is only available on Windows.".into())
+}
+
+/// "recover-admin" when the app was relaunched for recovery and really is
+/// elevated; otherwise "normal".
+pub fn launch_mode() -> &'static str {
+    if std::env::args().any(|a| a == RECOVER_ADMIN_FLAG) && is_elevated_admin() {
+        "recover-admin"
+    } else {
+        "normal"
+    }
+}
+
 /// Only the app's own pages may load in the window; external links are
 /// refused (offline-first: no browsing out of the app).
 pub fn is_allowed_navigation(url: &str) -> bool {

@@ -3,7 +3,7 @@
   screen will do and which milestone delivers it; never fake data.
 -->
 <script lang="ts">
-  let { title, milestone, summary, items = [] }: { title: string; milestone: number; summary: string; items?: string[] } =
+  let { title, milestone, summary, items = [] }: { title: string; milestone: number | string; summary: string; items?: string[] } =
     $props();
 </script>
 

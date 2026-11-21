@@ -20,7 +20,12 @@ export interface SessionInfo {
 export interface ProfileCard {
   id: string;
   displayName: string;
+  /** Profile picture as a data URL, when one has been set (added with the admin area). */
+  avatar?: string;
 }
+
+/** "recover-admin" when the app was relaunched with Windows administrator approval. */
+export type LaunchMode = 'normal' | 'recover-admin';
 
 export type AccountStatus = 'active' | 'deactivated' | 'archived';
 
@@ -92,6 +97,8 @@ async function call<T>(cmd: string, args: Record<string, unknown> = {}): Promise
   }
 }
 
+export type CoreApi = typeof core;
+
 export const core = {
   needsSetup: () => call<boolean>('auth_needs_setup'),
   setupAdmin: (displayName: string, password: string) => call<string>('auth_setup_admin', { displayName, password }),
@@ -102,6 +109,8 @@ export const core = {
   changePassword: (token: string, current: string, newPassword: string) => call<void>('auth_change_password', { token, current, newPassword }),
   recoverWithKey: (recoveryKey: string, newPassword: string) => call<string>('auth_recover_with_key', { recoveryKey, newPassword }),
   recoverWithWindowsAdmin: (newPassword: string) => call<string>('auth_recover_with_windows_admin', { newPassword }),
+  launchMode: () => call<LaunchMode>('auth_launch_mode'),
+  relaunchElevated: () => call<void>('auth_relaunch_elevated'),
 
   adminListStudents: (token: string) => call<StudentAdminView[]>('admin_list_students', { token }),
   adminCreateStudent: (token: string, displayName: string, tempPassword: string) => call<string>('admin_create_student', { token, displayName, tempPassword }),
