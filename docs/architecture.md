@@ -43,6 +43,14 @@ backups/
 - **Permanent deletion** is only possible for archived students, after typing the student's name, and is audited.
 - **Student data** (`services/student-data.ts`). Attempts record their context (lesson, practice, assessment, placement) and evidence kind. Only objective evidence counts; free practice builds proficiency but only lessons and assessments open curriculum gates. Mastery is a permanent event log, so history survives later drops in accuracy. Lessons resume from checkpoints; assessments restart and save only when finished.
 
+## Chords and scales (Phase 1, milestone G)
+
+- **Theory data** (`engines/music-theory/chords.ts`, `scales.ts`). Chord qualities and scales are interval lists. Note names are calculated and spelled one letter per degree (F major has Bb, Ab minor has Cb), never typed in.
+- **Chord shapes** (`engines/chords/shape.ts`). A shape stores only frets, fingers and barres for a tuning. `analyzeShape` works out every note and interval from the tuning; `validateShape` checks the shape is really its chord (root and 3rd present, no wrong notes) and playable (fingers, barres, stretch). The tests validate every bundled shape.
+- **Diagram layout** (`engines/chords/diagram.ts`) feeds one renderer (`components/chord/ChordDiagram.svelte`) used on screen and in black and white for print. Left-handed mode mirrors the picture only; `conceal` hides the name and note labels in assessments.
+- **Starter set** (`engines/chords/library.ts`): 27 common open chords plus E-shape and A-shape barres. The release chord library scope is still an open decision.
+- **Scale positions** (`engines/fretboard/scale-positions.ts`) place a scale on the neck with interval labels.
+
 ## Offline enforcement
 
 - `services/connectivity.ts` is the only sanctioned path to the network; in Phase 1 it refuses every request.
