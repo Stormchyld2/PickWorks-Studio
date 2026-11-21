@@ -7,7 +7,8 @@
   <div class="card">
     <p><strong>PickWorks Studio</strong> version {version}</p>
     <p class="muted">Interactive guitar education and practice software. Works fully offline; no accounts, ads or analytics.</p>
-    <p class="muted">Built with Tauri, Svelte and TypeScript. Licensing details and credits will be completed before release.</p>
+    <p class="muted">© PickWorks Studio, all rights reserved.</p>
+    <p class="muted">Built with Tauri, Svelte and TypeScript. Third-party licenses will be listed here before release.</p>
   </div>
 </section>
 
