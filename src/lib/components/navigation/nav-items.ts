@@ -23,8 +23,8 @@ export const PRIMARY_NAV: NavItem[] = [
   { href: '/practice', label: 'Practice', icon: Target },
   { href: '/fretboard', label: 'Fretboard', icon: Grid3x3 },
   { href: '/print', label: 'Print Materials', icon: Printer },
-  { href: '/progress', label: 'Progress', icon: ChartNoAxesColumn },
   { href: '/tuner', label: 'Tuner', icon: AudioWaveform },
+  { href: '/progress', label: 'Progress', icon: ChartNoAxesColumn },
 ];
 
 export const SECONDARY_NAV: NavItem[] = [
