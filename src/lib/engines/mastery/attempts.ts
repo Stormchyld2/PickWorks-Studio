@@ -1,5 +1,15 @@
 import type { ExerciseType, SkillDimension } from '../practice/exercises';
 
+/** Where an attempt happened. Only lessons, assessments and placement count toward curriculum gates. */
+export type AttemptContext = 'lesson' | 'practice' | 'assessment' | 'placement';
+
+/**
+ * How the result was judged (Decision 05). Only objective evidence (the app
+ * checked the answer itself) can satisfy mastery. Guided and self-assessed
+ * results are kept for history and coaching but never grant mastery.
+ */
+export type EvidenceKind = 'objective' | 'guided' | 'self';
+
 /** One answered exercise. Stored in the student's practice history. */
 export interface Attempt {
   exerciseType: ExerciseType;
@@ -14,6 +24,29 @@ export interface Attempt {
   lessonId?: string;
   /** True when the student used "Show Answer" before answering. Never counts toward mastery. */
   revealed?: boolean;
+  /** Defaults to 'lesson' when lessonId is set, otherwise 'practice'. */
+  context?: AttemptContext;
+  /** Defaults to 'objective'. */
+  evidence?: EvidenceKind;
+  /** Permanent id of the student who made the attempt. Stamped when saved. */
+  studentId?: string;
+}
+
+export function attemptContext(a: Attempt): AttemptContext {
+  return a.context ?? (a.lessonId ? 'lesson' : 'practice');
+}
+
+export function isObjective(a: Attempt): boolean {
+  return (a.evidence ?? 'objective') === 'objective';
+}
+
+/**
+ * Whether an attempt can count toward a curriculum mastery gate: objective
+ * evidence from a lesson, assessment or placement. Standalone practice builds
+ * current proficiency but never confers curriculum mastery on its own.
+ */
+export function countsTowardGate(a: Attempt): boolean {
+  return isObjective(a) && attemptContext(a) !== 'practice';
 }
 
 export interface MasteryConfig {
