@@ -14,7 +14,7 @@ The full plan, with decisions and roadmap, lives in the project document "PickWo
 1. Screens (`src/routes`)
 2. Components (`src/lib/components`)
 3. Stores (Svelte 5 runes; from Milestone 4)
-4. Engines (`src/lib/engines`): `music-theory`, `fretboard`, `performance`; later `lessons`, `practice`, `mastery`, `audio`, `print`
+4. Engines (`src/lib/engines`): `music-theory`, `fretboard`, `performance` (seams), `lessons`, `practice`, `mastery`, `audio` (pitch detection, tuner, metronome), `print`
 5. Services: JSON file storage through Rust commands with atomic writes and backups (Milestone 5)
 
 ## Performance pipeline (Virtual Instructor seams)
@@ -25,7 +25,9 @@ The full plan, with decisions and roadmap, lives in the project document "PickWo
 2. **PerformanceEvaluator** compares observations with an `ExpectedPerformance` and returns an `Evaluation` whose findings are `confirmed`, `probable` or `insufficient-evidence`. Low-confidence input is never judged.
 3. **CoachingEngine** turns evaluations into a message and a next action (retry, show answer, simplify, advance, review).
 
-Mastery will be stored per skill dimension (fretboard knowledge, chords, rhythm and timing, technique, ear training) so the future instructor can adapt by area.
+Mastery is tracked per skill dimension (fretboard knowledge, chords, rhythm and timing, technique, ear training) so the future instructor can adapt by area.
+
+Locked v1 decisions are in [requirements-v1.md](requirements-v1.md).
 
 ## Conventions
 
