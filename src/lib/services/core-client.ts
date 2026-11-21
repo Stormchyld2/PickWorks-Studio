@@ -47,6 +47,17 @@ export interface AuditEntry {
   detail?: string;
 }
 
+export interface BackupInfo {
+  name: string;
+  kind: 'student' | 'installation';
+  reason: 'manual' | 'before-restore';
+  createdMs: number;
+  studentId?: string;
+  studentName?: string;
+  appVersion: string;
+  sizeBytes: number;
+}
+
 export type CoreErrorCode =
   | 'io'
   | 'invalid-name'
@@ -118,6 +129,14 @@ export const core = {
   adminResetPassword: (token: string, studentId: string, tempPassword: string) => call<void>('admin_reset_password', { token, studentId, tempPassword }),
   adminUnlock: (token: string, studentId: string) => call<void>('admin_unlock', { token, studentId }),
   adminSetStatus: (token: string, studentId: string, status: AccountStatus) => call<void>('admin_set_status', { token, studentId, status }),
+  adminSetAvatar: (token: string, studentId: string, dataUrl: string | null) => call<void>('admin_set_avatar', { token, studentId, dataUrl }),
+  adminDeleteStudent: (token: string, studentId: string, confirmName: string) => call<void>('admin_delete_student', { token, studentId, confirmName }),
+  adminListBackups: (token: string) => call<BackupInfo[]>('admin_list_backups', { token }),
+  adminBackupStudent: (token: string, studentId: string) => call<string>('admin_backup_student', { token, studentId }),
+  adminBackupInstallation: (token: string) => call<string>('admin_backup_installation', { token }),
+  adminRestoreStudent: (token: string, backupName: string, adminPassword: string) => call<string>('admin_restore_student', { token, backupName, adminPassword }),
+  adminRestoreInstallation: (token: string, backupName: string, adminPassword: string) =>
+    call<string>('admin_restore_installation', { token, backupName, adminPassword }),
   adminRecentAudit: (token: string, limit = 100) => call<AuditEntry[]>('admin_recent_audit', { token, limit }),
   adminNewRecoveryKey: (token: string, adminPassword: string) => call<string>('admin_new_recovery_key', { token, adminPassword }),
 

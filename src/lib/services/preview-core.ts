@@ -6,7 +6,7 @@
  * password, one session at a time, growing delays after wrong passwords.
  * It keeps nothing on disk and never ships in the desktop build.
  */
-import { CoreError, type AccountStatus, type AuditEntry, type CoreApi, type Envelope, type SessionInfo, type StudentAdminView } from './core-client';
+import { CoreError, type AccountStatus, type BackupInfo, type AuditEntry, type CoreApi, type Envelope, type SessionInfo, type StudentAdminView } from './core-client';
 
 interface Student {
   id: string;
@@ -28,6 +28,7 @@ export function createPreviewCore(now: () => number = Date.now): CoreApi & { see
   const records = new Map<string, unknown>();
   const logs = new Map<string, unknown[]>();
   const audit: AuditEntry[] = [];
+  const backups: (BackupInfo & { snapshot: string })[] = [];
   let session: { token: string; info: SessionInfo } | null = null;
 
   const fail = (code: ConstructorParameters<typeof CoreError>[0], message: string, retry: number | null = null): never => {
@@ -169,6 +170,55 @@ export function createPreviewCore(now: () => number = Date.now): CoreApi & { see
       need(token, 'admin');
       students.get(studentId)!.status = status;
       log(`student-${status === 'active' ? 'restored' : status}`, studentId);
+    },
+    async adminSetAvatar(token, studentId, dataUrl) {
+      need(token, 'admin');
+      if (dataUrl && !/^data:image\/(jpeg|png|webp);base64,/.test(dataUrl)) fail('invalid-data', 'Profile pictures must be JPEG, PNG or WebP images.');
+      students.get(studentId)!.avatar = dataUrl ?? undefined;
+      log(dataUrl ? 'avatar-changed' : 'avatar-removed', studentId);
+    },
+    async adminDeleteStudent(token, studentId, confirmName) {
+      need(token, 'admin');
+      const s = students.get(studentId) ?? fail('unknown-student', 'That profile no longer exists.');
+      if (s.status !== 'archived') fail('invalid-data', 'Archive the student before deleting them permanently.');
+      if (confirmName.trim() !== s.displayName) fail('invalid-data', "Type the student's name exactly to confirm.");
+      students.delete(studentId);
+      for (const k of [...records.keys(), ...logs.keys()]) if (k.startsWith(studentId + '/')) (records.delete(k), logs.delete(k));
+      log('student-deleted', studentId);
+    },
+    async adminListBackups(token) {
+      need(token, 'admin');
+      return backups.map(({ snapshot: _snapshot, ...b }) => b).sort((a, b) => b.createdMs - a.createdMs);
+    },
+    async adminBackupStudent(token, studentId) {
+      need(token, 'admin');
+      const s = students.get(studentId) ?? fail('unknown-student', 'That profile no longer exists.');
+      const name = `${now()}-student-${studentId.slice(0, 8)}`;
+      backups.push({ name, kind: 'student', reason: 'manual', createdMs: now(), studentId, studentName: s.displayName, appVersion: 'preview', sizeBytes: 2048, snapshot: '' });
+      log('backup-student', studentId);
+      return name;
+    },
+    async adminBackupInstallation(token) {
+      need(token, 'admin');
+      const name = `${now()}-installation`;
+      backups.push({ name, kind: 'installation', reason: 'manual', createdMs: now(), appVersion: 'preview', sizeBytes: 8192, snapshot: '' });
+      log('backup-installation');
+      return name;
+    },
+    async adminRestoreStudent(token, backupName, adminPassword) {
+      need(token, 'admin');
+      if (adminPassword !== admin!.password) fail('wrong-password', 'That password is not right.');
+      backups.find((b) => b.name === backupName) ?? fail('invalid-data', 'Backup not found.');
+      log('restore-student');
+      return `${now()}-before-restore`;
+    },
+    async adminRestoreInstallation(token, backupName, adminPassword) {
+      need(token, 'admin');
+      if (adminPassword !== admin!.password) fail('wrong-password', 'That password is not right.');
+      backups.find((b) => b.name === backupName) ?? fail('invalid-data', 'Backup not found.');
+      log('restore-installation');
+      session = null;
+      return `${now()}-before-restore`;
     },
     async adminRecentAudit(token, limit = 100) {
       need(token, 'admin');

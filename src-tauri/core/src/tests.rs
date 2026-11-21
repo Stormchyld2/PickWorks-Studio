@@ -236,3 +236,81 @@ fn envelopes_and_names_are_validated() {
     assert!(f.core.admin_create_student(&t, "   ", "temporary1").is_err());
     assert!(f.core.admin_create_student(&t, "Sam", "short").is_err());
 }
+
+#[test]
+fn profile_pictures_are_validated_and_shown_on_the_selector() {
+    let mut f = fixture();
+    let a = f.with_student("Alex", "alex-pass-1");
+    let t = f.admin();
+    assert!(f.core.admin_set_avatar(&t, &a, Some("data:text/html;base64,PHNjcmlwdD4=")).is_err());
+    assert!(f.core.admin_set_avatar(&t, &a, Some("data:image/jpeg;base64,<script>")).is_err());
+    let big = format!("data:image/jpeg;base64,{}", "A".repeat(avatars::MAX_AVATAR_BYTES * 2));
+    assert!(f.core.admin_set_avatar(&t, &a, Some(&big)).is_err());
+    f.core.admin_set_avatar(&t, &a, Some("data:image/jpeg;base64,/9j/4AAQ")).unwrap();
+    assert_eq!(f.core.list_profiles().unwrap()[0].avatar.as_deref(), Some("data:image/jpeg;base64,/9j/4AAQ"));
+    f.core.admin_set_avatar(&t, &a, None).unwrap();
+    assert!(f.core.list_profiles().unwrap()[0].avatar.is_none());
+}
+
+#[test]
+fn student_backup_restores_records_but_never_the_old_password() {
+    let mut f = fixture();
+    let a = f.with_student("Alex", "alex-pass-1");
+    let s = f.core.sign_in_student(&a, "alex-pass-1").unwrap();
+    f.core.write_record(&s.token, "progress", &env(1)).unwrap();
+    let t = f.admin();
+    let name = f.core.admin_backup_student(&t, &a).unwrap();
+    // Later: new progress and a password reset.
+    f.core.sign_out(&t).unwrap();
+    let s = f.core.sign_in_student(&a, "alex-pass-1").unwrap();
+    f.core.write_record(&s.token, "progress", &env(2)).unwrap();
+    let t = f.admin();
+    f.core.admin_reset_password(&t, &a, "temp-pass-9").unwrap();
+    f.advance_secs(1);
+    assert!(f.core.admin_restore_student(&t, &name, "wrong-pass1").is_err());
+    let safety = f.core.admin_restore_student(&t, &name, "admin-pass-1").unwrap();
+    let backups = f.core.admin_list_backups(&t).unwrap();
+    assert_eq!(backups[0].name, safety, "safety copy taken first, newest first");
+    f.core.sign_out(&t).unwrap();
+    assert!(f.core.sign_in_student(&a, "alex-pass-1").is_err(), "old password not restored");
+    let s = f.core.sign_in_student(&a, "temp-pass-9").unwrap();
+    f.core.change_own_password(&s.token, "temp-pass-9", "alex-new-11").unwrap();
+    assert_eq!(f.core.read_record(&s.token, "progress").unwrap().unwrap()["data"]["n"], 1);
+    // A student backup can't be restored onto someone else.
+    let b = f.with_student("Jamie", "jamie-pass1");
+    let t = f.admin();
+    assert!(backup::restore_student(f.core.root(), &name, &b).is_err());
+    let log = f.core.admin_recent_audit(&t, 50).unwrap();
+    assert!(log.iter().any(|e| e.action == "restore-student"));
+}
+
+#[test]
+fn installation_restore_brings_back_accounts_and_ends_the_session() {
+    let mut f = fixture();
+    let a = f.with_student("Alex", "alex-pass-1");
+    let t = f.admin();
+    let name = f.core.admin_backup_installation(&t).unwrap();
+    let raw = std::fs::read_to_string(f.core.root().backups_dir().join(&name).join("accounts/credentials.json")).unwrap();
+    assert!(raw.contains("$argon2id$") && !raw.contains("alex-pass-1"), "hashes only");
+    f.core.admin_set_status(&t, &a, AccountStatus::Archived).unwrap();
+    f.core.admin_delete_student(&t, &a, "Alexander").unwrap_err();
+    f.core.admin_delete_student(&t, &a, "Alex").unwrap();
+    assert!(f.core.list_profiles().unwrap().is_empty());
+    assert!(!f.core.root().student_dir(&a).unwrap().exists());
+    f.advance_secs(1);
+    f.core.admin_restore_installation(&t, &name, "admin-pass-1").unwrap();
+    assert!(f.core.admin_list_students(&t).is_err(), "session ended");
+    assert!(f.core.sign_in_student(&a, "alex-pass-1").is_ok(), "student back with their password");
+    let t = f.admin();
+    let actions: Vec<_> = f.core.admin_recent_audit(&t, 50).unwrap().into_iter().map(|e| e.action).collect();
+    assert!(actions.contains(&"student-deleted".to_string()) && actions.contains(&"restore-installation".to_string()), "audit log survives restores");
+}
+
+#[test]
+fn students_must_be_archived_before_deletion_and_backup_names_are_checked() {
+    let mut f = fixture();
+    let a = f.with_student("Alex", "alex-pass-1");
+    let t = f.admin();
+    assert!(f.core.admin_delete_student(&t, &a, "Alex").is_err(), "must archive first");
+    assert!(backup::read_manifest(f.core.root(), "../accounts").is_err());
+}

@@ -9,6 +9,8 @@
 pub mod accounts;
 pub mod audit;
 pub mod auth;
+pub mod avatars;
+pub mod backup;
 pub mod error;
 pub mod storage;
 
@@ -57,6 +59,9 @@ pub const ADMIN_IDLE_SECS: u64 = 5 * 60;
 pub struct ProfileCard {
     pub id: String,
     pub display_name: String,
+    /// Profile picture as a data URL, if one was set.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<String>,
 }
 
 /// What the administrator sees per student.
@@ -146,7 +151,7 @@ impl Core {
             .students
             .iter()
             .filter(|s| s.status == AccountStatus::Active)
-            .map(|s| ProfileCard { id: s.id.clone(), display_name: s.display_name.clone() })
+            .map(|s| ProfileCard { id: s.id.clone(), display_name: s.display_name.clone(), avatar: avatars::load(&self.root, &s.id) })
             .collect())
     }
 
@@ -366,6 +371,98 @@ impl Core {
             AccountStatus::Archived => "student-archived",
         };
         self.audit("admin", action, Some(id), None)
+    }
+
+    /// Sets or removes a student's profile picture.
+    pub fn admin_set_avatar(&mut self, token: &str, id: &str, data_url: Option<&str>) -> Result<()> {
+        self.require_admin(token)?;
+        accounts::load_index(&self.root)?.student(id).ok_or(CoreError::UnknownStudent)?;
+        avatars::save(&self.root, id, data_url)?;
+        self.audit("admin", if data_url.is_some() { "avatar-changed" } else { "avatar-removed" }, Some(id), None)
+    }
+
+    /// Permanently deletes an archived student and all their records. The
+    /// administrator must type the student's name to confirm. Existing
+    /// backups are kept. Recorded in the audit log.
+    pub fn admin_delete_student(&mut self, token: &str, id: &str, confirm_name: &str) -> Result<()> {
+        self.require_admin(token)?;
+        let mut index = accounts::load_index(&self.root)?;
+        let s = index.student(id).ok_or(CoreError::UnknownStudent)?.clone();
+        if s.status != AccountStatus::Archived {
+            return Err(CoreError::InvalidData("Archive the student before deleting them permanently.".into()));
+        }
+        if confirm_name.trim() != s.display_name {
+            return Err(CoreError::InvalidData("Type the student's name exactly to confirm.".into()));
+        }
+        let dir = self.root.student_dir(id)?;
+        if dir.exists() {
+            std::fs::remove_dir_all(&dir)?;
+        }
+        avatars::remove(&self.root, id)?;
+        let mut creds = accounts::load_credentials(&self.root)?;
+        creds.students.remove(id);
+        accounts::save_credentials(&self.root, &creds)?;
+        let mut throttles = accounts::load_throttles(&self.root)?;
+        if throttles.remove(id).is_some() {
+            accounts::save_throttles(&self.root, &throttles)?;
+        }
+        index.students.retain(|x| x.id != id);
+        accounts::save_index(&self.root, &index)?;
+        self.audit("admin", "student-deleted", Some(id), Some(s.display_name))
+    }
+
+    // ----- Administrator: backups -----------------------------------------
+
+    pub fn admin_list_backups(&self, token: &str) -> Result<Vec<backup::BackupInfo>> {
+        self.require_admin(token)?;
+        backup::list(&self.root)
+    }
+
+    pub fn admin_backup_student(&mut self, token: &str, id: &str) -> Result<String> {
+        self.require_admin(token)?;
+        let index = accounts::load_index(&self.root)?;
+        let s = index.student(id).ok_or(CoreError::UnknownStudent)?;
+        let name = backup::backup_student(&self.root, id, &s.display_name, self.now(), backup::BackupReason::Manual)?;
+        self.audit("admin", "backup-student", Some(id), Some(name.clone()))?;
+        Ok(name)
+    }
+
+    pub fn admin_backup_installation(&mut self, token: &str) -> Result<String> {
+        self.require_admin(token)?;
+        let name = backup::backup_installation(&self.root, self.now(), backup::BackupReason::Manual)?;
+        self.audit("admin", "backup-installation", None, Some(name.clone()))?;
+        Ok(name)
+    }
+
+    /// Restores one student's records from a student backup. Their password is
+    /// not restored. A safety backup of the current records is taken first.
+    pub fn admin_restore_student(&mut self, token: &str, backup_name: &str, admin_password: &str) -> Result<String> {
+        self.require_admin(token)?;
+        let creds = accounts::load_credentials(&self.root)?;
+        self.check_secret("admin", admin_password, creds.admin.as_ref())?;
+        let manifest = backup::read_manifest(&self.root, backup_name)?;
+        let id = manifest.student_id.clone().ok_or_else(|| CoreError::InvalidData("That is not a single-student backup.".into()))?;
+        let index = accounts::load_index(&self.root)?;
+        let s = index.student(&id).ok_or(CoreError::UnknownStudent)?;
+        let safety = backup::backup_student(&self.root, &id, &s.display_name, self.now(), backup::BackupReason::BeforeRestore)?;
+        backup::restore_student(&self.root, backup_name, &id)?;
+        self.audit("admin", "restore-student", Some(&id), Some(format!("from {backup_name}; previous records saved as {safety}")))?;
+        Ok(safety)
+    }
+
+    /// Restores the whole installation, including passwords and the recovery
+    /// key as they were at backup time. Needs the administrator password. A
+    /// safety backup is taken first, and the session ends afterwards because
+    /// the credentials may have changed.
+    pub fn admin_restore_installation(&mut self, token: &str, backup_name: &str, admin_password: &str) -> Result<String> {
+        self.require_admin(token)?;
+        let creds = accounts::load_credentials(&self.root)?;
+        self.check_secret("admin", admin_password, creds.admin.as_ref())?;
+        let safety = backup::backup_installation(&self.root, self.now(), backup::BackupReason::BeforeRestore)?;
+        backup::restore_installation(&self.root, backup_name)?;
+        self.session = None;
+        self.audit("admin", "restore-installation", None, Some(format!("from {backup_name}; previous data saved as {safety}")))?;
+        Ok(safety)
     }
 
     pub fn admin_recent_audit(&self, token: &str, limit: usize) -> Result<Vec<AuditEntry>> {

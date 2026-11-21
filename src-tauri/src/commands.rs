@@ -5,6 +5,7 @@ use std::sync::Mutex;
 
 use pickworks_core::accounts::AccountStatus;
 use pickworks_core::audit::AuditEntry;
+use pickworks_core::backup::BackupInfo;
 use pickworks_core::{Core, ElevationProof, ErrorPayload, ProfileCard, SessionInfo, StudentAdminView};
 use serde_json::Value;
 use tauri::State;
@@ -114,6 +115,41 @@ pub fn admin_unlock(state: State<CoreState>, token: String, student_id: String) 
 #[tauri::command]
 pub fn admin_set_status(state: State<CoreState>, token: String, student_id: String, status: AccountStatus) -> Res<()> {
     with(&state, |c| c.admin_set_status(&token, &student_id, status))
+}
+
+#[tauri::command]
+pub fn admin_set_avatar(state: State<CoreState>, token: String, student_id: String, data_url: Option<String>) -> Res<()> {
+    with(&state, |c| c.admin_set_avatar(&token, &student_id, data_url.as_deref()))
+}
+
+#[tauri::command]
+pub fn admin_delete_student(state: State<CoreState>, token: String, student_id: String, confirm_name: String) -> Res<()> {
+    with(&state, |c| c.admin_delete_student(&token, &student_id, &confirm_name))
+}
+
+#[tauri::command]
+pub fn admin_list_backups(state: State<CoreState>, token: String) -> Res<Vec<BackupInfo>> {
+    with(&state, |c| c.admin_list_backups(&token))
+}
+
+#[tauri::command]
+pub fn admin_backup_student(state: State<CoreState>, token: String, student_id: String) -> Res<String> {
+    with(&state, |c| c.admin_backup_student(&token, &student_id))
+}
+
+#[tauri::command]
+pub fn admin_backup_installation(state: State<CoreState>, token: String) -> Res<String> {
+    with(&state, |c| c.admin_backup_installation(&token))
+}
+
+#[tauri::command]
+pub fn admin_restore_student(state: State<CoreState>, token: String, backup_name: String, admin_password: String) -> Res<String> {
+    with(&state, |c| c.admin_restore_student(&token, &backup_name, &admin_password))
+}
+
+#[tauri::command]
+pub fn admin_restore_installation(state: State<CoreState>, token: String, backup_name: String, admin_password: String) -> Res<String> {
+    with(&state, |c| c.admin_restore_installation(&token, &backup_name, &admin_password))
 }
 
 #[tauri::command]
