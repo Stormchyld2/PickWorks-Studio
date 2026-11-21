@@ -1,0 +1,43 @@
+/*
+ * PickWorks Studio design tokens.
+ * The six "approved" values are final (see docs/architecture.md). Everything
+ * else is a supporting token derived for borders, secondary text and states.
+ */
+:root {
+  /* Approved palette */
+  --pw-bg: #0b1119;
+  --pw-surface: #182533;
+  --pw-primary: #238beb;
+  --pw-primary-hover: #43a9ff;
+  --pw-amber: #f59e38;
+  --pw-text: #f6f8fc;
+
+  /* Supporting tokens */
+  --pw-bg-raised: #101a26;
+  --pw-surface-2: #1f2f40;
+  --pw-border: #2a3b4e;
+  --pw-border-strong: #3a5068;
+  --pw-text-muted: #a9b6c6;
+  --pw-text-faint: #6f8096;
+  --pw-primary-soft: rgba(35, 139, 235, 0.16);
+  --pw-amber-soft: rgba(245, 158, 56, 0.14);
+  --pw-success: #3fb27f;
+  --pw-error: #e5575b;
+  --pw-focus: #43a9ff;
+
+  /* Fretboard */
+  --pw-fret-wood: #1a1410;
+  --pw-fret-wire: #b9c2cc;
+  --pw-fret-string: #d9dee5;
+  --pw-fret-nut: #e8dcc4;
+  --pw-fret-inlay: #c9cfd6;
+
+  /* Shape and type */
+  --pw-radius-sm: 8px;
+  --pw-radius: 12px;
+  --pw-radius-lg: 16px;
+  --pw-font: 'Inter Variable', 'Segoe UI', system-ui, sans-serif;
+  --pw-sidebar-width: 268px;
+  --pw-sidebar-collapsed: 76px;
+  --pw-transition: 120ms ease-out;
+}
