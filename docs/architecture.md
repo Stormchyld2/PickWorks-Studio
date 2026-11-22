@@ -20,7 +20,7 @@ The full plan, with decisions and roadmap, lives in the project document "PickWo
 
 ## Storage, accounts and sessions (Phase 1)
 
-Data lives in the app data folder, laid out as in Planning Update 04:
+Data lives in the app data folder (`%APPDATA%\com.pickworks.studio` on Windows), one installation per Windows login with the profile's own permissions (Jason, 2026-11-22). It is laid out as in Planning Update 04:
 
 ```
 application/            app-wide settings
