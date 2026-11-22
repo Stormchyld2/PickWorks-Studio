@@ -11,11 +11,11 @@ Students may freely revisit **any earlier unlocked lesson**, including lessons b
 ## First-time per-student Skill Placement Wizard
 
 - Show after first successful student-account setup/sign-in, before the first normal dashboard. It belongs to each student, not the installation or administrator. Existing students require a safe migration/default path.
-- Keep it brief, accessible and ADHD-friendly. Ask about playing experience and self-reported skills to choose appropriate assessment items, **not** to grant unlocks. Distinguish note-finding, string familiarity, octave patterns, intervals and key knowledge; playing years and chord fluency are not equivalent to fretboard knowledge.
+- Keep it brief, accessible and ADHD-friendly. Begin with three universal, unscored background questions: (1) playing experience, (2) comfortable skills across chords/songs/rhythm/scales/note navigation, and (3) learning goals. Use these answers to choose appropriate assessment items, **not** to grant unlocks. Distinguish note-finding, string familiarity, octave patterns, intervals and key knowledge; playing years and chord fluency are not equivalent to fretboard knowledge.
 - New players can choose **Start with fundamentals** without testing. Other students may take a short, practical **placement assessment** using the existing lesson/performance/mastery evaluation architecture. Do not use theory trivia alone.
 - Provide an understandable recommended starting lesson and an explanation of the evidence. Do not attach permanent Beginner/Intermediate/Advanced labels to the student.
 - A skipped or interrupted assessment must not grant advancement. Allow a later reassessment; never erase existing achievements, earned mastery or prior attempts. Placement is per curriculum and per student, not global.
-- Do not promise that a 3–5 minute assessment can certify every advanced skill: use adaptive sampling and mark unverified prerequisites as needing a targeted check. Exact assessment items, pass criteria and maximum placement leap require a separate Phase 2 design and tests before implementation.
+- Do not promise that a 3–5 minute assessment can certify every advanced skill: use adaptive sampling and mark unverified prerequisites as needing a targeted check. Use approximately 5–12 adaptive practical prompts after the three universal questions; allow more if evidence is inconclusive. Select subsequent prompts based on prior responses, check isolated errors with equivalent alternate items, and evaluate fretboard skills independently of unrelated chord/rhythm weaknesses. Exact assessment items, pass criteria and maximum placement leap require a separate Phase 2 design and tests before implementation.
 
 ## Placement, access and mastery are separate concepts
 
@@ -27,6 +27,29 @@ Students may freely revisit **any earlier unlocked lesson**, including lessons b
 - **Review:** previously unlocked lessons remain available even when accuracy later declines; recommend review rather than relocking earned access.
 
 The existing locked **note-mastery rule** remains unchanged: most recent 10 attempts per note, at least 90% qualifying independent correct responses under 3 seconds, with qualifying answers on at least two distinct days; see [requirements-v1.md](requirements-v1.md). Placement assessment qualification and stage progression are separate decisions and must not be misrepresented as note mastery. Define their specific evidence gates during Phase 2 without weakening the note-mastery rule.
+
+## Adaptive Skill Assessment & Placement Engine
+
+**Approved design direction (2026-11-22):** Build a reusable pure-TypeScript assessment/placement engine in Phase 2, integrating the existing lessons, practice, performance and mastery engines rather than duplicating them.
+
+- **Skill model:** Track evidence independently for anchor notes, across-string note recognition, octave navigation, intervals and practical key/root application. Collect chord fluency, rhythm, songs and playing experience as optional background dimensions, not automatic fretboard placement penalties or unlock credits.
+- **Selection:** Three identical initial background questions for every student; then an adaptive item selector chooses practical tasks from a tagged, validated item bank by skill, difficulty and prerequisites. The question selector should sample both likely strengths and gaps and confirm unexpected misses. No single item decides an entire stage.
+- **Evidence:** Store skill ID, item ID/version, context, response, correctness, reveal/help status, response time where applicable and timestamp. Do not use speed alone as a placement gate. A familiarization interaction is unscored. Assessment results are distinct from normal practice attempts and note-mastery events.
+- **Placement decision:** Recommend the highest curriculum entry point for which **all required prerequisites have sufficient independent evidence**. Missing or conflicting evidence triggers targeted follow-up or conservative placement with an explanation, not an invented score. A student's self-reported ability alone never unlocks.
+- **Output:** A per-skill evidence profile, confidence/coverage indicators, recommended starting lesson, verified prerequisite set, unlocked curriculum frontier and plain-language reasons. This is a living profile; later practice and reassessments can refine recommendations while preserving earned access.
+- **Assessment controls:** Adaptive sessions have bounded length, no silent guessing, alternate items for reassessment and interruption-safe persistence. An unfinished placement awards no new unlocks.
+- **Separation:** Do not equate assessment placement with completion, note mastery or XP. Do not change the approved rolling-window note-mastery algorithm.
+
+## Administrator override: Unlock All
+
+The administrator may grant **Unlock All Lessons** for an individual student and curriculum if placement misses their ability. This is an **access override only**, not a change to placement evidence, mastered notes, XP, achievements, completion records or assessment results.
+
+- Admin Student Management shows the student's normal placement/frontier and whether an override is active. Granting and revoking require an explicit confirmation and are audited with administrator identity, student ID, action, timestamp and optional reason.
+- The authorization must be enforced in the same Rust-owned student access path as other privileged operations; students cannot activate it through UI state, route parameters or edited client payloads.
+- With an active override, all directed lessons in the selected curriculum are accessible. **Earlier lessons remain accessible in every mode.** Revoking the override returns access to the student's highest legitimately earned/verified frontier without deleting progress completed while the override was active. Define how those completed lessons contribute to subsequent prerequisites before implementation.
+- Overrides are per student and per curriculum, not global; they survive sign-out/restart and appear in backup/restore under the normal student-data rules. Never leak one student's override to another.
+- Future lessons remain locked for students **without** an active override, except when earned progression or verified reassessment legitimately advances their frontier.
+- The UI should clearly label an override as "Administrator unlocked" rather than "Mastered."
 
 ## Directed course structure
 
@@ -70,12 +93,17 @@ Each short lesson should unlock a practical musical use, prioritize high-value s
 9. Reassessment can raise placement on verified evidence; cannot reduce earned access or delete mastery.
 10. Dashboard reflects persisted current lesson and review state after restart, sign-out and account switch, without leaking between students.
 11. Accessibility, left-handed view, offline operation and honest empty states remain intact.
+12. Three universal background questions appear before adaptive practical tasks; self-report does not affect unlocks by itself.
+13. A chord-specific weakness does not invalidate demonstrated fretboard skill; a single mistaken answer is confirmed rather than treated as decisive.
+14. Admin Unlock All grants access only to the selected student's curriculum, is audited and does not fabricate mastery, XP or completions.
+15. Revoking Unlock All restores the legitimately verified access frontier without erasing earned evidence; a different student remains unaffected.
 
 ## Open implementation decisions
 
 - Exact course lesson IDs, prerequisite graph and stage completion gates.
 - Adaptive placement item bank, evidence sufficiency, assessment duration and how to handle mixed skills.
+- Exact authorization/audit API for administrator overrides, including how completed lessons under override contribute to prerequisite gates.
 - Whether reassessment is launched from Progress, Settings, Learn or multiple places.
 - Student-facing explanation and remediation for a failed placement gate.
 
-**Authority:** These behaviors were agreed by the Project Owner in conversation on 2026-11-22. The UI branch may document them; implementing the wizard, persistence or progression gates is a separate authorization.
+**Authority:** These behaviors were agreed by the Project Owner in conversation on 2026-11-22. This document records the engine and admin override design; implementation must be coordinated with the Phase 2 learning and Rust account architecture, not added as a competing standalone system.
