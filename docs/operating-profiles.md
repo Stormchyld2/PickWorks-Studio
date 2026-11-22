@@ -95,6 +95,32 @@ A single screen of printable and exportable packs, each with a preview and a pag
 
 It uses the shared renderers and the Print Studio page layout, so it depends on Print Studio being authorised and built. Until then, this profile shows only what actually exists.
 
+### Prepare for Grid-Down (field binder)
+
+Jason's addition: one administrator action in the Print/Export Center that builds a complete printable **field binder** for a chosen student in a single operation. It ties the three profiles together: create music in Full Studio, keep learning on a solar-charged tablet in Low-Power Field, and keep a physical music library when there's no electricity at all.
+
+**Steps for the administrator:** pick a student, review the suggested contents (everything is pre-ticked and can be unticked), choose paper size, then **Build Binder**. The result is one PDF saved to a chosen folder or USB drive, plus the option to print it straight away.
+
+**Contents, in order:**
+
+1. Cover page (student name, date, PickWorks logo) and a table of contents with page numbers.
+2. The student's lessons: completed lessons for review and the next lessons in their course, as printable lesson sheets.
+3. Essential chord charts: the chords from the student's level, every chord used in their songs, and the core beginner set, drawn by the shared chord renderer.
+4. Fretboard and scale references matching the student's course.
+5. The student's personal songs as lead sheets (chords over lyrics, plus TAB where it exists).
+6. Practice worksheets and blank writing sheets: blank TAB, staff paper, chord boxes and songwriting worksheets (the number of each is adjustable).
+7. Maintenance and tuning guides, once that content has passed the sourcing and review process.
+
+**Rules:**
+
+- Built entirely from the shared renderers and Print Studio page layout: black and white, consistent page numbers, works offline, duplex-friendly (sections start on odd pages).
+- **Read-only.** Building a binder never changes the student's files, progress, XP, mastery or tour records. It writes only the PDF to the chosen location.
+- **Privacy.** Songs belong to the student. Including them means the administrator's binder action reads that student's songs (read-only), which today's ownership rule doesn't allow. Rust would grant this one read-only purpose to an administrator, and every binder build is written to the Audit Log with the student's name and the sections included. See decision 5.
+- Works in any profile, but is the main action of No-Power Preparation. Pages are counted in advance so the administrator knows how much paper and ink is needed.
+- Depends on Print Studio; until then, the action doesn't appear.
+
+**Tests:** a binder for a student with lessons, songs and chords contains each selected section with a correct table of contents and page numbers; unticked sections are absent; the student's files are byte-identical before and after; a student token can't build another student's binder; the audit entry is written; output is black and white only; building works with networking blocked and on Windows and Android.
+
 ## Measuring instead of assuming
 
 Each restriction must earn its place with measurements on reference hardware (a battery-powered Windows laptop now; a mid-range Android tablet and phone later). Measured per profile, with the same scripted scenario (sign in, open dashboard, run a lesson, browse chords, open a song, idle 10 minutes):
@@ -130,3 +156,4 @@ Results go into a table in this document. A restriction that doesn't make a meas
 2. **Tuner in No-Power Preparation:** keep it available (it runs only while open and helps prepare instruments), or hide it to keep that profile focused on printing?
 3. **Field Dashboard for students:** replace the normal dashboard in Low-Power Field (my recommendation), or offer it as an option?
 4. **Idle unload timings:** suspend audio after 30 seconds of silence and unload the synth after 2 minutes idle, adjusted after measurement?
+5. **Field binder and student songs:** allow the administrator's Prepare for Grid-Down action to read a student's songs (read-only, audited), as the binder needs? Students would also get a "My Field Binder" button for their own binder, which needs no extra permission.
