@@ -11,6 +11,9 @@ Windows 10 and 11 already include the WebView2 runtime the app needs.
 - [ ] First-run setup appears; no default password works.
 - [ ] The recovery key shows once; Copy and Print both work (print shows only the key).
 - [ ] With Wi-Fi off, everything below still works.
+- [ ] Data is in `%APPDATA%\com.pickworks.studio` (paste that into File Explorer's address bar): folders `accounts`, `students`, `administration`, `backups`, `application`.
+- [ ] In Command Prompt, `icacls "%APPDATA%\com.pickworks.studio"` lists only your Windows user, SYSTEM and Administrators.
+- [ ] Sign in to a different Windows account on the same PC (if you have one): PickWorks starts at first-run setup there, because each Windows account has its own data.
 
 ## Accounts and sessions
 - [ ] Add two students from Student Management with temporary passwords.
