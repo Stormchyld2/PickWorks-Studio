@@ -1,6 +1,6 @@
 # Fretboard Mastery: placement, directed progression and dashboard contract
 
-**Status:** Approved product behavior, documented 2026-11-22. **Implementation:** Phase 2 learning core; not implemented or authorized by this document. Owner approval is required before feature coding. This document is the design-detail source for placement and progression; [master-roadmap.md](master-roadmap.md) controls scheduling and [requirements-v1.md](requirements-v1.md) controls the locked note-mastery rule.
+**Status:** Approved product behavior, documented 2026-11-22. **Implementation:** Owner subsequently authorised Wave 1 assessment/placement engine development and its prerequisite contracts, persistence and tests; the full placement wizard and other UI wiring remain later work. This document is the design-detail source for placement and progression; [master-roadmap.md](master-roadmap.md) controls scheduling and [requirements-v1.md](requirements-v1.md) controls the locked note-mastery rule.
 
 ## Purpose and boundaries
 
@@ -71,6 +71,12 @@ Each short lesson should unlock a practical musical use, prioritize high-value s
 - Evolve through: not placed → placement/start → in progress → lesson completed/next recommended → review due → stage completed → ongoing fluency. Avoid invented completion, fake progress, fake XP and nonfunctional buttons.
 - Maintain existing theme, navigation, accessibility and left-handed rendering; no parallel fretboard renderer or duplicate lesson engine.
 
+## Wave 1 interconnection contract
+
+The placement system is a **shared learning service**, not a fretboard-only quiz. Define typed, versioned skill, item, observation, evidence, curriculum, prerequisite, placement and access contracts that the existing Chord System, Fretboard, Lesson, Practice, Performance, Mastery and future Theory/instrument modules can use. Compose through an orchestration/service layer rather than circular direct imports. Instrument-specific question banks and curricula may vary while the assessment algorithm is reusable.
+
+Wave 1 order: inspect existing engine APIs; define contracts; implement prerequisite graph; adaptive item selection and validated candidate bank (~60–80); evidence evaluation and placement; authorized access override; persistence and automated tests. Use three universal background questions followed by ~5–12 practical adaptive tasks, expanding only when evidence requires it. Keep full wizard, dashboard and Admin UI wiring for a later integration wave.
+
 ## Implementation seams and data invariants
 
 - Reuse pure TypeScript engines under `src/lib/engines/lessons`, `practice`, `mastery` and `performance`; Svelte components display engine state, not decide gates. Inspect actual APIs before designing interfaces.
@@ -106,4 +112,4 @@ Each short lesson should unlock a practical musical use, prioritize high-value s
 - Whether reassessment is launched from Progress, Settings, Learn or multiple places.
 - Student-facing explanation and remediation for a failed placement gate.
 
-**Authority:** These behaviors were agreed by the Project Owner in conversation on 2026-11-22. This document records the engine and admin override design; implementation must be coordinated with the Phase 2 learning and Rust account architecture, not added as a competing standalone system.
+**Authority:** These behaviors were agreed by the Project Owner on 2026-11-22, with subsequent explicit Wave 1 authorization for the engine foundation and metronome refinement. Coordinate with the Phase 1/Rust account architecture; do not merge or overwrite unrelated work without approval.
