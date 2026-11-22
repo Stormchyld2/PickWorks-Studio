@@ -23,7 +23,7 @@ Let an administrator switch the whole installation between everyday use and prol
 | Metronome | Yes | Yes (audio started on Play; visual-only option needs no audio) | Yes, on demand: lightweight click only, no synth |
 | MIDI playback | Yes | Loaded only when the student presses Play; administrator can turn it off | Not initialised |
 | Recording (Riff Recorder) | Yes | Loaded only when the student presses Record; administrator can turn it off | Not initialised |
-| Backing tracks | Yes | Off by default; administrator can turn it on | Not initialised |
+| Backing Track Generator | Yes: generation, editing, playback, export | Generation and editing available; sounds load only for playback or rendering (administrator can turn playback off); Practice preset by default | View and print arrangement charts; lightweight data-only generation; audio not initialised |
 | Rhythm & Strumming Studio | Yes | Yes; visual playback without audio, audio on Play if allowed | Print rhythm charts |
 | Chord Progression Generator, Music Theory Tools, Melody & Harmony Assistant | Yes | Yes; audition on demand | Generate and print charts |
 | Ear Training Studio | Yes | Yes; audio starts only when an exercise starts | Not featured (needs sound) |

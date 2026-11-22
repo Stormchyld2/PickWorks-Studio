@@ -1,8 +1,8 @@
 # Shared composition model (Song Project)
 
-Architecture only. First written 2026-11-22; section-based design **approved by Jason on 2026-11-22**, then strengthened in the final refinement pass the same day (timing, form, anchors, imports, migrations, import and export safety). **Not authorised for implementation.** Roadmap placement: [master-roadmap.md](master-roadmap.md) milestone X0.6 (model and storage), then X2 onward for the editors that use it.
+Architecture only. First written 2026-11-22; section-based design **approved by Jason on 2026-11-22**, then strengthened in the final refinement pass the same day (timing, form, anchors, imports, migrations, import and export safety). **Not authorised for implementation.** Roadmap placement: [master-roadmap.md](master-roadmap.md) milestone X0.6 (model and storage, including the backing representation), then X2 onward for the editors that use it.
 
-This is the piece Jason asked to be examined most carefully: one model that lets chord progressions, lyrics, arrangements, rhythm patterns, TAB, standard notation, melodies, MIDI playback and recordings work together instead of becoming separate systems. The Rhythm & Strumming Studio and the Melody & Harmony Assistant have **no data model of their own**; they read and write the structures below.
+This is the piece Jason asked to be examined most carefully: one model that lets chord progressions, lyrics, arrangements, rhythm patterns, TAB, standard notation, melodies, MIDI playback and recordings work together instead of becoming separate systems. The Rhythm & Strumming Studio, the Melody & Harmony Assistant and the Backing Track Generator have **no data model of their own**; they read and write the structures below.
 
 ## 1. The core idea: one song, one timeline, one source of truth for each fact
 
@@ -18,6 +18,7 @@ Separate systems drift apart when each keeps its own copy of the same facts: its
 | Strumming and picking patterns | `patterns[]` in the song (copies of library patterns), referenced by each section's `rhythm` | Strum arrows, the Rhythm Studio, accompaniment playback and rhythm charts |
 | Notes (TAB, notation, melody) | Each section's **part clips** (events with pitches, optional string and fret) | TAB, notation, combined view, the Melody & Harmony Assistant, MIDI and playback highlighting are views of it |
 | Audio | Files in `media/`, referenced by recordings | Waveforms, attachments to sections |
+| Generated backing arrangements (style, seeds, locks, mix, variations) | `backings[]` in the song; their notes are ordinary clips marked with their source | The Backing Track Generator, playback, mixer and exports read them ([backing-track-generator.md](backing-track-generator.md)) |
 | Imported content the app can't edit | `extensions` on the nearest element | Shown as markers, exported back where possible, never silently dropped |
 | Everything derived | Never stored | Roman numerals, Nashville numbers, capo shapes, MIDI events, accompaniment, the flattened timeline, diagrams |
 
@@ -39,11 +40,12 @@ SongProject
 │   ├── harmony[]      chord events: position or loose, length, ChordSymbol, locked, origin, voicing
 │   ├── lyrics[]       lines of text with chord anchors that point at harmony event ids
 │   ├── rhythm?        pattern reference and bar ranges for strum arrows and accompaniment
-│   ├── clips[]        one per instrument part: voices of note, chord and rest events on the section's bars
+│   ├── clips[]        one per instrument part (and per backing part): voices of note, chord and rest events on the section's bars
 │   ├── recordings[]   references to takes, with an optional bar offset
 │   └── extensions[]   preserved imported content (see section 9)
 ├── arrangement[]      ordered entries: { id, sectionId, repeats, label?, overrides? }
 ├── progressions[]     saved progressions not yet placed in the song (from the Workshop)
+├── backings[]         generated backing arrangements and their saved variations (section 7a)
 ├── extensions[]       song-level preserved content
 └── revision           number, saved at, note
 ```
@@ -185,6 +187,31 @@ Note { id; pitch: { midi; spelling }; string?; fret?; tie?; techniques?; bend?; 
 - Tuning change: pitches are kept, assignments re-checked, impossible ones flagged. Transposition: pitches move with correct spelling for the new key, assignments re-suggested and flagged.
 - A **melody part** is an ordinary clip on an instrument with `role: 'melody'`. The Melody & Harmony Assistant writes only the notes the user chooses into it.
 
+## 7a. Generated backing arrangements
+
+Added 2026-11-22 for the Backing Track Generator ([backing-track-generator.md](backing-track-generator.md)). Generated music is stored in the same structures as written music.
+
+```ts
+BackingArrangement { id; name; active: boolean; styleRef: { packId; version }; rootSeed;
+                     settings: { complexity; fills; humanize; intro; ending; feelOverride? };
+                     preset: 'practice' | 'natural' | 'performance'; parts: BackingPart[];
+                     mix: { partId; volume; pan; mute; solo }[]; createdAt; basedOn?: string }
+BackingPart { id; role: 'drums' | 'bass' | 'rhythm-guitar' | 'keys' | string; instrumentId; sound;
+              generator: { id; version }; seed; locked: boolean; hasEdits: boolean;
+              harmonyFingerprint: { sectionId; bar; hash }[] }
+Clip.source?: { backingId; partId }            // present on generated clips
+Event.edited?: boolean                         // set when a user edits a generated event
+InstanceOverlay { backingId; partId; entryId; pass; bars: number[]; clip: Clip }   // per-instance fills and endings
+```
+
+- **Notes are clips.** Each backing part has one clip per section, marked with `source`. TAB, notation, MIDI export and playback read them like any other clip. Drum clips use a drum instrument and General MIDI drum note numbers.
+- **One active backing.** `backings[]` holds saved variations; exactly one (or none) is `active` and played. Variations never share clips, so restoring one can't damage another.
+- **Instance overlays.** Because a section can be played several times, per-instance differences (a fill before the second chorus, an ending, a count-in) are stored as overlays that replace specific bars for one arrangement entry and pass only. The flattened timeline applies them. This is the only way generated material differs between repeats; the section's own clips stay shared.
+- **Edits are preserved.** A user edit to a generated event sets `edited` on the event and `hasEdits` on the part. Regeneration skips edited events and locked parts unless the user confirms a dialog listing exactly what would change.
+- **Staleness, not silent change.** `harmonyFingerprint` records the harmony each bar was generated against. When harmony changes, mismatching bars are shown as out of date and updated only by an explicit Update action. Transposition, tempo and feel changes need no regeneration (pitches transpose like every clip; tempo and feel apply at playback).
+- **Playback presets** (Practice, Natural, Performance) are stored on the backing as a playback preference and affect rendering only; they never change events.
+- **Reproducibility.** Style pack id and version, generator id and version and seeds are stored, so the arrangement can be regenerated identically; the notes themselves are stored too, so a newer style pack never changes a saved arrangement.
+
 ## 8. Rhythm patterns on sections and in accompaniment
 
 The Rhythm & Strumming Studio edits this structure; it has no separate format.
@@ -238,6 +265,7 @@ No tool keeps its own undo stack, save path or recovery file. Operating profiles
 7. Each harmony event has at most one lyric anchor.
 8. Derived data is never stored, so it can't go stale.
 9. Preserved `extensions` are never removed except with the element that holds them.
+10. At most one backing is active; every backing clip's `source` names an existing backing and part; every instance overlay names an existing arrangement entry, a valid pass and bars inside its section; a locked backing part or an edited event changes only through a direct user edit or a confirmed regeneration.
 
 ## 13. Song Project migration rules
 
@@ -291,6 +319,7 @@ No tool keeps its own undo stack, save path or recovery file. Operating profiles
 | Reverse Chord Finder → song | The identified chord is added as a harmony event, optionally with the student's fingering as its voicing |
 | Rhythm Studio → song | A pattern is copied into `patterns[]` and referenced by a section's `rhythm` |
 | Melody Assistant → song | Chosen notes are added to the melody clip through ordinary operations |
+| Backing Track Generator → song | Generated parts become clips with a `source`, plus overlays and a `backings[]` entry, in one compound operation; regeneration replaces only unlocked, unedited events |
 | TAB / notation | Edit clips on the section grid; the harmony track is shown above the staff for reference |
 | Playback | Flatten the arrangement (passes, endings, overrides), convert clips to MIDI events, add accompaniment derived from harmony and patterns, apply feel and expressive markings, schedule on the shared transport, and map sounding event ids back to the views for highlighting |
 | Performance Mode | Reads lyrics, anchors and the arrangement; auto-scroll speed comes from the flattened timeline |
@@ -319,3 +348,4 @@ No tool keeps its own undo stack, save path or recovery file. Operating profiles
 - Migration from schema version 1 with a pre-migration copy; refusal of a newer version with no write; a failed migration leaves the original untouched.
 - Import safety: archives with `..`, absolute paths, duplicate case-insensitive names, bad checksums, oversized entries or a missing manifest are rejected with nothing written; importing a song with an existing id creates a separate copy and leaves the original byte-identical; replacement requires confirmation and keeps a backup; kill-tests at every step of import, export and replacement leave the Songbook consistent.
 - Recovery: killing the app mid-edit recovers changes made up to 2 seconds before; a recording interrupted mid-take is recovered as a playable file.
+- Backings: generate, regenerate one part, add or remove an instrument and restore a variation each undo in one step; regenerating never changes a locked part or an edited event without confirmation; transposing a song transposes generated pitched parts exactly; a harmony change marks exactly the affected bars out of date; overlays apply only to their entry and pass.

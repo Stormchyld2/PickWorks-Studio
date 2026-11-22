@@ -158,3 +158,8 @@ Not built until authorised. Full plan: [operating-profiles.md](operating-profile
 ## Master roadmap (2026-11-22)
 
 The consolidated feature inventory, feature cards and dependency-aware roadmap (Phase 1, Phase 2, then expansion stages X0 to X7) are in [master-roadmap.md](master-roadmap.md). It is the **authoritative planning index**, approved by Jason as the working development plan on 2026-11-22, and supersedes the earlier provisional post-Phase-2 order. It adds the Rhythm & Strumming Studio, Ear Training Studio, Melody & Harmony Assistant and Instrument & Tuning Manager, and moves Print Studio (Core at X1, Expanded from X2) and the Offline Field Library to stages X1 and X2. Ear Training Studio sits under Learning Studio › Practice with its own mastery rule.
+
+## Offline Backing Track Generator and Arrangement Studio (architecture, 2026-11-22)
+
+Approved addition to the product scope, architecture only. Full plan: [backing-track-generator.md](backing-track-generator.md); scheduling in [master-roadmap.md](master-roadmap.md) (X0.6 representation, X3 inputs and style schema, X4 playback and mixing, X6 the generator, X7 more styles). It expands accepted concept 26 (Backing Tracks) and answers its open question: tracks are **generated** offline from the song's harmony, not bundled audio, with every sound licensed for offline redistribution. An arrangement layer over the existing engines (no second model, transport, progression generator or audio engine); four styles first (rock, blues, pop, folk/acoustic), judged by listening tests.
+

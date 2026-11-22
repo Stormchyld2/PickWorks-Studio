@@ -38,8 +38,10 @@ interface ClockSource {
 | Rhythm & Strumming Studio | Audio (strums through the synth) | Timer (visual stepping); Audio on Play if MIDI is allowed | Not used (charts are printed) |
 | Progression and song playback | Audio | Audio on Play if MIDI is allowed | Not available |
 | Ear training rhythm exercises | Audio | Audio when the exercise starts | Not featured |
-| Backing tracks, recording alignment | Audio | Audio if allowed | Not available |
+| Backing Track Generator playback, recording alignment | Audio | Audio on Play if allowed | Not available |
 | Performance Mode auto-scroll | Timer, or Audio when playback runs | Timer | Timer |
+
+**Offline rendering** (WAV and stem export, [backing-track-generator.md](backing-track-generator.md) section 10) doesn't use a live clock at all: it renders faster than real time using the transport's same tick-to-time conversion (tempo map, ramps, swing), so exported audio lines up exactly with live playback.
 
 ## Expected timing accuracy
 

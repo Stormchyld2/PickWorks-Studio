@@ -21,6 +21,7 @@
 | Shared transport, clock sources, timing accuracy, backgrounding | [transport-timing.md](transport-timing.md) |
 | Operating profiles, Field Dashboard, Print/Export Center, field binder and its permissions, lifecycle and power safety | [operating-profiles.md](operating-profiles.md) |
 | Android interfaces (storage, file access, PDF, microphone, audio, battery, touch, interrupted saves) | [android-platform.md](android-platform.md) |
+| Offline Backing Track Generator and Arrangement Studio | [backing-track-generator.md](backing-track-generator.md) |
 | History of accepted feature concepts | [feature-roadmap.md](feature-roadmap.md), [planning-update-02.md](planning-update-02.md) |
 
 **Terminology (used the same way in every document):**
@@ -32,7 +33,7 @@
 - **Diagram rendering** (notation-rendering.md) means chord boxes, fretboards and scale boxes; **standard notation** means staff notation in the X5 editors.
 - **Instrument & Tuning Manager** is the shared instrument and tuning system (called "Instrument Definition" in the workspace plan).
 - **Transport** is the one musical timeline; **AudioClock** and **TimerClock** are its clock sources.
-- **Song Project** is the file format; the **composition model** is its musical structure.
+- **Song Project** is the file format; the **composition model** is its musical structure. In the model, **arrangement** means the song's form (the ordered list of sections); a generated accompaniment is a **backing** (`backings[]`), never called an arrangement in data, even though the feature is named "Arrangement Studio".
 
 ## 1. Feature inventory
 
@@ -71,7 +72,8 @@
 - Chord Progression Generator and Workshop; Rhythm & Strumming Studio; Melody & Harmony Assistant; Music Theory Tools.
 - MIDI engine and SoundFont synthesizer; TAB Editor; Standard Notation Editor; combined view; MIDI file import and export.
 - Ear Training Studio (Learning Studio › Practice).
-- Riff Recorder and Idea Vault; Backing Tracks.
+- Riff Recorder and Idea Vault.
+- **Offline Backing Track Generator and Arrangement Studio** (approved addition, 2026-11-22): style packs, drums, bass, rhythm guitar and keys generation, playback presets, locks and regeneration, variations, MIDI, WAV and stem export.
 - MusicXML interchange; project export and restore.
 
 **Deferred (agreed, not in the initial release):**
@@ -93,11 +95,11 @@
 | **X0** | Shared architectural foundations, as seven milestones (below) | Phase 1; each milestone's own dependencies | None (foundations only) |
 | **X1** | Chord reference tools (Visual Chord Library, Voicing and Alternate Explorers, Compare, Chord Finder); **Print Studio Core**; **Offline Field Library**; **Low-Power Field** and Field Dashboard; Reference workspace opens with its tour | X0.1–X0.5, X0.7; Jason's review of the 18 flagged shapes; Spike C (PDF writer) | Chord tools, printing and Save to PDF, Field mode |
 | **X2** | Songwriting Studio, Arrangement Board, Personal Songbook, Performance Mode; **Expanded Print Studio** (songbooks, lead sheets, lesson worksheets); **field binder**; No-Power Preparation; Play & Create opens with its tour | X0.6, X1; Phase 2 lesson content (for lesson worksheets and binder lessons) | Write, perform and print songs; field binder |
-| **X3** | Chord Progression Generator G1 (rock, pop, folk, blues; Lock Chord + Regenerate); Rhythm & Strumming Studio (editor, presets, visual playback, charts); Music Theory Tools; Melody & Harmony guidance on the fretboard; initial Ear Training (intervals, major and minor, with existing tones) | X2 (Send to Song, pattern attachment); X0.5 (TimerClock); Phase 2 missions, mastery and XP (for ear training) | Generate, strum, theory tools, first ear training, all without a synthesizer |
-| **X4** | MIDI synthesis and playback; generator G2; rhythm audio and accompaniment; ear training chords, progressions and rhythm | X3; Spike B; sound licence verification | Hear songs, progressions, patterns and ear-training chords |
+| **X3** | Chord Progression Generator G1 (rock, pop, folk, blues; Lock Chord + Regenerate); Rhythm & Strumming Studio (editor, presets, visual playback, charts); Music Theory Tools; Melody & Harmony guidance on the fretboard; initial Ear Training (intervals, major and minor, with existing tones); **style pack schema v1** shared by the generator and the future backing engine | X2 (Send to Song, pattern attachment); X0.5 (TimerClock); Phase 2 missions, mastery and XP (for ear training) | Generate, strum, theory tools, first ear training, all without a synthesizer |
+| **X4** | MIDI synthesis and playback; **load, play, loop, mute, solo and mix existing arrangements** (volume, pan, Practice preset, voice management); generator G2; rhythm audio and accompaniment; ear training chords, progressions and rhythm | X3; Spike B (including offline rendering); Spike D first pass; sound licence verification | Hear songs, progressions, patterns and ear-training chords |
 | **X5** | TAB Editor, Standard Notation Editor, combined view, melody composition in the Assistant, MIDI file import and export, TAB and notation printing, notation accessibility | X4; Spike A | Write TAB, notation and melodies |
-| **X6** | Riff Recorder, Idea Vault, Backing Tracks, pitch-preserving speed change | X4 (and X0.6 media storage) | Record ideas, play along |
-| **X7** | MusicXML import and export; advanced generator styles G3 (country, worship, jazz, advanced complexity, mood controls) and G4 (modal); final integration and end-to-end testing | X5, X6 | Interchange, more styles, finished workflow |
+| **X6** | Riff Recorder, Idea Vault, pitch-preserving speed change; **Backing Track Generator**: arrangement generation (drums, bass, rhythm guitar, keys), natural performance processing, Natural and Performance presets, locks, regeneration, variations, editing, offline MIDI, WAV and stem export; four styles (rock, blues, pop, folk/acoustic) that pass the listening tests | X4 (and X0.6 media storage); Spike D; style packs passing backing-track-generator.md section 13 | Record ideas, generate and play along with backing tracks |
+| **X7** | MusicXML import and export; advanced generator styles G3 (country, worship, jazz, advanced complexity, mood controls) and G4 (modal); advanced backing styles as data packs (country, worship, jazz, southern rock, classic rock, funk, ballads), more articulations and quality improvements from listening tests, FLAC export; final integration and end-to-end testing | X5, X6 | Interchange, more styles, finished workflow |
 
 ### X0 milestones (each independently testable)
 
@@ -110,7 +112,7 @@ Each milestone is its own branch and pull request, with its own tests, no visibl
 | **X0.3 Chord catalog pipeline** (chord Stage 1) | CSV authoring, build-time import to JSON, stable ids, review records with fingerprints, `transposeShape`, chord packs through app updates | X0.2; the 27 existing shapes first, the 75-shape manifest after Jason's review | The importer passes chord-system.md Stage 1 criteria |
 | **X0.4 Capability layer** | `capabilities()`, Operating Profile administrator card with Full Studio only, audited profile setting | Workspace navigation Stage B (Phase 2) | Every existing feature declares its capability; nothing visible changes for students |
 | **X0.5 Transport clock sources** | `ClockSource` abstraction, the existing audio path as AudioClock, a new TimerClock, latency-compensated position for highlighting | Existing transport | Metronome behaves exactly as today; TimerClock tests pass with no AudioContext created |
-| **X0.6 Song Project model and storage** | Schema, operations engine (undo, redo, journal), invariants, migrations, Rust song commands with ownership, import and export safety, recovery | X0.1, X0.2 | composition-model.md section 17 tests pass |
+| **X0.6 Song Project model and storage** | Schema (including backings, generated-part sources, instance overlays, edit flags and reproducible generation metadata), operations engine (undo, redo, journal), invariants, migrations, Rust song commands with ownership, import and export safety, recovery | X0.1, X0.2 | composition-model.md section 17 tests pass |
 | **X0.7 Unified diagram rendering** | `neckLayout` shared by screen and print, `fretGrid`, SVG serializers, fret-number and open-string labels, spoken descriptions | X0.1 | notation-rendering.md tests pass; screen and print geometry identical |
 
 X0.1, X0.2, X0.5 and X0.7 have no dependency on each other beyond those listed and can run in any order. X0.4 waits for workspace navigation Stage B.
@@ -265,10 +267,16 @@ Complexity: **S** (days), **M** (1 to 2 weeks), **L** (several weeks), **XL** (a
 - **Android:** microphone permission flow; free-space checks; stops and saves when backgrounded.
 - **Acceptance:** creative-workstation.md section 14, X6. **Complexity:** L. **Stage:** X6.
 
-### Backing Tracks
-- **Reuse:** audio engine, transport, recorder playback path, MIDI engine for generated arrangements.
-- **Placement:** Play & Create; links from songs and exercises. **FS:** full. **LP:** off by default, administrator may allow. **NP:** not initialised.
-- **Complexity:** M. **Stage:** X6.
+### Offline Backing Track Generator and Arrangement Studio
+- **Spec:** [backing-track-generator.md](backing-track-generator.md). Judged by how musical the result sounds, not by style or instrument count.
+- **Reuse:** Progression Generator, Rhythm Studio patterns, composition model (clips, `backings[]`, overlays), MIDI engine, SoundFont synth, shared transport, Instrument & Tuning Manager, chord catalog voicings, operations engine, Songbook and Songwriting Studio. No second model, transport, progression generator or audio engine.
+- **New:** style packs (shared schema with the generator), form planner, groove grid, part generators (drums, bass, rhythm guitar, keys; a common interface for more), performance processor, playback presets, locks and regeneration, variations, Update after chord changes, offline MIDI, WAV and stem export, Easy and Advanced modes.
+- **Depends on:** X0.6, X3 (progressions, patterns, style schema), X4 (playback and mixer), Spikes B and D, sound licence verification.
+- **Placement:** Play & Create; links from songs, the Progression Workshop and practice.
+- **FS:** complete. **LP:** generation and editing; sounds load only for playback or rendering; Practice preset by default. **NP:** view and print arrangement charts; lightweight data-only generation; no audio.
+- **Android:** lite sound set (≤ 80 MB target), foreground-only playback and rendering, full-mix export by default on phones.
+- **Acceptance:** backing-track-generator.md section 13 (technical criteria and listening rubric); no realism claim before listening tests.
+- **Complexity:** XL. **Stage:** X0.6 (representation), X3 (inputs and schema), X4 (playback and mixing), X6 (generator), X7 (more styles and quality).
 
 ### Guided tours
 - **Reuse:** guided-tours.md architecture. **Depends on:** Help page and the features each step describes.
@@ -308,6 +316,7 @@ Complexity: **S** (days), **M** (1 to 2 weeks), **L** (several weeks), **XL** (a
 | **T10 Song import collisions** | Resolved: separate copy by default; confirmed replacement with backup (composition-model.md section 14). |
 | **T11 Notation accessibility** | Resolved in design: creative-workstation.md section 16. |
 | **T12 Recording storage on Android** | Resolved in design: free-space checks, recoverable partial files, stop-and-save on background (android-platform.md, composition-model.md). Screen-off recording deferred. |
+| **T13 Backing-track realism** | Depends mainly on redistributable sample quality (velocity layers, round-robin drums, guitar articulations) and synth capabilities; Spike D criteria documented (backing-track-generator.md section 6). No realism claim until listening tests pass. |
 
 ## 6. Conflicts with earlier plans (status)
 
@@ -337,7 +346,8 @@ Complexity: **S** (days), **M** (1 to 2 weeks), **L** (several weeks), **XL** (a
 - **R1** (was D6) Move the architecture documents from PR #4 to a separate documentation PR?
 - **R2** Confirm that the requirements-v1 work-scope rule ("engines may be built from the current spec") does not apply to the X-stage documents, so each stage and milestone needs your authorisation (my recommendation, matching your instructions).
 - **R3** Review the initial ear-training thresholds, daily XP cap and rhythm timing windows before X3 implementation (values in creative-workstation.md section 8).
-- **R4** Authorise Spikes A, B and C separately when convenient (none needed before X1's Spike C).
+- **R4** Authorise Spikes A, B, C and D separately when convenient (Spike C is the first needed, before X1; Spike D before X4's sound set is fixed).
+- **R6** Backing Track Generator approvals (before X4 and X6): sound-set budgets, the listening panel and pass bar, and whether rendered WAV files may be kept inside songs (backing-track-generator.md section 14).
 - **R5** Earlier open items unchanged by this pass: the 18 flagged chord shapes; the 4 chord-system decisions; the workspace navigation plan's open decisions.
 
 ## 8. Implementation risks found in this review
@@ -352,7 +362,8 @@ Complexity: **S** (days), **M** (1 to 2 weeks), **L** (several weeks), **XL** (a
 8. **A new privileged read path** (administrator binder access to authorised songs). Needs a focused security review and tests that refusal is immediate after revocation.
 9. **Storage pressure** from recordings and PDFs, especially on Android. Mitigated by free-space checks, `.partial` files and the backup opt-out for recordings.
 10. **Low-end tablet performance in Low-Power Field.** Requires real reference devices (T6) before restrictions are finalised.
-11. **Documentation drift** across many documents. Mitigated by this index, the terminology section and a consistency check at each stage.
+11. **Backing-track realism** depends on sample libraries that may be scarce, large or unclear in licence. Mitigated by Spike D, licence verification and holding back any style that fails the listening tests.
+12. **Documentation drift** across many documents. Mitigated by this index, the terminology section and a consistency check at each stage.
 
 ## 9. Recommendation for the next development stage
 

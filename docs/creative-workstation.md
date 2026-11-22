@@ -11,7 +11,7 @@ PickWorks becomes a complete offline environment to learn, write, arrange, pract
 Placement follows the approved workspaces:
 
 - **Learning Studio:** lessons, practice, mastery, progress, Ear Training Studio, Fretboard Explorer (including the Visual Chord Library and "What Chord Am I Playing?").
-- **Play & Create:** Songwriting Studio, Rhythm & Strumming Studio, Melody & Harmony Assistant, Song Arrangement Board, Chord Progression Workshop, TAB Editor, Standard Notation Editor, combined TAB + notation, MIDI playback, Riff Recorder and Idea Vault, Personal Songbook, Performance Mode, Backing Tracks, Music Theory Tools, Music Library.
+- **Play & Create:** Songwriting Studio, Rhythm & Strumming Studio, Melody & Harmony Assistant, Song Arrangement Board, Chord Progression Workshop, TAB Editor, Standard Notation Editor, combined TAB + notation, MIDI playback, Riff Recorder and Idea Vault, Personal Songbook, Performance Mode, Backing Track Generator and Arrangement Studio ([backing-track-generator.md](backing-track-generator.md)), Music Theory Tools, Music Library.
 - **Reference:** Print Studio (Printable Resources) and the Offline Field Library, maintenance, tuning and field skills, offline reference, low-power tools.
 
 Each tool lives in one place; other workspaces link to it rather than copying it. Administrators control workspace access, students control visibility, and Play & Create stays hidden until its first substantial feature works.
@@ -60,7 +60,7 @@ All candidates must work offline, ship inside the installer, and run on Windows 
 
 ### Instrument sounds
 
-Bundle one compressed SoundFont subset with only the needed instruments: steel and nylon acoustic, clean electric, electric bass, piano, and a basic drum kit for count-ins and backing. Target an install size increase of about 30 to 60 MB, loaded only when playback starts. **No sound asset is included until its licence is verified** by the procedure below.
+Bundle one compressed SoundFont subset with only the needed instruments: steel and nylon acoustic, clean electric, electric bass, piano, and a basic drum kit for count-ins and backing. Target an install size increase of about 30 to 60 MB, loaded only when playback starts. The Backing Track Generator's realism requirement may need dedicated guitar, bass, drum and piano banks instead (larger; a separate lite set for Android); that is decided by Spike D ([backing-track-generator.md](backing-track-generator.md) section 6). **No sound asset is included until its licence is verified** by the procedure below. The synthesizer's software licence and the instrument samples' licences are separate, and both must be verified.
 
 **Preliminary licence check (2026-11-22, desk research only, not a clearance):**
 
@@ -383,7 +383,8 @@ All screens keep the white logo, dark navy theme, glow cards, blue accents and a
 11. **Melody & Harmony Assistant panel.** A side panel in the editors and Workshop: current chord and key at the top, toggles for scale tones, chord tones, targets and arpeggios, a mini fretboard with highlights, and the interval label for the selected note.
 12. **Ear Training Studio.** Mission cards by type and level; an exercise screen with a large Play button, answer buttons (large, touch-friendly), immediate feedback and a progress strip; a results card at the end.
 
-14. **Notation editing accessibility.** See section 16 for the keyboard, screen-reader and nonvisual entry design that screens 5 and 11 must follow.
+14. **Backing Track Generator.** Easy mode: style, key and major/minor, tempo, length, instrument tick boxes, a large Generate button, Play, Stop, Regenerate and Save to Song Project, with the chord chart of the result. Advanced side panel (bottom sheet on phones) with one collapsible group open at a time: Harmony, Feel, Arrangement, Instruments (per-instrument lock and regenerate), Mix (volume, pan, mute, solo), Playback (loop, preset). Details: backing-track-generator.md section 3.
+15. **Notation editing accessibility.** See section 16 for the keyboard, screen-reader and nonvisual entry design that screens 5 and 11 must follow.
 
 These specifications become interactive mockups (captured from a throwaway prototype, as with the workspace selector) when you ask for them, one screen group per stage.
 
@@ -398,7 +399,7 @@ Stage names follow master-roadmap.md. (Earlier drafts numbered these "Stage 1 to
 - **X2 (songwriting):** a song with 6 sections and 40 chords survives save, close and reload unchanged; changing key transposes all chords and no lyric character changes; killing the app mid-edit recovers edits made up to 2 seconds before (composition-model.md section 11); reordering the arrangement keeps all section content; undo and redo work for 100 steps; Performance Mode works with no audio device; songs are included in backups and restore correctly; song import and export pass the safety tests in composition-model.md section 17; Expanded Print Studio (songbook, lead sheets, binder) passes its tests.
 - **X3 (creative tools without audio):** generator G1 acceptance in section 5; Rhythm Studio (section 6) in visual mode; Melody Assistant guidance (section 7); first ear training (section 8). **X4 (playback):** Roman numerals and Nashville numbers are correct for every diatonic chord in all major and minor keys; playback of a progression at 60, 120 and 200 BPM stays within 5 ms of the transport's beat times; loops repeat seamlessly for 50 repetitions; idle CPU returns to baseline within 2 seconds of stopping, and the synth is not loaded until first playback.
 - **X5 (composition):** TAB and notation views show the same events after every edit; every measure's durations are validated; a tuning change never alters pitches and flags unplayable positions; MIDI export then import reproduces pitches, durations and tempo exactly for a test suite of 30 passages; the playback highlight matches the sounding note within one rendering frame; the accessibility requirements in section 16 pass.
-- **X6 (recording):** a 5-minute recording saves as WAV with no dropouts and reopens; trim is non-destructive until "Save trimmed copy"; speed change from 50% to 150% keeps pitch; the tuner and recorder never hold the microphone at the same time; recordings move with the song on export and restore; a recording interrupted by a crash is recovered as a playable file.
+- **X6 (recording):** a 5-minute recording saves as WAV with no dropouts and reopens; trim is non-destructive until "Save trimmed copy"; speed change from 50% to 150% keeps pitch; the tuner and recorder never hold the microphone at the same time; recordings move with the song on export and restore; a recording interrupted by a crash is recovered as a playable file; the Backing Track Generator passes backing-track-generator.md section 13 for each of its four first styles.
 - **X7 (interchange):** MusicXML export then import preserves the supported element list exactly and reports anything unsupported; printed lead sheets, TAB and notation are black and white and match the screen; a whole song folder exports, restores on another installation and opens without broken references.
 
 ## 15. Decisions
