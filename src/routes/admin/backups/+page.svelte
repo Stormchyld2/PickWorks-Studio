@@ -18,6 +18,7 @@
   import { admin } from '$lib/stores/admin.svelte';
   import { auth } from '$lib/stores/auth.svelte';
   import { backend } from '$lib/services/backend';
+  import { platform } from '$lib/services/platform';
   import type { BackupInfo } from '$lib/services/core-client';
 
   let studentId = $state('');
@@ -147,7 +148,7 @@
 <section class="glow-card list">
   <div class="list-head">
     <h2>Saved Backups</h2>
-    <button class="pw-btn" disabled={busy} onclick={importBackup}><FolderInput size={16} /> Bring Back From USB or Folder</button>
+    {#if platform.backupCopies !== 'none'}<button class="pw-btn" disabled={busy} onclick={importBackup}><FolderInput size={16} /> Bring Back From USB or Folder</button>{/if}
   </div>
   {#if admin.backups.length}
     <table>
@@ -164,7 +165,7 @@
             <td class="muted">{formatSize(b.sizeBytes)}</td>
             <td class="r actions">
               <button class="pw-btn" disabled={busy} onclick={() => verify(b)} title="Check every file is complete and unchanged"><ShieldCheck size={16} /> Check</button>
-              <button class="pw-btn" disabled={busy} onclick={() => startExport(b)}><Usb size={16} /> Copy to USB or Folder</button>
+              {#if platform.backupCopies !== 'none'}<button class="pw-btn" disabled={busy} onclick={() => startExport(b)}><Usb size={16} /> Copy to USB or Folder</button>{/if}
               <button class="pw-btn" disabled={busy} onclick={() => ((restoring = b), (restoreError = ''), (password = ''))}><RotateCcw size={16} /> Restore</button>
             </td>
           </tr>
@@ -232,5 +233,5 @@
   .pw-note { margin-top: 16px; }
   .pw-note.ok { background: rgba(63, 178, 127, 0.12); border-color: rgba(63, 178, 127, 0.5); }
   .dlg-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
-  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+  @media (max-width: 839.98px) { .grid { grid-template-columns: 1fr; } }
 </style>

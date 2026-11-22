@@ -58,7 +58,7 @@
     padding: 48px 72px 48px 56px;
     background: radial-gradient(ellipse at 80% 10%, rgba(35, 139, 235, 0.12), transparent 55%);
   }
-  @media (max-width: 860px) {
+  @media (max-width: 839.98px) {
     .split {
       grid-template-columns: 1fr;
     }

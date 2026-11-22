@@ -240,5 +240,5 @@
   .small { font-size: 0.9rem; margin-top: 12px; }
   .pwform { max-width: 560px; margin-top: 18px; }
   .actions { display: flex; justify-content: space-between; margin-top: 16px; }
-  @media (max-width: 1100px) { .cols { grid-template-columns: 1fr; } .divider { border-left: 0; padding-left: 0; margin-top: 24px; } }
+  @media (max-width: 839.98px) { .cols { grid-template-columns: 1fr; } .divider { border-left: 0; padding-left: 0; margin-top: 24px; } }
 </style>

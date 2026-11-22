@@ -1,6 +1,7 @@
 <script lang="ts">
   import Fretboard from '$lib/components/fretboard/Fretboard.svelte';
   import { preferences } from '$lib/stores/preferences.svelte';
+  import { page } from '$app/state';
   import type { FretHighlight } from '$lib/components/fretboard/types';
   import {
     allPositions,
@@ -51,7 +52,10 @@
   const scaleRootPc = $derived(spellingToPitchClass(parseSpelling(scaleRoot)));
   const scaleNotes = $derived(scale.degrees ? spellScale(parseSpelling(scaleRoot), scale) : null);
 
-  let mode = $state<Mode>('notes');
+  // ?mode=chords etc. (dashboard links) opens a tab directly.
+  const MODES: Mode[] = ['notes', 'chords', 'scales', 'intervals'];
+  const asked = page.url.searchParams.get('mode') as Mode | null;
+  let mode = $state<Mode>(asked && MODES.includes(asked) ? asked : 'notes');
   let maxFret = $state(12);
   let accidentals = $state<AccidentalPreference>('sharp');
   let showAll = $state(false);

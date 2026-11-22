@@ -248,7 +248,7 @@
     grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
     gap: 16px;
   }
-  @media (max-width: 1100px) {
+  @media (max-width: 839.98px) {
     .layout {
       grid-template-columns: 1fr;
     }

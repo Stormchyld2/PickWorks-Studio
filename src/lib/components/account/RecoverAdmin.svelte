@@ -17,6 +17,7 @@
   import { friendlyError } from './errors';
   import { auth } from '$lib/stores/auth.svelte';
   import { backend } from '$lib/services/backend';
+  import { platform, printPage } from '$lib/services/platform';
 
   const elevated = auth.launchMode === 'recover-admin';
   let mode = $state<'key' | 'windows'>(elevated ? 'windows' : 'key');
@@ -66,7 +67,7 @@
       <div class="key">{newKey}</div>
       <div class="row no-print">
         <button class="pw-btn" type="button" onclick={() => navigator.clipboard.writeText(newKey).catch(() => {})}><Copy size={18} /> Copy</button>
-        <button class="pw-btn" type="button" onclick={() => window.print()}><Printer size={18} /> Print</button>
+        {#if platform.print !== 'none'}<button class="pw-btn" type="button" onclick={printPage}><Printer size={18} /> Print</button>{/if}
       </div>
       <label class="check no-print"><input type="checkbox" bind:checked={saved} /> I have saved or printed my new recovery key</label>
       <div class="actions no-print">
@@ -100,7 +101,7 @@
       {#if error}<div class="pw-note error" role="alert"><CircleAlert size={18} /> <span>{error}</span></div>{/if}
       <div class="pw-note"><Info size={18} color="var(--pw-primary-hover)" /> <span>This is recorded in the audit log.</span></div>
       <div class="actions">
-        {#if mode === 'key'}<button class="pw-btn ghost" type="button" onclick={() => (mode = 'windows')}>I lost the recovery key</button>{/if}
+        {#if mode === 'key' && platform.windowsAdminRecovery}<button class="pw-btn ghost" type="button" onclick={() => (mode = 'windows')}>I lost the recovery key</button>{/if}
         <button class="pw-btn" type="button" onclick={() => auth.showProfiles()}>Cancel</button>
         <button class="pw-btn primary" type="submit" disabled={!ok}>Reset Password</button>
       </div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PlannedScreen from '$lib/components/ui/PlannedScreen.svelte';
+  import ComingSoon from '$lib/components/ui/ComingSoon.svelte';
 </script>
 
-<PlannedScreen title="Help" milestone={8} summary="How the learning system works, and keyboard and mouse controls." items={['Fretboard keyboard controls: Tab to focus, arrow keys to move, Enter or Space to select, Home/End for first/last fret']} />
+<ComingSoon title="Help" message="A full guide is coming soon. On the fretboard: press Tab to reach it, the arrow keys to move, Enter or Space to choose a note, and Home or End for the first or last fret." />

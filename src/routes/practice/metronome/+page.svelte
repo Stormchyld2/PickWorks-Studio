@@ -196,5 +196,5 @@
   .play-btn:hover { background: var(--pw-primary-hover); }
   .vol { justify-self: end; display: flex; align-items: center; gap: 12px; width: min(320px, 100%); color: var(--pw-text-muted); }
   .hint { text-align: center; color: var(--pw-text-muted); margin-top: 14px; font-size: 0.95rem; }
-  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+  @media (max-width: 839.98px) { .grid { grid-template-columns: 1fr; } }
 </style>

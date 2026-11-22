@@ -23,6 +23,16 @@ export type SignOutReason = 'manual' | 'idle' | 'shutdown' | 'switch';
 export interface SignOutStep {
   name: string;
   run(reason: SignOutReason): Promise<void> | void;
+  /**
+   * Saves the screen's place without ending anything (the app went to the
+   * background). Must not stop audio or interrupt an exercise. Optional.
+   */
+  checkpoint?(): Promise<void> | void;
+}
+
+export interface CheckpointReport {
+  /** Things that could not be saved, in the student's words. Never reported as saved. */
+  unsaved: string[];
 }
 
 export interface SignOutReport {
@@ -89,6 +99,30 @@ export class SessionLifecycle {
   onSignedOut(fn: (r: SignOutReport) => void): () => void {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
+  }
+
+  /**
+   * Saves everyone's place when the app goes to the background (Android app
+   * switch, Windows minimise). It never signs out, stops audio or interrupts
+   * an exercise: sign-out stays with the idle limit and the sign-out button.
+   */
+  async checkpoint(): Promise<CheckpointReport> {
+    const session = this.current;
+    if (!session || this.ending) return { unsaved: [] };
+    const unsaved: string[] = [];
+    for (const step of [...this.steps.values()]) {
+      if (!step.checkpoint) continue;
+      try {
+        await step.checkpoint();
+      } catch (e) {
+        unsaved.push(describe(e, step.name));
+      }
+    }
+    if (session.data && this.current === session) {
+      await session.data.retryPending();
+      for (const op of session.data.pending) if (!unsaved.includes(op.what)) unsaved.push(op.what);
+    }
+    return { unsaved };
   }
 
   /** Call on a timer. Signs out when the idle limit passes. */

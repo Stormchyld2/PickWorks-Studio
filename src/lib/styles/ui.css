@@ -110,3 +110,22 @@
   white-space: nowrap;
   border: 0;
 }
+
+/*
+ * Touch screens (Android phones and tablets, touch laptops): controls get at
+ * least a 44 px target. Mouse and keyboard layouts are unchanged.
+ */
+@media (pointer: coarse) {
+  .pw-btn,
+  .nav-link,
+  [role='tab'],
+  select,
+  .pw-input input {
+    min-height: 44px;
+  }
+  input[type='checkbox'],
+  input[type='radio'] {
+    min-width: 24px;
+    min-height: 24px;
+  }
+}

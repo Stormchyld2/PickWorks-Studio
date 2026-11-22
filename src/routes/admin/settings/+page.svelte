@@ -16,6 +16,7 @@
   import { admin } from '$lib/stores/admin.svelte';
   import { auth } from '$lib/stores/auth.svelte';
   import { backend } from '$lib/services/backend';
+  import { platform, printPage } from '$lib/services/platform';
   import type { StudentAdminView } from '$lib/services/core-client';
 
   let dialog = $state<'password' | 'key' | { delete: StudentAdminView } | null>(null);
@@ -129,7 +130,7 @@
       </div>
       <div class="dlg-actions">
         <button class="pw-btn" onclick={() => navigator.clipboard.writeText(newKey).catch(() => {})}><Copy size={16} /> Copy</button>
-        <button class="pw-btn" onclick={() => window.print()}><Printer size={16} /> Print</button>
+        {#if platform.print !== 'none'}<button class="pw-btn" onclick={printPage}><Printer size={16} /> Print</button>{/if}
         <button class="pw-btn primary" onclick={() => (dialog = null)}>Done</button>
       </div>
     {:else}
@@ -182,5 +183,5 @@
     .print-key { position: absolute; inset: 0 auto auto 0; }
     .print-key .key { background: #fff; border-color: #000; }
   }
-  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+  @media (max-width: 839.98px) { .grid { grid-template-columns: 1fr; } }
 </style>

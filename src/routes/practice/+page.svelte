@@ -1,14 +1,11 @@
 <script lang="ts">
-  import PlannedScreen from '$lib/components/ui/PlannedScreen.svelte';
+  import ComingSoon from '$lib/components/ui/ComingSoon.svelte';
 </script>
 
 
-<PlannedScreen
-  title="Practice"
-  milestone={4}
-  summary="Guided drills, timed and untimed challenges, weak-area review and practice history."
-  items={['Find the note, name the note, identify string and fret', 'Locate all occurrences, anchors, octave patterns', 'Mixed and weak-area review']}
-/>
+<ComingSoon title="Practice" message="Guided practice is coming soon. You can use the metronome and fretboard tools now.">
+  <a class="pw-btn" href="/fretboard">Open Fretboard Explorer</a>
+</ComingSoon>
 
 <section class="card tool">
   <div>

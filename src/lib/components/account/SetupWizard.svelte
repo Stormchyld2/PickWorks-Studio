@@ -16,6 +16,7 @@
   import PasswordField from './PasswordField.svelte';
   import { friendlyError } from './errors';
   import { auth } from '$lib/stores/auth.svelte';
+  import { platform, printPage } from '$lib/services/platform';
 
   const STEPS = [
     { title: 'Administrator Account', sub: 'Name and password' },
@@ -114,7 +115,7 @@
       <div class="key" aria-label="Recovery key">{recoveryKey}</div>
       <div class="key-actions no-print">
         <button class="pw-btn" type="button" onclick={copyKey}><Copy size={18} /> {copied ? 'Copied' : 'Copy'}</button>
-        <button class="pw-btn" type="button" onclick={() => window.print()}><Printer size={18} /> Print</button>
+        {#if platform.print !== 'none'}<button class="pw-btn" type="button" onclick={printPage}><Printer size={18} /> Print</button>{/if}
       </div>
       <div class="pw-note amber"><Info size={18} color="var(--pw-amber)" /> <span>Keep it somewhere safe and away from students, such as with your important papers. Anyone with this key can reset the administrator password.</span></div>
       <label class="check no-print"><input type="checkbox" bind:checked={saved} /> I have saved or printed my recovery key</label>

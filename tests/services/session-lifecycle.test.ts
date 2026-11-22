@@ -126,4 +126,25 @@ describe('SessionLifecycle', () => {
     target.dispatchEvent(new Event('keydown'));
     expect(life.activity).toHaveBeenCalledTimes(3);
   });
+
+  it('going to the background saves places but never signs out or stops audio', async () => {
+    const { life, data, client, order } = setup();
+    life.onSignOut({ name: 'your place', run: () => void order.push('sign-out step'), checkpoint: () => void order.push('saved place') });
+    client.failNext = 1;
+    await data!.savePreferences({ ...(await data!.preferences()) }).catch(() => {});
+    expect(data!.pending).toHaveLength(1);
+    const report = await life.checkpoint();
+    expect(order).toEqual(['saved place']);
+    expect(report.unsaved).toEqual([]);
+    expect(data!.pending).toHaveLength(0);
+    expect(life.session).not.toBeNull();
+  });
+
+  it('reports a background save that still fails, instead of claiming success', async () => {
+    const { life } = setup();
+    life.onSignOut({ name: 'your place', run: () => {}, checkpoint: () => Promise.reject(new Error('disk full')) });
+    expect((await life.checkpoint()).unsaved).toEqual(['your place']);
+    expect(life.session).not.toBeNull();
+  });
 });
+

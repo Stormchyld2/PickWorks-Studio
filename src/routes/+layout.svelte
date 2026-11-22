@@ -12,7 +12,8 @@
   import { auth } from '$lib/stores/auth.svelte';
   import { session } from '$lib/services/session';
   import { bindInputActivity } from '$lib/services/session-lifecycle';
-  import { inTauri } from '$lib/services/core-client';
+  import { onAppClosing, onAppHidden } from '$lib/services/platform';
+  import { layout } from '$lib/stores/layout.svelte';
   import { preferences } from '$lib/stores/preferences.svelte';
   import { tuner } from '$lib/stores/tuner.svelte';
   import Dialog from '$lib/components/ui/Dialog.svelte';
@@ -20,6 +21,8 @@
   let { children } = $props();
   let collapsed = $state(false);
   let warningSecs = $state<number | null>(null);
+  /** Set when saving on the way to the background left something unsaved. */
+  let backgroundUnsaved = $state<string[]>([]);
 
   const signedIn = $derived(auth.screen.name === 'app' && auth.info !== null);
   const kind = $derived(auth.info?.principal.kind ?? 'student');
@@ -33,18 +36,18 @@
     }, 1000);
 
     // Closing the window signs out first, so work is saved and audio stops.
-    let unlistenClose: (() => void) | undefined;
-    if (inTauri()) {
-      void import('@tauri-apps/api/window').then(async ({ getCurrentWindow }) => {
-        unlistenClose = await getCurrentWindow().onCloseRequested(async () => {
-          await auth.signOut('shutdown');
-        });
-      });
-    }
+    const unlistenClose = onAppClosing(() => auth.signOut('shutdown').then(() => {}));
+    // Going to the background (app switch, minimise) saves work but never signs out.
+    const unlistenHidden = onAppHidden(document, () => {
+      void session.checkpoint().then((r) => (backgroundUnsaved = r.unsaved));
+    });
+    const unbindLayout = layout.bind(window);
     return () => {
       unbind();
       clearInterval(timer);
-      unlistenClose?.();
+      unlistenClose();
+      unlistenHidden();
+      unbindLayout();
     };
   });
 
@@ -108,6 +111,12 @@
 {/if}
 {#if preferences.saveError && signedIn}
   <div class="save-error pw-note amber" role="alert">{preferences.saveError}</div>
+{/if}
+{#if backgroundUnsaved.length && signedIn}
+  <div class="save-error pw-note amber" role="alert">
+    Some work couldn't be saved yet: {backgroundUnsaved.join(', ')}. It will be tried again.
+    <button class="pw-btn ghost" onclick={() => (backgroundUnsaved = [])}>Dismiss</button>
+  </div>
 {/if}
 {#if auth.unsaved}
   <UnsavedDialog items={auth.unsaved} oncancel={() => (auth.unsaved = null)} onconfirm={() => auth.signOut('manual', true)} />
