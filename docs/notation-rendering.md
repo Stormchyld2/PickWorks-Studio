@@ -38,7 +38,7 @@ No chord, scale or fretboard images exist in the repository today; every diagram
 1. **Shape metadata.** Add level, family, movable flag, root string, movable fret range, suggested uses, review status, and an optional slash bass to the schema, as listed in the chord manifest. The 48 new shapes are added as data only.
 2. **Transposition.** A pure `transposeShape(shape, newRoot)` for movable shapes: it moves every fretted note by the same number of frets along the root string, keeps fingers and barres, and refuses roots outside the shape's checked range. Transposed shapes are calculated, never stored. The Chord Library root picker calls it and passes the result to the same layout.
 3. **Chord qualities.** Add maj9, m9, 13 and 7#9 to `music-theory/chords.ts`, and slash chords (the bass note is shown in the name, for example D/F#).
-4. **Display modes.** Map the five modes onto the existing options:
+4. **Display modes.** Map the five modes (plus fret numbers, added with the [chord system](chord-system.md)) onto the existing options:
 
    | Mode | Layout labels | Renderer variant |
    | --- | --- | --- |
@@ -46,6 +46,7 @@ No chord, scale or fretboard images exist in the repository today; every diagram
    | Beginner Fingering | fingers, plus a finger key under the diagram | screen |
    | Note Names | notes, including open-string notes under the open markers | screen |
    | Intervals | intervals, including open strings | screen |
+| Fret numbers | fret numbers (added for the Chord Library and the Chord Finder, where a student's own fingering has no finger numbers) | screen |
    | Print | the student's chosen label set | print (black and white) |
 
    Print is a variant rather than a label set, so a printed sheet can use fingers, notes or intervals. Open strings currently show only a circle; Note Names and Intervals need a label for them.

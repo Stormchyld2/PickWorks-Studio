@@ -130,3 +130,13 @@ Not built until authorised. Full plan: [notation-rendering.md](notation-renderin
 - The chord manifest is the single source of truth; lessons, practice and printables refer to shapes by id, so one correction updates every use.
 - Reuses the existing chord layout engine and `ChordDiagram`, the `Fretboard` neck renderer, scale placement and the print worksheet layout; extends them with shape metadata, transposition for movable shapes, five display modes (Basic, Beginner Fingering, Note Names, Intervals, Print), richer accessible descriptions, scale box diagrams and one shared neck layout for screen and print.
 - Right- and left-handed throughout; works with any tuning definition.
+
+## Phase 2: chord system (architecture, 2026-11-22)
+
+Not built until authorised. Full plan with acceptance criteria and tests: [chord-system.md](chord-system.md).
+
+1. Expandable chord catalog: CSV authoring, build-time import to a bundled JSON catalog, stable ids, multiple voicings per chord, movable shapes and tunings, automated validation kept separate from human review (review resets if a shape changes), chord packs, no size limit.
+2. Searchable Visual Chord Library in Fretboard Explorer's Chords tab: live search by name, symbol, alias and quality; level, family, root and tuning filters; detail view with fingers, fret numbers, note names and intervals; left-handed.
+3. Voicing Explorer (every validated voicing of the selected chord, beginner shapes first) and Alternate Chord Explorer (extensions, suspended, inversions and slash chords, and context-dependent substitutions, each explained).
+4. Reverse Chord Finder ("What chord am I playing?"): build a chord on the fretboard and get ranked, explained candidates from chord formulas, including inversions, slash chords and chords not in the catalog.
+5. Integration with lessons, practice, Compare Chords and printing, all by shape id.
