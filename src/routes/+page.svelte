@@ -111,7 +111,7 @@
         <b>{summary.nextSkill ?? 'Keep exploring: try the D and G strings next'}</b>
       </div>
     {/if}
-    <a class="go" href="/fretboard"><Play size={18} /> Open Fretboard Explorer <ChevronRight size={18} /></a>
+    <a class="go" href="/fretboard"><Play size={18} /> Explore the E and A Strings <ChevronRight size={18} /></a>
   </section>
 
   <section class="glow-card next">
@@ -136,7 +136,7 @@
   </section>
 
 
-  <section class="glow-card recent">
+  <section class:has-history={!!last} class="glow-card recent">
     <h3><Target size={22} /> Recent Practice</h3>
     {#if loadError}
       <p class="muted empty">Your practice history couldn't be loaded right now.</p>
@@ -156,7 +156,7 @@
       </div>
       <a class="again" href="/fretboard"><RotateCcw size={16} /> Practice Again</a>
     {:else}
-      <p class="muted empty">No practice sessions yet. Each session will show here with the skill you practised, your accuracy and the time spent, so you can pick up where you left off.</p>
+      <div class="recent-empty"><div class="empty-icon" aria-hidden="true"><Clock size={22} /></div><div><b>Your practice history starts here</b><p class="muted small">After your first practice session, see your accuracy, time spent, and what to work on next.</p></div></div>
     {/if}
   </section>
 
@@ -183,7 +183,7 @@
       linear-gradient(0deg, var(--pw-bg) 0%, rgba(11, 17, 25, 0) 45%),
       url('/images/dashboard-header.jpg') right 30% / 72% auto no-repeat;
   }
-  .welcome h1 { font-size: 2.8rem; }
+  .welcome h1 { font-size: clamp(2rem, 2.5vw, 2.8rem); line-height: 1.12; }
   .welcome p { margin: 4px 0 0; font-size: 1.2rem; }
   h2 { font-size: 1.8rem; margin: 2px 0; }
   h3 { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; margin: 0 0 12px; }
@@ -191,19 +191,24 @@
   .small { font-size: 0.9rem; }
   .muted { color: var(--pw-text-muted); }
   a { color: inherit; text-decoration: none; }
-  .course { display: flex; align-items: center; gap: 22px; margin-bottom: 16px; }
+  .course { display: flex; align-items: center; gap: 18px; margin-bottom: 16px; }
   .course:hover { border-color: var(--pw-primary-hover); }
-  .tile { width: 84px; height: 84px; border-radius: 16px; display: grid; place-items: center; background: linear-gradient(160deg, #2a8ff0, #1765b8); color: #fff; flex: none; }
+  .tile { width: 72px; height: 72px; border-radius: 16px; display: grid; place-items: center; background: linear-gradient(160deg, #2a8ff0, #1765b8); color: #fff; flex: none; }
   .cmain { flex: 1; min-width: 0; }
   .cmain p { margin: 0 0 10px; }
   .bar { height: 10px; border-radius: 6px; background: var(--pw-surface-2); overflow: hidden; }
   .bar span { display: block; height: 100%; background: var(--pw-primary); border-radius: 6px; }
   .cside { display: flex; flex-direction: column; gap: 4px; padding-left: 26px; border-left: 1px solid var(--pw-border); min-width: 190px; }
   .cside b { font-size: 1.25rem; }
-  .grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
   .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-  .mastery { display: flex; flex-direction: column; gap: 14px; flex: 1; }
-  .recent { display: flex; flex-direction: column; flex: 1; }
+  .mastery { display: flex; flex-direction: column; gap: 12px; }
+  .recent { display: flex; flex-direction: column; }
+  .recent.has-history { min-height: 220px; }
+  .recent-empty { display: flex; align-items: flex-start; gap: 14px; padding: 10px 0 4px; }
+  .recent-empty b { display: block; font-size: 1rem; }
+  .recent-empty p { margin: 4px 0 0; line-height: 1.5; }
+  .empty-icon { width: 42px; height: 42px; display: grid; place-items: center; flex: none; border-radius: 12px; color: var(--pw-primary-hover); background: var(--pw-bg-raised); border: 1px solid var(--pw-border-strong); }
   .mhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
   .mhead h3 { margin: 0; }
   .due { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(245, 158, 56, 0.15); border: 1px solid var(--pw-amber); color: var(--pw-amber); font-weight: 700; font-size: 0.88rem; }
@@ -224,15 +229,15 @@
   .mstats span { color: var(--pw-text-muted); font-size: 0.9rem; }
   .nextskill { display: flex; flex-direction: column; gap: 2px; }
   .nextskill b { font-size: 1.1rem; }
-  .mastery .go { margin-top: auto; }
+  .mastery .go { margin-top: 4px; }
   .note { margin: 10px 0 0; }
   .lastskill { margin: -4px 0 10px; }
   .again { align-self: flex-start; margin-top: auto; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--pw-primary); color: var(--pw-text); font-weight: 600; }
   .recent .rp { margin-bottom: 12px; }
   .again:hover { background: var(--pw-surface-2); }
   .soon { font-size: 0.72rem; font-weight: 700; color: var(--pw-amber); text-transform: uppercase; letter-spacing: 0.06em; }
-  .next { display: flex; gap: 20px; }
-  .photo { position: relative; flex: 0 1 250px; min-width: 140px; }
+  .next { display: flex; gap: 16px; }
+  .photo { position: relative; flex: 0 1 210px; min-width: 140px; }
   .photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; min-height: 180px; display: block; }
   .tag { position: absolute; top: 10px; left: 10px; background: var(--pw-amber); color: #1a1206; font-weight: 800; font-size: 0.8rem; padding: 3px 9px; border-radius: 6px; }
   .ninfo { min-width: 0; flex: 1 1 260px; }
@@ -257,7 +262,12 @@
   .empty { margin: 4px 0 6px; }
   .qa { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
   .qa a { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 4px; border: 1px solid var(--pw-border-strong); border-radius: 12px; background: var(--pw-bg-raised); font-size: clamp(0.92rem, 0.95vw, 1.05rem); text-align: center; overflow-wrap: anywhere; }
-  .qa a:hover, .qa a:focus-visible { border-color: var(--pw-primary-hover); }
+  .qa a:hover, .qa a:focus-visible { border-color: var(--pw-primary-hover); background: var(--pw-surface-2); }
+  .go:focus-visible, .again:focus-visible, .course:focus-visible { outline: 3px solid var(--pw-primary-hover); outline-offset: 3px; }
+  @media (max-width: 1100px) and (min-width: 840px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
   .qa :global(svg) { color: var(--pw-primary-hover); }
 
   /* Narrower windows (Android tablets in portrait, split-screen): one column. Windows never gets this. */
