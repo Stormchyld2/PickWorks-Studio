@@ -9,6 +9,10 @@ The full plan, with decisions and roadmap, lives in the project document "PickWo
 - **Components draw; engines decide.** The `Fretboard` component renders highlights and emits selections. Whether a selection is correct is decided by the performance evaluator.
 - **No fake progress.** Screens not yet built say so and name the milestone that delivers them.
 
+## Fretboard Mastery placement and progression (Phase 2 design)
+
+The per-student first-use Skill Placement Wizard, evidence-based placement, sequential lesson gates, free review of earlier unlocked lessons, independent free exploration and dashboard-as-navigation contract are specified in [fretboard-mastery-placement.md](fretboard-mastery-placement.md). Placement is distinct from mastery; the existing locked note-mastery rule remains unchanged. Engines enforce access, UI displays derived state, and student data persists through the Rust ownership boundary. **This is approved architecture, not an implemented feature or authorization to code it.**
+
 ## Layers
 
 1. Screens (`src/routes`)
