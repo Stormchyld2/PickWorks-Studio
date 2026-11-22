@@ -146,3 +146,11 @@ Not built until authorised. Full plan with acceptance criteria and tests: [chord
 Not built until authorised. Full plan: [creative-workstation.md](creative-workstation.md); shared song model: [composition-model.md](composition-model.md).
 
 Proposed order (needs Jason's approval; replaces the earlier provisional post-Phase-2 order once approved): 0 prerequisites (Phase 1 acceptance, workspace navigation) → 1 shared foundations and the Song Project model → 2 chord system → 3 songwriting core with Performance Mode and a basic Songbook (Play & Create opens) → 4 Chord Progression Generator (Lock Chord + Regenerate first) and MIDI playback → 5 TAB and notation editors → 6 Riff Recorder and backing tracks → 7 MusicXML, printing and project export. Print Studio is proposed to move up alongside Stage 3.
+
+## Operating Profiles (architecture, 2026-11-22)
+
+Not built until authorised. Full plan: [operating-profiles.md](operating-profiles.md).
+
+- Administrator-selected, installation-wide: Full Studio, Low-Power Field (Field Dashboard, reduced visuals, MIDI and recording loaded only on use, administrator overrides), No-Power Preparation (Offline Field Library and Print/Export Center; MIDI and recording never initialised; clear notice that the app still needs power).
+- A separate capability layer: never changes data, progress, XP, mastery or workspace access; one shared set of engines and files.
+- Capability layer and first Low-Power Field with workspace navigation Stage B or creative Stage 1; No-Power Preparation with Print Studio. Every restriction is kept only if measurements show it saves CPU, memory, startup time or battery.

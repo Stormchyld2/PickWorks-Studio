@@ -2,7 +2,7 @@
 
 Architecture and roadmap planning only (Jason's Master Expansion Specification, 2026-11-22). **Implementation is not authorised.** Nothing in this document changes existing code, Phase 1 work, branding, accounts or workspace navigation.
 
-Related documents: [chord-system.md](chord-system.md) (chord catalog, Visual Chord Library, Voicing and Alternate Chord Explorers, Reverse Chord Finder), [notation-rendering.md](notation-rendering.md) (diagram rendering), [guided-tours.md](guided-tours.md), [feature-roadmap.md](feature-roadmap.md), and the Workspace Navigation Implementation Plan.
+Related documents: [operating-profiles.md](operating-profiles.md) (Full Studio, Low-Power Field, No-Power Preparation), [chord-system.md](chord-system.md) (chord catalog, Visual Chord Library, Voicing and Alternate Chord Explorers, Reverse Chord Finder), [notation-rendering.md](notation-rendering.md) (diagram rendering), [guided-tours.md](guided-tours.md), [feature-roadmap.md](feature-roadmap.md), and the Workspace Navigation Implementation Plan.
 
 ## 1. Scope
 
