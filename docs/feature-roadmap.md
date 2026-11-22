@@ -140,3 +140,9 @@ Not built until authorised. Full plan with acceptance criteria and tests: [chord
 3. Voicing Explorer (every validated voicing of the selected chord, beginner shapes first) and Alternate Chord Explorer (extensions, suspended, inversions and slash chords, and context-dependent substitutions, each explained).
 4. Reverse Chord Finder ("What chord am I playing?"): build a chord on the fretboard and get ranked, explained candidates from chord formulas, including inversions, slash chords and chords not in the catalog.
 5. Integration with lessons, practice, Compare Chords and printing, all by shape id.
+
+## After Phase 2: creative workstation (architecture, 2026-11-22)
+
+Not built until authorised. Full plan: [creative-workstation.md](creative-workstation.md); shared song model: [composition-model.md](composition-model.md).
+
+Proposed order (needs Jason's approval; replaces the earlier provisional post-Phase-2 order once approved): 0 prerequisites (Phase 1 acceptance, workspace navigation) → 1 shared foundations and the Song Project model → 2 chord system → 3 songwriting core with Performance Mode and a basic Songbook (Play & Create opens) → 4 Chord Progression Generator (Lock Chord + Regenerate first) and MIDI playback → 5 TAB and notation editors → 6 Riff Recorder and backing tracks → 7 MusicXML, printing and project export. Print Studio is proposed to move up alongside Stage 3.
