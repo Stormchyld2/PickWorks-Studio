@@ -38,7 +38,9 @@
     shapes: STARTER_CHORDS.filter((c) => c.quality === q),
   }));
   const ROOTS = ['C', 'C#', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-  let chordId = $state(STARTER_CHORDS[0].id);
+  // ?chord=e-minor-open (dashboard "Try This") preselects a shape.
+  const askedChord = page.url.searchParams.get('chord');
+  let chordId = $state(STARTER_CHORDS.some((c) => c.id === askedChord) ? askedChord! : STARTER_CHORDS[0].id);
   let scaleRoot = $state('A');
   let scaleId = $state('minor-pentatonic');
   let labels = $state<Labels>('notes');
