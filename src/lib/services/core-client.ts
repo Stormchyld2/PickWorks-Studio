@@ -137,6 +137,13 @@ export const core = {
   adminRestoreStudent: (token: string, backupName: string, adminPassword: string) => call<string>('admin_restore_student', { token, backupName, adminPassword }),
   adminRestoreInstallation: (token: string, backupName: string, adminPassword: string) =>
     call<string>('admin_restore_installation', { token, backupName, adminPassword }),
+  /** Checks a backup's files against the checksums saved with it. */
+  adminVerifyBackup: (token: string, backupName: string) => call<void>('admin_verify_backup', { token, backupName }),
+  /** Opens a folder picker and copies the backup there. Null if cancelled. Everything backups need the admin password. */
+  adminExportBackup: (token: string, backupName: string, adminPassword?: string) =>
+    call<string | null>('admin_export_backup', { token, backupName, adminPassword: adminPassword ?? null }),
+  /** Opens a folder picker and adds a backup from it to the list. Null if cancelled. */
+  adminImportBackup: (token: string) => call<string | null>('admin_import_backup', { token }),
   adminRecentAudit: (token: string, limit = 100) => call<AuditEntry[]>('admin_recent_audit', { token, limit }),
   adminNewRecoveryKey: (token: string, adminPassword: string) => call<string>('admin_new_recovery_key', { token, adminPassword }),
 

@@ -107,4 +107,20 @@ describe('account screens flow', () => {
     expect(preferences.value.tuner.a4).toBe(442);
     expect(auth.shouldConfirmSignOut()).toBe(true);
   });
+
+  it('copying an Everything backup to USB needs the admin password; student copies do not', async () => {
+    const { preview } = await app();
+    await preview.setupAdmin('Jason', 'admin-pass-1');
+    const t = (await preview.signInAdmin('admin-pass-1')).token;
+    const id = await preview.adminCreateStudent(t, 'Sam', 'temporary1');
+    const student = await preview.adminBackupStudent(t, id);
+    const all = await preview.adminBackupInstallation(t);
+    expect(await preview.adminExportBackup(t, student)).toContain(student);
+    await expect(preview.adminExportBackup(t, all)).rejects.toMatchObject({ code: 'wrong-password' });
+    expect(await preview.adminExportBackup(t, all, 'admin-pass-1')).toContain(all);
+    const { friendlyError } = await import('../../src/lib/components/account/errors');
+    const { CoreError } = await import('../../src/lib/services/core-client');
+    expect(friendlyError(new CoreError('corrupt', 'damaged file: x'))).toMatch(/Nothing was changed/);
+    expect(friendlyError(new CoreError('invalid-data', "invalid data: That folder isn't a PickWorks Studio backup."))).toBe("That folder isn't a PickWorks Studio backup.");
+  });
 });

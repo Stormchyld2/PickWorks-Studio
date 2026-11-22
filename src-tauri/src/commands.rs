@@ -181,3 +181,35 @@ pub fn data_append(state: State<CoreState>, token: String, log: String, entry: V
 pub fn data_read_log(state: State<CoreState>, token: String, log: String) -> Res<Vec<Value>> {
     with(&state, |c| c.read_log(&token, &log))
 }
+
+#[tauri::command]
+pub fn admin_verify_backup(state: State<CoreState>, token: String, backup_name: String) -> Res<()> {
+    with(&state, |c| c.admin_verify_backup(&token, &backup_name))
+}
+
+// ----- Copying backups to and from a USB drive or another folder -----------
+//
+// The folder picker is opened here, in Rust, so the interface never hands the
+// app a file path. The window has no dialog permission of its own.
+
+fn pick_folder(app: &tauri::AppHandle, title: &str) -> Option<std::path::PathBuf> {
+    use tauri_plugin_dialog::DialogExt;
+    app.dialog().file().set_title(title).blocking_pick_folder().and_then(|p| p.into_path().ok())
+}
+
+/// Returns the folder written, or `None` if the administrator cancelled.
+#[tauri::command]
+pub async fn admin_export_backup(app: tauri::AppHandle, state: State<'_, CoreState>, token: String, backup_name: String, admin_password: Option<String>) -> Res<Option<String>> {
+    let pw = admin_password.as_deref();
+    with(&state, |c| c.admin_check_export(&token, &backup_name, pw))?;
+    let Some(dest) = pick_folder(&app, "Choose where to copy the backup (for example a USB drive)") else { return Ok(None) };
+    with(&state, |c| c.admin_export_backup(&token, &backup_name, pw, &dest)).map(Some)
+}
+
+/// Returns the imported backup's name, or `None` if the administrator cancelled.
+#[tauri::command]
+pub async fn admin_import_backup(app: tauri::AppHandle, state: State<'_, CoreState>, token: String) -> Res<Option<String>> {
+    with(&state, |c| c.admin_list_backups(&token))?;
+    let Some(folder) = pick_folder(&app, "Choose the backup folder to bring back") else { return Ok(None) };
+    with(&state, |c| c.admin_import_backup(&token, &folder)).map(Some)
+}

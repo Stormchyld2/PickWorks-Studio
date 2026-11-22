@@ -16,6 +16,12 @@ export function friendlyError(e: unknown): string {
       return 'That profile no longer exists.';
     case 'no-session':
       return 'Your session has ended. Please sign in again.';
+    case 'corrupt':
+      return "This backup is damaged or incomplete, so it wasn't used. Nothing was changed. Try another copy.";
+    case 'newer-version':
+      return 'This was made by a newer version of PickWorks Studio. Update the app first.';
+    case 'invalid-data':
+      return e.message.replace(/^invalid data: /, '');
     default:
       return e.message;
   }

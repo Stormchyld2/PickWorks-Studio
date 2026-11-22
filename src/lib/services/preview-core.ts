@@ -29,6 +29,8 @@ export function createPreviewCore(now: () => number = Date.now): CoreApi & { see
   const logs = new Map<string, unknown[]>();
   const audit: AuditEntry[] = [];
   const backups: (BackupInfo & { snapshot: string })[] = [];
+  /** Copies "on the USB drive" in the preview, so Import has something to bring back. */
+  const exported: (BackupInfo & { snapshot: string })[] = [];
   let session: { token: string; info: SessionInfo } | null = null;
 
   const fail = (code: ConstructorParameters<typeof CoreError>[0], message: string, retry: number | null = null): never => {
@@ -219,6 +221,26 @@ export function createPreviewCore(now: () => number = Date.now): CoreApi & { see
       log('restore-installation');
       session = null;
       return `${now()}-before-restore`;
+    },
+    async adminVerifyBackup(token, backupName) {
+      need(token, 'admin');
+      backups.find((b) => b.name === backupName) ?? fail('invalid-data', 'Backup not found.');
+    },
+    async adminExportBackup(token, backupName, adminPassword) {
+      need(token, 'admin');
+      const b = backups.find((x) => x.name === backupName) ?? fail('invalid-data', 'Backup not found.');
+      if (b.kind === 'installation' && adminPassword !== admin!.password) fail('wrong-password', 'That password is not right.');
+      exported.push({ ...b });
+      log('export-backup');
+      return `E:\\pickworks-backup-${backupName}`;
+    },
+    async adminImportBackup(token) {
+      need(token, 'admin');
+      const b = [...exported].reverse().find((x) => !backups.some((y) => y.name === x.name));
+      if (!b) return null;
+      backups.push({ ...b });
+      log('import-backup', b.studentId);
+      return b.name;
     },
     async adminRecentAudit(token, limit = 100) {
       need(token, 'admin');

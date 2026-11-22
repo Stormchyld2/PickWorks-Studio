@@ -1,10 +1,13 @@
 # Phase 1: Windows verification checklist
 
 Things the automated tests can't prove. Run these on a real Windows PC with the
-installer built from the Phase 1 branch, then note anything that fails.
+`pickworks-studio.exe` built by GitHub Actions from the Phase 1 branch (the
+"pickworks-studio-windows-exe" artifact on the Windows build), then note
+anything that fails. There's no installer yet, so there's no desktop shortcut;
+Windows 10 and 11 already include the WebView2 runtime the app needs.
 
 ## Install and first run
-- [ ] The installer runs and the app opens. The taskbar and desktop shortcut show the pick icon.
+- [ ] The .exe opens (Windows SmartScreen may warn because it isn't signed yet: More info, Run anyway). The window and taskbar show the pick icon.
 - [ ] First-run setup appears; no default password works.
 - [ ] The recovery key shows once; Copy and Print both work (print shows only the key).
 - [ ] With Wi-Fi off, everything below still works.
@@ -26,6 +29,13 @@ installer built from the Phase 1 branch, then note anything that fails.
 ## Backups
 - [ ] Back up everything, change a student's progress, restore the student backup: their progress returns and their current password still works.
 - [ ] Restore everything: you're signed out, and the passwords from backup time work.
+- [ ] Copy to USB or Folder on a student backup: the Windows folder picker opens, the copy lands on the USB drive as `pickworks-backup-...`, and the success message names it.
+- [ ] Copy an Everything backup: the administrator password is asked for first; a wrong password stops it before the picker opens.
+- [ ] Choosing a folder inside the app's own data is refused.
+- [ ] Delete a backup's folder from the app data (or use a second PC), then Bring Back From USB or Folder: it reappears in the list, and Restore works as usual.
+- [ ] Edit any file inside the USB copy, then bring it back: it's refused as damaged and nothing changes.
+- [ ] Cancel the picker: nothing happens and no error shows.
+- [ ] Unplug the USB drive mid-copy: an error shows, and no half-written backup is left in the list.
 - [ ] Permanent delete only works after archiving and typing the name.
 
 ## Audio (needs a guitar)

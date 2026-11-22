@@ -56,6 +56,63 @@ pub struct BackupInfo {
 }
 
 const MANIFEST_VERSION: u32 = 1;
+const CHECKSUMS_VERSION: u32 = 1;
+const CHECKSUMS_FILE: &str = "checksums.json";
+
+/// SHA-256 of every data file in a backup, by path relative to the backup
+/// folder (forward slashes). Written with each backup and checked before it
+/// is exported, imported or restored, so a damaged copy is never used.
+type Checksums = std::collections::BTreeMap<String, String>;
+
+fn sha256_file(p: &Path) -> Result<String> {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    let mut f = fs::File::open(p)?;
+    std::io::copy(&mut f, &mut hasher)?;
+    Ok(hasher.finalize().iter().map(|b| format!("{b:02x}")).collect())
+}
+
+/// Checksums of the data files under `dir` (the manifest and checksum file
+/// themselves are not data).
+fn compute_checksums(dir: &Path) -> Result<Checksums> {
+    fn walk(base: &Path, dir: &Path, out: &mut Checksums) -> Result<()> {
+        for entry in fs::read_dir(dir)? {
+            let entry = entry?;
+            let ty = entry.file_type()?;
+            let path = entry.path();
+            if ty.is_dir() {
+                walk(base, &path, out)?;
+            } else if ty.is_file() {
+                let rel = path.strip_prefix(base).map_err(|_| CoreError::Corrupt("backup path".into()))?;
+                let rel = rel.components().map(|c| c.as_os_str().to_string_lossy()).collect::<Vec<_>>().join("/");
+                if rel != "manifest.json" && rel != CHECKSUMS_FILE {
+                    out.insert(rel, sha256_file(&path)?);
+                }
+            }
+        }
+        Ok(())
+    }
+    let mut out = Checksums::new();
+    walk(dir, dir, &mut out)?;
+    Ok(out)
+}
+
+/// Confirms every file in a backup folder is present and unchanged, with
+/// nothing added. Returns the checksums.
+pub fn verify_dir(dir: &Path) -> Result<Checksums> {
+    let damaged = || CoreError::Corrupt("this backup is incomplete or has been changed since it was made".into());
+    let expected: Checksums = storage::read_versioned(&dir.join(CHECKSUMS_FILE), CHECKSUMS_VERSION, &[])?.ok_or_else(damaged)?;
+    if compute_checksums(dir)? != expected {
+        return Err(damaged());
+    }
+    Ok(expected)
+}
+
+/// Checks a listed backup against its checksums.
+pub fn verify(root: &DataRoot, name: &str) -> Result<()> {
+    read_manifest(root, name)?;
+    verify_dir(&backup_dir(root, name)?).map(|_| ())
+}
 const INSTALLATION_PARTS: [&str; 3] = ["accounts", "students", "application"];
 
 /// Backup folder names are generated here: digits, letters and dashes only.
@@ -124,7 +181,10 @@ fn write_backup(root: &DataRoot, manifest: &BackupManifest, fill: impl FnOnce(&P
         fs::remove_dir_all(&tmp)?;
     }
     fs::create_dir_all(&tmp)?;
-    let result = fill(&tmp).and_then(|_| storage::write_versioned(&tmp.join("manifest.json"), MANIFEST_VERSION, manifest));
+    let result = fill(&tmp)
+        .and_then(|_| compute_checksums(&tmp))
+        .and_then(|sums| storage::write_versioned(&tmp.join(CHECKSUMS_FILE), CHECKSUMS_VERSION, &sums))
+        .and_then(|_| storage::write_versioned(&tmp.join("manifest.json"), MANIFEST_VERSION, manifest));
     if let Err(e) = result {
         let _ = fs::remove_dir_all(&tmp);
         return Err(e);
@@ -207,6 +267,7 @@ pub fn restore_student(root: &DataRoot, name: &str, student_id: &str) -> Result<
     if manifest.kind != BackupKind::Student || manifest.student_id.as_deref() != Some(student_id) {
         return Err(CoreError::InvalidData("That backup belongs to a different student.".into()));
     }
+    verify(root, name)?;
     replace_dir(&root.student_dir(student_id)?, &backup_dir(root, name)?.join("student"))
 }
 
@@ -216,9 +277,97 @@ pub fn restore_installation(root: &DataRoot, name: &str) -> Result<()> {
     if manifest.kind != BackupKind::Installation {
         return Err(CoreError::InvalidData("That is a single-student backup.".into()));
     }
+    verify(root, name)?;
     let dir = backup_dir(root, name)?;
     for part in INSTALLATION_PARTS {
         replace_dir(&root.path().join(part), &dir.join(part))?;
     }
     Ok(())
+}
+
+// ----- Copies outside the app (USB drive or another folder) ----------------
+//
+// A copy is the backup folder exactly as stored, manifest included, so it can
+// be brought back on this or another PC. Importing only adds it to the list:
+// restoring still goes through the normal checks (administrator password,
+// safety backup first).
+
+/// Refuses folders inside the app's own data, so a copy never lands in (or is
+/// read back from) the folders it protects.
+fn outside_data(root: &DataRoot, folder: &Path) -> Result<PathBuf> {
+    let folder = folder.canonicalize().map_err(|_| CoreError::InvalidData("That folder can't be opened.".into()))?;
+    if !folder.is_dir() {
+        return Err(CoreError::InvalidData("Choose a folder, not a file.".into()));
+    }
+    let data = root.path().canonicalize()?;
+    if folder.starts_with(&data) {
+        return Err(CoreError::InvalidData("Choose a folder outside PickWorks Studio's own data, such as a USB drive.".into()));
+    }
+    Ok(folder)
+}
+
+/// Copies a backup into `dest_parent` as `pickworks-backup-<name>` and checks
+/// the copy can be read back. Returns the folder that was written.
+pub fn export_to(root: &DataRoot, name: &str, dest_parent: &Path) -> Result<PathBuf> {
+    verify(root, name)?;
+    let parent = outside_data(root, dest_parent)?;
+    let base = format!("pickworks-backup-{name}");
+    let mut target = parent.join(&base);
+    let mut n = 2;
+    while target.exists() {
+        target = parent.join(format!("{base}-{n}"));
+        n += 1;
+    }
+    let tmp = target.with_extension("partial");
+    if tmp.exists() {
+        fs::remove_dir_all(&tmp)?;
+    }
+    let src = backup_dir(root, name)?;
+    let result = copy_dir(&src, &tmp).and_then(|_| {
+        let copied: Option<BackupManifest> = storage::read_versioned(&tmp.join("manifest.json"), MANIFEST_VERSION, &[])?;
+        if copied.is_none() || verify_dir(&tmp).is_err() {
+            return Err(CoreError::Corrupt("the copy doesn't match the backup; the drive may be full or failing".into()));
+        }
+        Ok(())
+    });
+    if let Err(e) = result {
+        let _ = fs::remove_dir_all(&tmp);
+        return Err(e);
+    }
+    fs::rename(&tmp, &target)?;
+    Ok(target)
+}
+
+/// Checks that a folder is a complete PickWorks backup and copies it into the
+/// backup list. Returns the new backup's name.
+pub fn import_from(root: &DataRoot, folder: &Path) -> Result<String> {
+    let folder = outside_data(root, folder)?;
+    let not_backup = || CoreError::InvalidData("That folder isn't a PickWorks Studio backup.".into());
+    let manifest: BackupManifest = storage::read_versioned(&folder.join("manifest.json"), MANIFEST_VERSION, &[])?.ok_or_else(not_backup)?;
+    let parts: Vec<&str> = match manifest.kind {
+        BackupKind::Student => {
+            let id = manifest.student_id.as_deref().ok_or_else(not_backup)?;
+            root.student_dir(id).map_err(|_| not_backup())?;
+            vec!["student"]
+        }
+        BackupKind::Installation => INSTALLATION_PARTS.to_vec(),
+    };
+    if parts.iter().any(|p| !folder.join(p).is_dir()) {
+        return Err(not_backup());
+    }
+    let expected = verify_dir(&folder)?;
+    let already = list(root)?.into_iter().any(|b| b.manifest.created_ms == manifest.created_ms && b.manifest.kind == manifest.kind && b.manifest.reason == manifest.reason && b.manifest.student_id == manifest.student_id);
+    if already {
+        return Err(CoreError::InvalidData("That backup is already in the list.".into()));
+    }
+    let name = write_backup(root, &manifest, |dir| {
+        for p in &parts {
+            copy_dir(&folder.join(p), &dir.join(p))?;
+        }
+        if compute_checksums(dir)? != expected {
+            return Err(CoreError::Corrupt("the backup couldn't be copied intact; the drive may be failing".into()));
+        }
+        Ok(())
+    })?;
+    Ok(name)
 }

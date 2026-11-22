@@ -42,6 +42,8 @@ fn navigation_guard<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(navigation_guard())
+        // Used only from Rust (the backup folder picker); the window gets no dialog permission.
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             let core = pickworks_core::Core::open(dir, pickworks_core::system_clock())?;
@@ -75,6 +77,9 @@ pub fn run() {
             commands::admin_backup_installation,
             commands::admin_restore_student,
             commands::admin_restore_installation,
+            commands::admin_verify_backup,
+            commands::admin_export_backup,
+            commands::admin_import_backup,
             commands::admin_new_recovery_key,
             commands::data_read,
             commands::data_write,

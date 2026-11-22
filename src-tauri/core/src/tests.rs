@@ -314,3 +314,99 @@ fn students_must_be_archived_before_deletion_and_backup_names_are_checked() {
     assert!(f.core.admin_delete_student(&t, &a, "Alex").is_err(), "must archive first");
     assert!(backup::read_manifest(f.core.root(), "../accounts").is_err());
 }
+
+#[test]
+fn backups_copy_to_a_usb_folder_and_come_back() {
+    let mut f = fixture();
+    let a = f.with_student("Alex", "alex-pass-1");
+    let s = f.core.sign_in_student(&a, "alex-pass-1").unwrap();
+    f.core.write_record(&s.token, "progress", &env(1)).unwrap();
+    assert!(matches!(f.core.admin_check_export(&s.token, "x", None), Err(CoreError::Forbidden)), "students can't export");
+    let t = f.admin();
+    let name = f.core.admin_backup_student(&t, &a).unwrap();
+    let usb = tempfile::tempdir().unwrap();
+
+    // Never into the app's own data, and only real backup names.
+    let inside = f.core.root().students_dir();
+    assert!(f.core.admin_export_backup(&t, &name, None, &inside).is_err());
+    assert!(f.core.admin_export_backup(&t, "../accounts", None, usb.path()).is_err());
+
+    let written = std::path::PathBuf::from(f.core.admin_export_backup(&t, &name, None, usb.path()).unwrap());
+    assert!(written.starts_with(usb.path().canonicalize().unwrap()) && written.join("manifest.json").exists());
+    // A second export doesn't overwrite the first.
+    let again = f.core.admin_export_backup(&t, &name, None, usb.path()).unwrap();
+    assert_ne!(again, written.display().to_string());
+
+    // The PC's copy is lost; the USB copy brings it back and it restores normally.
+    std::fs::remove_dir_all(f.core.root().backups_dir().join(&name)).unwrap();
+    assert!(f.core.admin_list_backups(&t).unwrap().is_empty());
+    let imported = f.core.admin_import_backup(&t, &written).unwrap();
+    assert!(f.core.admin_import_backup(&t, &written).is_err(), "no duplicates");
+    f.advance_secs(1);
+    f.core.admin_restore_student(&t, &imported, "admin-pass-1").unwrap();
+    let actions: Vec<_> = f.core.admin_recent_audit(&t, 50).unwrap().into_iter().map(|e| e.action).collect();
+    assert!(actions.contains(&"export-backup".to_string()) && actions.contains(&"import-backup".to_string()));
+}
+
+#[test]
+fn imports_refuse_folders_that_are_not_complete_backups() {
+    let mut f = fixture();
+    f.with_student("Alex", "alex-pass-1");
+    let t = f.admin();
+    let usb = tempfile::tempdir().unwrap();
+    assert!(f.core.admin_import_backup(&t, usb.path()).is_err(), "empty folder");
+    let name = f.core.admin_backup_installation(&t).unwrap();
+
+    // Installation backups hold password hashes: exporting needs the admin password.
+    assert!(f.core.admin_export_backup(&t, &name, None, usb.path()).is_err());
+    assert!(f.core.admin_export_backup(&t, &name, Some("wrong-pass1"), usb.path()).is_err());
+    let written = std::path::PathBuf::from(f.core.admin_export_backup(&t, &name, Some("admin-pass-1"), usb.path()).unwrap());
+
+    // A part missing, or a student id that could escape its folder, is refused.
+    let broken = usb.path().join("broken");
+    backup_copy(&written, &broken);
+    std::fs::remove_dir_all(broken.join("students")).unwrap();
+    assert!(f.core.admin_import_backup(&t, &broken).is_err());
+    let evil = usb.path().join("evil");
+    std::fs::create_dir_all(evil.join("student")).unwrap();
+    storage::write_versioned(&evil.join("manifest.json"), 1, &json!({"kind": "student", "reason": "manual", "createdMs": 1, "studentId": "../../accounts", "appVersion": "0.1.0"})).unwrap();
+    assert!(f.core.admin_import_backup(&t, &evil).is_err());
+    // Importing from inside the app's own backups is refused too.
+    assert!(f.core.admin_import_backup(&t, &f.core.root().backups_dir().join(&name)).is_err());
+}
+
+fn backup_copy(src: &std::path::Path, dst: &std::path::Path) {
+    std::fs::create_dir_all(dst).unwrap();
+    for e in std::fs::read_dir(src).unwrap().flatten() {
+        if e.file_type().unwrap().is_dir() { backup_copy(&e.path(), &dst.join(e.file_name())) } else { std::fs::copy(e.path(), dst.join(e.file_name())).unwrap(); }
+    }
+}
+
+#[test]
+fn damaged_backups_are_caught_before_restore_export_or_import() {
+    let mut f = fixture();
+    let a = f.with_student("Alex", "alex-pass-1");
+    let s = f.core.sign_in_student(&a, "alex-pass-1").unwrap();
+    f.core.write_record(&s.token, "progress", &env(1)).unwrap();
+    let t = f.admin();
+    let name = f.core.admin_backup_student(&t, &a).unwrap();
+    f.core.admin_verify_backup(&t, &name).unwrap();
+    let usb = tempfile::tempdir().unwrap();
+    let written = std::path::PathBuf::from(f.core.admin_export_backup(&t, &name, None, usb.path()).unwrap());
+
+    // Change one byte of the stored backup: every use of it is refused.
+    let dir = f.core.root().backups_dir().join(&name);
+    let file = std::fs::read_dir(dir.join("student")).unwrap().flatten().find(|e| e.file_type().unwrap().is_file()).unwrap().path();
+    let mut bytes = std::fs::read(&file).unwrap();
+    bytes[0] ^= 1;
+    std::fs::write(&file, &bytes).unwrap();
+    assert!(matches!(f.core.admin_verify_backup(&t, &name), Err(CoreError::Corrupt(_))));
+    assert!(f.core.admin_export_backup(&t, &name, None, usb.path()).is_err());
+    assert!(f.core.admin_restore_student(&t, &name, "admin-pass-1").is_err());
+    // An extra file slipped into a USB copy is refused on import too.
+    std::fs::remove_dir_all(&dir).unwrap();
+    std::fs::write(written.join("student").join("extra.json"), "{}").unwrap();
+    assert!(f.core.admin_import_backup(&t, &written).is_err());
+    std::fs::remove_file(written.join("student").join("extra.json")).unwrap();
+    f.core.admin_import_backup(&t, &written).unwrap();
+}

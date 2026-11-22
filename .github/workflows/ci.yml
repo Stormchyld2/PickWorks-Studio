@@ -47,11 +47,10 @@ jobs:
           workspaces: src-tauri
       - run: npm ci
       - run: cargo test --manifest-path src-tauri/Cargo.toml --workspace
-      - run: npm run tauri build
+      # Plain .exe for hardware testing; the installer comes later.
+      - run: npm run tauri build -- --no-bundle
       - uses: actions/upload-artifact@v4
         with:
-          name: pickworks-studio-windows
-          path: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
-          if-no-files-found: warn
+          name: pickworks-studio-windows-exe
+          path: src-tauri/target/release/pickworks-studio.exe
+          if-no-files-found: error

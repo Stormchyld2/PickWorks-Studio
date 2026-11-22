@@ -35,6 +35,8 @@ const ACTIONS: Record<string, string> = {
   'backup-installation': 'Everything backed up',
   'restore-student': 'Student restored from backup',
   'restore-installation': 'Everything restored from backup',
+  'export-backup': 'Backup copied to a folder or USB drive',
+  'import-backup': 'Backup brought back from a folder or USB drive',
   'recovery-key-replaced': 'New recovery key created',
   'admin-recovered': 'Administrator password reset',
   'admin-password-changed': 'Administrator password changed',

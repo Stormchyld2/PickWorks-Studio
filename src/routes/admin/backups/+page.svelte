@@ -6,6 +6,10 @@
   import Info from '@lucide/svelte/icons/info';
   import CircleAlert from '@lucide/svelte/icons/circle-alert';
   import CircleCheck from '@lucide/svelte/icons/circle-check';
+  import Usb from '@lucide/svelte/icons/usb';
+  import FolderInput from '@lucide/svelte/icons/folder-input';
+  import ShieldCheck from '@lucide/svelte/icons/shield-check';
+  import KeyRound from '@lucide/svelte/icons/key-round';
   import PageHead from '$lib/components/admin/PageHead.svelte';
   import Dialog from '$lib/components/ui/Dialog.svelte';
   import PasswordField from '$lib/components/account/PasswordField.svelte';
@@ -23,6 +27,8 @@
   let restoring = $state<BackupInfo | null>(null);
   let password = $state('');
   let restoreError = $state('');
+  let exporting = $state<BackupInfo | null>(null);
+  let exportError = $state('');
 
   $effect(() => {
     Promise.all([admin.loadStudents(), admin.loadBackups()]).catch((e) => (error = friendlyError(e)));
@@ -65,6 +71,52 @@
     }
   }
 
+  async function verify(b: BackupInfo) {
+    await run(() => admin.act((t) => backend.adminVerifyBackup(t, b.name).then(() => b.name), []), `${label(b)} (${formatWhen(b.createdMs)}) checked: every file is complete and unchanged.`);
+  }
+
+  /** Student backups hold no passwords and copy straight away; Everything backups ask for the password first. */
+  function startExport(b: BackupInfo) {
+    if (b.kind === 'installation') {
+      exporting = b;
+      exportError = password = '';
+    } else void exportNow(b);
+  }
+
+  async function exportNow(b: BackupInfo, adminPassword?: string) {
+    busy = true;
+    error = message = exportError = '';
+    try {
+      const where = await admin.act((t) => backend.adminExportBackup(t, b.name, adminPassword), ['audit']);
+      exporting = null;
+      if (where) message = `Copied and checked: ${where}. If it's a USB drive, eject it before unplugging it.`;
+    } catch (err) {
+      if (exporting) exportError = friendlyError(err);
+      else error = friendlyError(err);
+    } finally {
+      busy = false;
+      password = '';
+    }
+  }
+
+  async function submitExport(e: SubmitEvent) {
+    e.preventDefault();
+    if (exporting) await exportNow(exporting, password);
+  }
+
+  async function importBackup() {
+    busy = true;
+    error = message = '';
+    try {
+      const name = await admin.act((t) => backend.adminImportBackup(t), ['backups', 'audit']);
+      if (name) message = 'The backup was checked and added to the list. Nothing has been restored yet: choose Restore when you are ready.';
+    } catch (err) {
+      error = friendlyError(err);
+    } finally {
+      busy = false;
+    }
+  }
+
   const label = (b: BackupInfo) => (b.kind === 'installation' ? 'Everything' : (b.studentName ?? 'Student'));
 </script>
 
@@ -93,17 +145,28 @@
 {#if error}<div class="pw-note error" role="alert"><CircleAlert size={18} /> <span>{error}</span></div>{/if}
 
 <section class="glow-card list">
-  <h2>Saved Backups</h2>
+  <div class="list-head">
+    <h2>Saved Backups</h2>
+    <button class="pw-btn" disabled={busy} onclick={importBackup}><FolderInput size={16} /> Bring Back From USB or Folder</button>
+  </div>
   {#if admin.backups.length}
     <table>
-      <thead><tr><th>Backup</th><th>Made</th><th>Size</th><th class="r">Restore</th></tr></thead>
+      <thead><tr><th>Backup</th><th>Passwords</th><th>Made</th><th>Size</th><th class="r">Actions</th></tr></thead>
       <tbody>
         {#each admin.backups as b (b.name)}
           <tr>
             <td><b>{label(b)}</b>{#if b.reason === 'before-restore'} <span class="pw-pill">Saved before a restore</span>{/if}</td>
+            <td>
+              {#if b.kind === 'installation'}<span class="pw-pill creds"><KeyRound size={13} /> Includes password hashes</span>
+              {:else}<span class="pw-pill">No passwords</span>{/if}
+            </td>
             <td class="muted">{formatWhen(b.createdMs)}</td>
             <td class="muted">{formatSize(b.sizeBytes)}</td>
-            <td class="r"><button class="pw-btn" onclick={() => ((restoring = b), (restoreError = ''), (password = ''))}><RotateCcw size={16} /> Restore</button></td>
+            <td class="r actions">
+              <button class="pw-btn" disabled={busy} onclick={() => verify(b)} title="Check every file is complete and unchanged"><ShieldCheck size={16} /> Check</button>
+              <button class="pw-btn" disabled={busy} onclick={() => startExport(b)}><Usb size={16} /> Copy to USB or Folder</button>
+              <button class="pw-btn" disabled={busy} onclick={() => ((restoring = b), (restoreError = ''), (password = ''))}><RotateCcw size={16} /> Restore</button>
+            </td>
           </tr>
         {/each}
       </tbody>
@@ -113,9 +176,23 @@
   {/if}
   <div class="pw-note">
     <Info size={18} color="var(--pw-primary-hover)" />
-    <span>Backups are kept in the PickWorks Studio data folder on this computer. Every restore saves the current data as a backup first, and is written to the Audit Log.</span>
+    <span>Backups are kept in the PickWorks Studio data folder on this computer. Copy them to a USB drive or another folder so they survive if this computer fails; nothing is ever sent online. Every backup is checked before it is copied, brought back or restored, every restore saves the current data as a backup first, and all of it is written to the Audit Log.</span>
   </div>
 </section>
+
+{#if exporting}
+  <Dialog title="Copy Everything Backup" onclose={() => (exporting = null)}>
+    <form onsubmit={submitExport}>
+      <p>This copy includes every account's password hashes and the recovery key hash, as well as all student records. Keep the drive somewhere safe. Enter your password, then choose the USB drive or folder.</p>
+      <PasswordField id="admin-export" label="Administrator password" bind:value={password} />
+      {#if exportError}<div class="pw-note error" role="alert"><CircleAlert size={18} /> <span>{exportError}</span></div>{/if}
+      <div class="dlg-actions">
+        <button class="pw-btn" type="button" onclick={() => (exporting = null)}>Cancel</button>
+        <button class="pw-btn primary" type="submit" disabled={busy || !password}>Choose Folder</button>
+      </div>
+    </form>
+  </Dialog>
+{/if}
 
 {#if restoring}
   <Dialog title={restoring.kind === 'installation' ? 'Restore Everything' : `Restore ${restoring.studentName}`} onclose={() => (restoring = null)}>
@@ -149,6 +226,9 @@
   th { text-align: left; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pw-text-muted); font-weight: 600; padding: 0 10px 10px; border-bottom: 1px solid var(--pw-border); }
   td { padding: 10px; border-bottom: 1px solid var(--pw-border); }
   .r { text-align: right; }
+  .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  .list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .creds { color: var(--pw-amber, #f59e38); border-color: rgba(245, 158, 56, 0.5); display: inline-flex; align-items: center; gap: 5px; }
   .pw-note { margin-top: 16px; }
   .pw-note.ok { background: rgba(63, 178, 127, 0.12); border-color: rgba(63, 178, 127, 0.5); }
   .dlg-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }

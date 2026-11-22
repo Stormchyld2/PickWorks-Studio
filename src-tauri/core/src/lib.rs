@@ -434,6 +434,42 @@ impl Core {
         Ok(name)
     }
 
+    /// Checks a backup's files against the checksums written with it.
+    pub fn admin_verify_backup(&self, token: &str, backup_name: &str) -> Result<()> {
+        self.require_admin(token)?;
+        backup::verify(&self.root, backup_name)
+    }
+
+    /// Checks an export can go ahead before a folder is chosen. Installation
+    /// backups hold password hashes, so they need the administrator password.
+    pub fn admin_check_export(&self, token: &str, backup_name: &str, admin_password: Option<&str>) -> Result<()> {
+        self.require_admin(token)?;
+        if backup::read_manifest(&self.root, backup_name)?.kind == backup::BackupKind::Installation {
+            let creds = accounts::load_credentials(&self.root)?;
+            self.check_secret("admin", admin_password.unwrap_or(""), creds.admin.as_ref())?;
+        }
+        Ok(())
+    }
+
+    /// Copies a backup to a folder outside the app (a USB drive, say).
+    /// Returns the folder written.
+    pub fn admin_export_backup(&mut self, token: &str, backup_name: &str, admin_password: Option<&str>, dest: &std::path::Path) -> Result<String> {
+        self.admin_check_export(token, backup_name, admin_password)?;
+        let written = backup::export_to(&self.root, backup_name, dest)?.display().to_string();
+        self.audit("admin", "export-backup", None, Some(format!("{backup_name} to {written}")))?;
+        Ok(written)
+    }
+
+    /// Adds a backup from a folder outside the app to the list. Nothing is
+    /// restored until the administrator chooses Restore.
+    pub fn admin_import_backup(&mut self, token: &str, folder: &std::path::Path) -> Result<String> {
+        self.require_admin(token)?;
+        let name = backup::import_from(&self.root, folder)?;
+        let m = backup::read_manifest(&self.root, &name)?;
+        self.audit("admin", "import-backup", m.student_id.as_deref(), Some(format!("{name} from {}", folder.display())))?;
+        Ok(name)
+    }
+
     /// Restores one student's records from a student backup. Their password is
     /// not restored. A safety backup of the current records is taken first.
     pub fn admin_restore_student(&mut self, token: &str, backup_name: &str, admin_password: &str) -> Result<String> {
@@ -444,6 +480,8 @@ impl Core {
         let id = manifest.student_id.clone().ok_or_else(|| CoreError::InvalidData("That is not a single-student backup.".into()))?;
         let index = accounts::load_index(&self.root)?;
         let s = index.student(&id).ok_or(CoreError::UnknownStudent)?;
+        // A damaged backup is refused before anything is touched.
+        backup::verify(&self.root, backup_name)?;
         let safety = backup::backup_student(&self.root, &id, &s.display_name, self.now(), backup::BackupReason::BeforeRestore)?;
         backup::restore_student(&self.root, backup_name, &id)?;
         self.audit("admin", "restore-student", Some(&id), Some(format!("from {backup_name}; previous records saved as {safety}")))?;
@@ -458,6 +496,7 @@ impl Core {
         self.require_admin(token)?;
         let creds = accounts::load_credentials(&self.root)?;
         self.check_secret("admin", admin_password, creds.admin.as_ref())?;
+        backup::verify(&self.root, backup_name)?;
         let safety = backup::backup_installation(&self.root, self.now(), backup::BackupReason::BeforeRestore)?;
         backup::restore_installation(&self.root, backup_name)?;
         self.session = None;
