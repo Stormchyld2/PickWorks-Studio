@@ -37,3 +37,11 @@ Dashboard, Learn, Practice, Fretboard, Print Materials, Tuner, Progress, then Se
 4. The Virtual Instructor stays an architectural provision (input, evaluation and coaching seams), not an implemented engine.
 
 Spec, document or mockup changes are recorded but do not by themselves authorise code changes.
+
+## Fretboard Mastery placement and directed access (approved 2026-11-22)
+
+- Per-student first-use Skill Placement Wizard: self-report guides a brief practical assessment, but does not itself unlock lessons. A new player may start with fundamentals; experienced students can place ahead only through demonstrated prerequisites.
+- All lessons **earlier than or equal to** the student's verified placement are accessible for review. Lessons **beyond the current unlocked progression** remain locked until required evidence or a verified reassessment qualifies the student. Free note/string/key exploration never unlocks directed lessons.
+- Placement/unlock is not note mastery: do not award mastery, XP or fabricated lesson completions for skipped content. The locked note-mastery rule above is unchanged.
+- Dashboard Fretboard Mastery is an evolving progress and **lesson-navigation** block, never the lesson itself. Instruction, exercises and assessment live in Learn/Practice/Fretboard learning experiences.
+- Detailed behavior, Phase 2 scope and acceptance tests: [fretboard-mastery-placement.md](fretboard-mastery-placement.md). This decision documents requirements only and does not authorize feature implementation.
