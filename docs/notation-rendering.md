@@ -1,6 +1,6 @@
-# Unified fretboard notation rendering (Phase 2 architecture, 2026-11-22)
+# Unified diagram rendering (architecture, 2026-11-22)
 
-Status: **architecture decision, documented only.** Nothing here is built until Jason authorises Phase 2.
+Status: **architecture decision, documented only.** First written as Phase 2 architecture; now scheduled in [master-roadmap.md](master-roadmap.md) as milestone **X0.7** (shared layouts and serializers), with the Chord Library uses at X1. Nothing here is built until Jason authorises that milestone. "Notation" in this document means chord boxes, fretboards and scale boxes, not staff notation (which belongs to the X5 editors in [creative-workstation.md](creative-workstation.md)). Printed pages become PDFs through the shared PDF writer ([android-platform.md](android-platform.md) section 3).
 
 ## Decision
 
@@ -46,12 +46,12 @@ No chord, scale or fretboard images exist in the repository today; every diagram
    | Beginner Fingering | fingers, plus a finger key under the diagram | screen |
    | Note Names | notes, including open-string notes under the open markers | screen |
    | Intervals | intervals, including open strings | screen |
-| Fret numbers | fret numbers (added for the Chord Library and the Chord Finder, where a student's own fingering has no finger numbers) | screen |
+   | Fret numbers | fret numbers (added for the Chord Library and the Chord Finder, where a student's own fingering has no finger numbers) | screen |
    | Print | the student's chosen label set | print (black and white) |
 
    Print is a variant rather than a label set, so a printed sheet can use fingers, notes or intervals. Open strings currently show only a circle; Note Names and Intervals need a label for them.
 5. **Accessibility.** The SVG's accessible name currently gives only the chord name and starting fret. Extend it with a spoken summary (for example "C major: string 6 muted, string 5 fret 3 finger 3, ...") and keep `conceal` hiding answers in assessments.
-6. **One renderer for print and export.** Today the screen neck (`Fretboard.svelte`) and the print neck (`worksheet.ts`) each have their own drawing code. Phase 2 moves neck geometry into one pure `neckLayout()` used by both, so printed and on-screen boards always match. Chord and scale diagrams get a small SVG-string serializer of the same layout so Print Studio pages can place them without a second drawing system.
+6. **One renderer for print and export.** Today the screen neck (`Fretboard.svelte`) and the print neck (`worksheet.ts`) each have their own drawing code. X0.7 moves neck geometry into one pure `neckLayout()` used by both, so printed and on-screen boards always match. Chord and scale diagrams get a small SVG-string serializer of the same layout so Print Studio pages can place them without a second drawing system.
 7. **Size and theme.** `ChordDiagram` takes a width and scales through its `viewBox`; add size presets (Library card, lesson inline, practice large, print grid) and keep all colours as theme tokens (screen) or pure black and white (print).
 
 ## New, on the same foundation

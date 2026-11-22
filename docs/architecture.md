@@ -88,7 +88,7 @@ These are starting targets, to be checked on real devices. Windows keeps its 128
 - Backup copies: Rust folder picker on Windows; Android's system file picker (Storage Access Framework) for USB drives and folders.
 - Microphone: browser audio on Windows; Android microphone permission through Tauri.
 - App lifecycle: Windows signs out when the window closes. Android can pause or close the app at any time, so work is checkpointed whenever the app goes to the background.
-- Printing: Windows print dialog; Android system print or share as PDF.
+- Printing and PDF: PDFs come from one shared PDF writer that converts the app's SVG pages on both platforms, with no printer needed; optional printing uses the Windows print dialog and Android's print framework. Android's WebView can't print from JavaScript, so WebView printing is never the PDF path (see [android-platform.md](android-platform.md)).
 
 **Touch and accessibility.** Touch targets of at least 44–48 px on touch screens; swipe and tap gestures only as extras beside visible controls; keyboard support stays for Windows and tablets with keyboards; layouts respect Android font scaling and the existing text-size, contrast and reduced-motion settings; fretboard and chord diagrams scale to their container in both orientations.
 

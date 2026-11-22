@@ -1,8 +1,38 @@
 # PickWorks Studio master roadmap and feature inventory
 
-Consolidated 2026-11-22 after Jason approved the overall direction of the creative workstation and operating profiles, with refinements. **Documentation only.** No feature is implemented, no code is changed, no dependency is installed and no spike is run until Jason authorises it.
+**This is the authoritative planning index.** The X0–X7 roadmap was **approved by Jason as the working development plan on 2026-11-22**, subject to the refinements recorded here (final refinement and consistency pass, same day). Detailed designs stay in their own documents; where a detail here and a detailed document ever disagree on *scheduling or scope*, this document wins, and on *design detail*, the detailed document wins.
 
-Detailed designs: [creative-workstation.md](creative-workstation.md) · [composition-model.md](composition-model.md) · [operating-profiles.md](operating-profiles.md) · [chord-system.md](chord-system.md) · [notation-rendering.md](notation-rendering.md) · [guided-tours.md](guided-tours.md) · [feature-roadmap.md](feature-roadmap.md) · Workspace Navigation Implementation Plan (Claude Doc).
+**Documentation only.** No feature is implemented, no application code is changed, no dependency is installed, no spike is run and no pull request is merged until Jason authorises it. Approval of the roadmap is not authorisation to build any stage.
+
+## 0. Document map and terminology
+
+| Topic | Authoritative document |
+| --- | --- |
+| Scheduling, scope, dependencies, decisions, risks | This document |
+| Locked v1 decisions (Show Answer, note mastery, left-handed, Print Studio per-page options, navigation, tuner) | [requirements-v1.md](requirements-v1.md) |
+| Accounts, storage, sessions, Android layout rules, developer architecture | [architecture.md](architecture.md), [planning-update-04.md](planning-update-04.md) |
+| Approved planning baseline and phases | [planning-update-03.md](planning-update-03.md) |
+| Workspaces, navigation, workspace access and visibility | Workspace Navigation Implementation Plan (Claude Doc) |
+| Guided tours | [guided-tours.md](guided-tours.md) |
+| Chord catalog, Chord Library, Voicing and Alternate Explorers, Chord Finder | [chord-system.md](chord-system.md) |
+| Diagram rendering (chord boxes, fretboards, scale boxes, printable fretboards) | [notation-rendering.md](notation-rendering.md) |
+| Creative tools, Print Studio, ear training, spikes, mockup specs, notation accessibility | [creative-workstation.md](creative-workstation.md) |
+| Song Project and composition model, song import, export and recovery | [composition-model.md](composition-model.md) |
+| Shared transport, clock sources, timing accuracy, backgrounding | [transport-timing.md](transport-timing.md) |
+| Operating profiles, Field Dashboard, Print/Export Center, field binder and its permissions, lifecycle and power safety | [operating-profiles.md](operating-profiles.md) |
+| Android interfaces (storage, file access, PDF, microphone, audio, battery, touch, interrupted saves) | [android-platform.md](android-platform.md) |
+| History of accepted feature concepts | [feature-roadmap.md](feature-roadmap.md), [planning-update-02.md](planning-update-02.md) |
+
+**Terminology (used the same way in every document):**
+
+- **Phase 1** (hardware verification, fixes, PRs #1 to #4) and **Phase 2** (learning core and workspace navigation) come first. **X0 to X7** are the expansion stages after them; **X0.1 to X0.7** are X0's milestones. Planning Update 03's later phases map onto these: its Phase 3 ("Expanded learning and creative tools") is X0 to X3, its Phase 4 ("Advanced learning ecosystem") is X4 to X7, and its Phase 5 ("Platform and optional service expansion") is the Android release and any optional online services, scheduled separately.
+- **Workspace navigation Stages A and B** are part of Phase 2. **Chord Stages 1 to 5** (chord-system.md) are scheduled as: Stage 1 → X0.3; Stages 2 to 5 → X1. **Generator steps G1 to G4** (creative-workstation.md section 5): G1 → X3, G2 → X4, G3 and G4 → X7. **Technical items T1 to T12** (section 5 below) were called "gaps G1 to G12" in earlier drafts and were renamed to avoid confusion with the generator steps.
+- **Print Studio** is the printing system and screen in the Reference workspace (its sidebar label there is "Printable Resources", as in the workspace plan). **Print Studio Core** is the X1 level and **Expanded Print Studio** the X2-onward level. The **Print/Export Center** is Print Studio's start view with the **Offline Field Library**, used as home in No-Power Preparation. **Print Materials** is today's Learning Studio sidebar item, which leads to Print Studio until Reference opens.
+- **Field binder** means the "Prepare for Grid-Down" binder: **My Field Binder** (built by a student) or a **shared binder** (built by the administrator).
+- **Diagram rendering** (notation-rendering.md) means chord boxes, fretboards and scale boxes; **standard notation** means staff notation in the X5 editors.
+- **Instrument & Tuning Manager** is the shared instrument and tuning system (called "Instrument Definition" in the workspace plan).
+- **Transport** is the one musical timeline; **AudioClock** and **TimerClock** are its clock sources.
+- **Song Project** is the file format; the **composition model** is its musical structure.
 
 ## 1. Feature inventory
 
@@ -20,7 +50,7 @@ Detailed designs: [creative-workstation.md](creative-workstation.md) · [composi
 **Partially implemented (engine or data exists, not reachable or limited):**
 
 - Lessons engine (schema and runner) and practice drills engine: Learn, Practice and Progress pages still say "Coming soon".
-- Mastery engine (attempts, events, the locked mastery rule) and dashboard summaries.
+- Mastery engine (attempts, events, the locked note-mastery rule) and dashboard summaries.
 - Print worksheet engine (blank, all-notes and anchor fretboards, paper sizes): Print Materials still says "Coming soon".
 - Shared audio engine, shared transport (only the metronome uses it), reference tones (plucked-string synthesis), pitch detection.
 - Tuning presets (Standard, Drop D, Half-Step Down, Open G, plus Whole-Step Down, Open D and DADGAD defined but not in the picker).
@@ -33,102 +63,146 @@ Detailed designs: [creative-workstation.md](creative-workstation.md) · [composi
 - Workspace navigation (selector, Tools group), administrator Workspace Access, student visibility.
 - Guided tours and contextual help.
 - Operating Profiles (Full Studio, Low-Power Field, No-Power Preparation) and the Field Dashboard.
-- Instrument & Tuning Manager.
+- Instrument & Tuning Manager; theory additions; shared transport clock sources.
 - Chord system: CSV catalog (75 shapes first, 18 awaiting review), Visual Chord Library, Voicing Explorer, Alternate Chord Explorer, Compare Chords, Reverse Chord Finder ("What Chord Am I Playing?").
-- Unified notation rendering (chords, scales, exercises, blank fretboards).
-- Print Studio, Offline Field Library, Prepare for Grid-Down binder.
+- Unified diagram rendering (chords, scales, exercises, blank fretboards).
+- Print Studio Core and Expanded Print Studio, Offline Field Library, field binder.
 - Song Project model; Songwriting Studio; Song Arrangement Board; Personal Songbook; Performance Mode.
 - Chord Progression Generator and Workshop; Rhythm & Strumming Studio; Melody & Harmony Assistant; Music Theory Tools.
-- MIDI engine and SoundFont synthesizer; TAB Editor; Standard Notation Editor; combined view; MIDI import and export.
-- Ear Training Studio.
+- MIDI engine and SoundFont synthesizer; TAB Editor; Standard Notation Editor; combined view; MIDI file import and export.
+- Ear Training Studio (Learning Studio › Practice).
 - Riff Recorder and Idea Vault; Backing Tracks.
-- MusicXML interchange; lead sheet, TAB and notation printing; project export and restore.
+- MusicXML interchange; project export and restore.
 
 **Deferred (agreed, not in the initial release):**
 
-- Country, worship and jazz generator styles; modal harmony; mood controls beyond the first set.
+- Country, worship and jazz generator styles; modal harmony; mood controls beyond the first set (all at X7, after the first release's core).
 - Teacher-specific administration (no new user role yet); administrator-managed shared song library.
-- Two-track overdub; in-app chord pack import; curricula for bass, seven-string, ukulele and mandolin.
+- Two-track overdub; in-app chord pack import; curricula for bass, seven-string, ukulele and mandolin; screen-off recording on Android.
 - Any online feature (content downloads, sync, AI assistant).
 - Out of scope: professional multitrack, VST hosting, mixing consoles, mastering, cloud production, online collaboration, subscription sounds, automatic transcription.
 
-## 2. Feature cards
+## 2. Finalised roadmap (approved working plan)
+
+### Order
+
+| Stage | Contents | Depends on | Student-visible result |
+| --- | --- | --- | --- |
+| **Phase 1** | Hardware verification, fixes, acceptance of existing PRs (#1 to #4, merged in order only on Jason's authorisation) | None | Current app accepted |
+| **Phase 2** | Learning core: courses, missions, mastery verification and reviews, progress, XP, levels, achievements, real-data dashboard, Learning Studio tour; workspace navigation Stages A and B | Phase 1 | Learn, Practice and Progress become real; workspace selector |
+| **X0** | Shared architectural foundations, as seven milestones (below) | Phase 1; each milestone's own dependencies | None (foundations only) |
+| **X1** | Chord reference tools (Visual Chord Library, Voicing and Alternate Explorers, Compare, Chord Finder); **Print Studio Core**; **Offline Field Library**; **Low-Power Field** and Field Dashboard; Reference workspace opens with its tour | X0.1–X0.5, X0.7; Jason's review of the 18 flagged shapes; Spike C (PDF writer) | Chord tools, printing and Save to PDF, Field mode |
+| **X2** | Songwriting Studio, Arrangement Board, Personal Songbook, Performance Mode; **Expanded Print Studio** (songbooks, lead sheets, lesson worksheets); **field binder**; No-Power Preparation; Play & Create opens with its tour | X0.6, X1; Phase 2 lesson content (for lesson worksheets and binder lessons) | Write, perform and print songs; field binder |
+| **X3** | Chord Progression Generator G1 (rock, pop, folk, blues; Lock Chord + Regenerate); Rhythm & Strumming Studio (editor, presets, visual playback, charts); Music Theory Tools; Melody & Harmony guidance on the fretboard; initial Ear Training (intervals, major and minor, with existing tones) | X2 (Send to Song, pattern attachment); X0.5 (TimerClock); Phase 2 missions, mastery and XP (for ear training) | Generate, strum, theory tools, first ear training, all without a synthesizer |
+| **X4** | MIDI synthesis and playback; generator G2; rhythm audio and accompaniment; ear training chords, progressions and rhythm | X3; Spike B; sound licence verification | Hear songs, progressions, patterns and ear-training chords |
+| **X5** | TAB Editor, Standard Notation Editor, combined view, melody composition in the Assistant, MIDI file import and export, TAB and notation printing, notation accessibility | X4; Spike A | Write TAB, notation and melodies |
+| **X6** | Riff Recorder, Idea Vault, Backing Tracks, pitch-preserving speed change | X4 (and X0.6 media storage) | Record ideas, play along |
+| **X7** | MusicXML import and export; advanced generator styles G3 (country, worship, jazz, advanced complexity, mood controls) and G4 (modal); final integration and end-to-end testing | X5, X6 | Interchange, more styles, finished workflow |
+
+### X0 milestones (each independently testable)
+
+Each milestone is its own branch and pull request, with its own tests, no visible change for students, and can be paused without leaving anything half-built. None starts without Jason's authorisation.
+
+| Milestone | Contents | Depends on | Done when |
+| --- | --- | --- | --- |
+| **X0.1 Instrument & Tuning Manager** | `engines/instruments/`: instrument definitions, one shared tuning list (the 7 tuner presets moved unchanged), capo maths, playable-position suggestions | Phase 1 merged | Every tool reads one tuning list; tuner picker unchanged; 4-string bass and 7-string test definitions work with no code change |
+| **X0.2 Theory additions** | Keys and key signatures, diatonic harmony, Roman and Nashville numbers, transposition of spelled pitches, new chord qualities and slash chords | X0.1 (capo) | All 24 keys spell correctly; transposing through 12 keys and back is exact |
+| **X0.3 Chord catalog pipeline** (chord Stage 1) | CSV authoring, build-time import to JSON, stable ids, review records with fingerprints, `transposeShape`, chord packs through app updates | X0.2; the 27 existing shapes first, the 75-shape manifest after Jason's review | The importer passes chord-system.md Stage 1 criteria |
+| **X0.4 Capability layer** | `capabilities()`, Operating Profile administrator card with Full Studio only, audited profile setting | Workspace navigation Stage B (Phase 2) | Every existing feature declares its capability; nothing visible changes for students |
+| **X0.5 Transport clock sources** | `ClockSource` abstraction, the existing audio path as AudioClock, a new TimerClock, latency-compensated position for highlighting | Existing transport | Metronome behaves exactly as today; TimerClock tests pass with no AudioContext created |
+| **X0.6 Song Project model and storage** | Schema, operations engine (undo, redo, journal), invariants, migrations, Rust song commands with ownership, import and export safety, recovery | X0.1, X0.2 | composition-model.md section 17 tests pass |
+| **X0.7 Unified diagram rendering** | `neckLayout` shared by screen and print, `fretGrid`, SVG serializers, fret-number and open-string labels, spoken descriptions | X0.1 | notation-rendering.md tests pass; screen and print geometry identical |
+
+X0.1, X0.2, X0.5 and X0.7 have no dependency on each other beyond those listed and can run in any order. X0.4 waits for workspace navigation Stage B.
+
+### Phase 2 is protected
+
+- Phase 2's learning priorities come first. X0 milestones may run alongside late Phase 2 only when they take no time away from it; if there's any conflict, Phase 2 wins and the X0 milestone pauses.
+- X0 milestones change no screens and no learning behaviour, so they can't delay or alter Phase 2 features.
+- Ear training (X3) and lesson worksheets (X2) build on Phase 2's missions, mastery, XP and lesson content; they never change them.
+
+### What changed from the earlier order
+
+Print Studio and the Offline Field Library moved from the last stage to X1 and X2. Creative tools that need no audio (generator G1, Rhythm Studio visual mode, theory tools, melody guidance, first ear training) come before the synthesizer, so they work in Low-Power Field from the start. X0 is now seven milestones instead of one block. The earlier provisional post-Phase-2 order (in the workspace plan and feature-roadmap.md) is superseded.
+
+## 3. Feature cards
 
 Complexity: **S** (days), **M** (1 to 2 weeks), **L** (several weeks), **XL** (a month or more). Profiles: **FS** Full Studio, **LP** Low-Power Field, **NP** No-Power Preparation. Every feature also passes the standing checks in section 4.
 
 ### Instrument & Tuning Manager
 - **Reuse:** `music-theory/tuning.ts` (Tuning model), the 7 tuner presets, `fretboard.ts` mapping; chord shapes already carry `tuningId`.
 - **New:** `engines/instruments/`: instrument definitions (string count, open pitches, fret count, range, clef, MIDI program), one shared tuning list (moved from the tuner), capo maths (sounding vs shape pitch), playable position suggestions for a pitch.
-- **Depends on:** nothing. **Placement:** engine only; tuning pickers in Fretboard Explorer, Tuner and song settings use it.
+- **Placement:** engine only; tuning pickers in Fretboard Explorer, Tuner and song settings use it.
 - **FS/LP/NP:** identical (pure calculation). **Windows/Android:** identical.
 - **Acceptance:** every tool reads tunings from one list; Drop D, Open G, Open D, DADGAD and capo 1 to 12 give correct notes in Fretboard Explorer, chord analysis and TAB; a 4-string bass and 7-string test definition work in the fretboard engine without code changes; the curriculum stays guitar-only.
-- **Complexity:** S to M. **Stage:** X0.
+- **Complexity:** S to M. **Stage:** X0.1.
 
 ### Operating Profiles
 - **Reuse:** account-index installation settings, admin Settings page, checkpoint, reduced-motion styling, lazy AudioContext.
-- **New:** `capabilities()` engine, Operating Profile admin card, profile badge, explanation cards, Field Dashboard, audio suspension and synth unload timers (30 s and 2 min initial values), measurement scripts.
-- **Depends on:** workspace navigation Stage B (capability layer sits beside access); Print Studio for NP's home.
-- **Placement:** Admin Settings; Field Dashboard replaces the dashboard in LP; Print/Export Center is the home in NP.
-- **Behaviour:** as in operating-profiles.md. Full Studio is the default on Windows and Android.
-- **Acceptance:** see operating-profiles.md tests, including measured CPU, memory, startup and battery.
-- **Complexity:** M (framework and LP), S (NP once Print Studio exists). **Stage:** X0 (framework), X1 (LP and Field Dashboard), X2 (NP).
+- **New:** `capabilities()` engine, Operating Profile admin card, profile badge, explanation cards, Field Dashboard, audio suspension and synth unload timers (30 s and 2 min initial values, subject to measurement), the No-Power temporary home rule, measurement scripts.
+- **Placement:** Admin Settings; Field Dashboard replaces the dashboard in LP; Print/Export Center is the temporary home in NP even if Reference is hidden, without changing workspace visibility or permissions.
+- **Acceptance:** operating-profiles.md tests, including measured CPU, memory, startup and battery, and the lifecycle and power-safety table.
+- **Complexity:** M (framework and LP), S (NP once Print Studio exists). **Stage:** X0.4 (framework, Full Studio), X1 (LP and Field Dashboard), X2 (NP).
 
 ### Chord system (catalog, Library, Voicing and Alternate Explorers, Compare)
 - **Reuse:** shape model, analysis, validation, diagram layout and renderer, Fretboard, theory engine.
 - **New:** CSV importer and JSON catalog, review records, `transposeShape`, search index, related-chord rules, new qualities, Compare view.
-- **Depends on:** Instrument & Tuning Manager; Jason's review of the 18 flagged shapes.
+- **Depends on:** X0.2, Jason's review of the 18 flagged shapes.
 - **Placement:** Learning Studio › Fretboard Explorer › Chords.
 - **FS/LP:** full; LP uses flat cards. **NP:** browsing plus "Print selected chords".
-- **Windows/Android:** card grid adapts at 600 and 840 px.
-- **Acceptance:** chord-system.md Stages 1 to 3. **Complexity:** L. **Stage:** X0 (catalog), X1 (Library and Explorers).
+- **Acceptance:** chord-system.md Stages 1 to 3 and 5. **Complexity:** L. **Stage:** X0.3 (catalog), X1 (Library, Explorers, Compare, integration).
 
 ### Reverse Chord Finder ("What Chord Am I Playing?")
 - **Reuse:** Fretboard (input), theory engine, chord renderer.
 - **New:** `identifyChord`, one-position-per-string input store, Chord Finder tab.
-- **Depends on:** chord qualities and catalog (for "open in library" links only).
+- **Depends on:** X0.2 (qualities); catalog only for "open in library" links.
 - **Placement:** Fretboard Explorer › Chord Finder; links from Chords and the dashboard.
-- **FS/LP/NP:** identical (no audio). **Windows/Android:** large touch targets on phones.
+- **FS/LP/NP:** identical (no audio). **Android:** large touch targets on phones.
 - **Acceptance:** chord-system.md Stage 4. **Complexity:** M. **Stage:** X1.
 
-### Unified notation rendering
+### Unified diagram rendering
 - **Reuse:** `chordDiagram`, `ChordDiagram.svelte`, `Fretboard.svelte`, `scalePositions`, worksheet engine.
 - **New:** `neckLayout` shared by screen and print, `fretGrid` for scale boxes, SVG serializers, fret-number and open-string labels, spoken descriptions.
-- **Depends on:** Instrument & Tuning Manager. **Placement:** shared components.
-- **FS/LP/NP:** identical; print variant is black and white.
-- **Acceptance:** notation-rendering.md tests. **Complexity:** M. **Stage:** X0.
+- **Placement:** shared components. **FS/LP/NP:** identical; print variant is black and white.
+- **Acceptance:** notation-rendering.md tests. **Complexity:** M. **Stage:** X0.7.
 
-### Print Studio, Offline Field Library and Prepare for Grid-Down
-- **Reuse:** worksheet engine (page layout, paper sizes), shared renderers, platform print adapter, backup export to folder or USB.
-- **New:** Print Studio screen; templates for chord reference sheets, fretboard maps, scale charts, lesson worksheets, blank TAB, blank staff paper, blank chord boxes, songwriting worksheets, songbook and lead sheets; compact ink-efficient layouts; Save to PDF (default, no printer needed) with paper and screen-reading layouts; the field binder builder.
-- **Depends on:** unified rendering; Song Projects (for songbook pages); lesson content (for lesson worksheets).
-- **Placement:** Reference › Printable Resources and Offline Field Library (Reference opens when this ships, as the plan expected). In Learning Studio, "Print Materials" points here until then.
-- **FS/LP:** full. **NP:** the home screen.
-- **Windows:** WebView2 print and PDF. **Android:** Android print framework for printing; PDF export path to be decided (gap G4).
-- **Acceptance:** each template's output is black and white, matches the screen, and has a test before its button appears; Save to PDF works with no printer installed; the binder test in operating-profiles.md.
-- **Complexity:** L (templates added in waves). **Stage:** X1 (chord, fretboard, scale, blank sheets, worksheets), X2 (songbook, lead sheets, binder, lesson worksheets once Phase 2 lessons exist).
+### Shared transport clock sources
+- **Reuse:** `engines/audio/transport.ts`, `services/audio/transport.ts`, shared AudioContext.
+- **New:** `ClockSource` abstraction, AudioClock, TimerClock, latency-compensated highlighting, tap-latency calibration.
+- **Acceptance:** transport-timing.md tests. **Complexity:** S to M. **Stage:** X0.5.
+
+### Print Studio Core, Expanded Print Studio and Offline Field Library
+- **Reuse:** worksheet engine (page layout, paper sizes, 1/2/4/6 per page), shared renderers, backup export to folder or USB.
+- **New:** Print Studio screen; Core templates (chord reference sheets, fretboard diagrams, scale charts, blank TAB, blank notation paper, blank chord boxes, songwriting worksheets); Expanded templates (personal songbooks, lead sheets, lesson worksheets, the field binder, later TAB and notation printing); the shared **PDF writer** (Save to PDF, no printer needed) with paper and screen-reading layouts.
+- **Depends on:** X0.7; Spike C; Song Projects (Expanded); Phase 2 lesson content (lesson worksheets).
+- **Placement:** Reference › Printable Resources and Offline Field Library (Reference opens at X1). In Learning Studio, "Print Materials" points here until then.
+- **FS/LP:** full. **NP:** the Print/Export Center is home.
+- **Windows and Android:** the same PDF writer on both; WebView printing only for optional printing; Android printing through its print framework (android-platform.md section 3).
+- **Acceptance:** creative-workstation.md section 9; the binder tests in operating-profiles.md.
+- **Complexity:** L (templates in waves). **Stage:** X1 (Core), X2 (songbooks, lead sheets, lesson worksheets, binder), X3 (rhythm, progression and target-note charts), X5 (TAB and notation).
 
 ### Song Project model and storage
 - **Reuse:** Rust storage core (ownership, atomic writes, migrations, backups).
-- **New:** composition-model.md: project folder, operations engine with undo, invariants, autosave journal, revisions, export and import, Rust song commands.
-- **Depends on:** Instrument & Tuning Manager, theory additions. **Placement:** engine and storage.
-- **FS/LP/NP:** identical files in every profile. **Android:** app-private storage, file picker for export.
-- **Acceptance:** composition-model.md tests; recordings included in backups by default with an opt-out. **Complexity:** L. **Stage:** X0.
+- **New:** composition-model.md: project folder, operations engine with undo and journal, invariants, timing and form rules, revisions, safe import and export, recovery, Rust song commands.
+- **Depends on:** X0.1, X0.2. **Placement:** engine and storage.
+- **FS/LP/NP:** identical files in every profile. **Android:** app-private storage, system document picker for export and import.
+- **Acceptance:** composition-model.md section 17; recordings included in backups by default with an opt-out. **Complexity:** L. **Stage:** X0.6.
 
 ### Songwriting Studio and Song Arrangement Board
 - **Reuse:** chord catalog and search, renderer, theory engine.
-- **New:** writing and chords-and-lyrics views, chord chips, sections, key and capo tools, arrangement board.
-- **Depends on:** Song Project model, chord catalog.
+- **New:** writing and chords-and-lyrics views, chord chips, chord tray, sections, endings and per-instance overrides, key and capo tools, arrangement board.
+- **Depends on:** X0.6, X1 (chord catalog).
 - **Placement:** Play & Create (opens the workspace).
 - **FS/LP:** full (text-based, no audio needed). **NP:** open, edit and print.
 - **Android:** drawer and bottom-sheet layouts; editing on phones kept simple.
-- **Acceptance:** creative-workstation.md Stage 3 criteria. **Complexity:** L. **Stage:** X2.
+- **Acceptance:** creative-workstation.md section 14, X2. **Complexity:** L. **Stage:** X2.
 
 ### Personal Songbook and Performance Mode
 - **Reuse:** Song Projects, search patterns, high-contrast and text-size settings.
-- **New:** songbook list, tags, favourites, setlists, import and export; Performance Mode with auto-scroll.
-- **Depends on:** Song Project model. **Placement:** Play & Create.
+- **New:** songbook list, tags, favourites, setlists, import (separate copy by default) and export; Performance Mode with auto-scroll.
+- **Depends on:** X0.6. **Placement:** Play & Create.
 - **FS/LP:** full; LP disables auto-scroll animation smoothing. **NP:** printable songbook.
-- **Acceptance:** works with no audio device; auto-scroll matches the arrangement timing; setlists survive reload. **Complexity:** M. **Stage:** X2.
+- **Acceptance:** works with no audio device; auto-scroll matches the arrangement timing; setlists survive reload; import safety tests pass. **Complexity:** M. **Stage:** X2.
 
 ### Chord Progression Generator and Workshop
 - **Reuse:** theory engine, chord catalog, related-chord rules, seeded RNG, renderer, transport.
@@ -140,45 +214,43 @@ Complexity: **S** (days), **M** (1 to 2 weeks), **L** (several weeks), **XL** (a
 
 ### Rhythm & Strumming Studio
 - **Reuse:** shared transport and metronome (one timing system), practice drills engine, renderer patterns, print engine.
-- **New:** rhythm pattern model (strums and fingerpicking), pattern editor, presets as data, silent clock source for visual-only playback, printable rhythm charts.
-- **Depends on:** transport; MIDI engine for strummed audio; Song Project model for attaching patterns to sections.
+- **New:** pattern editor and presets on the composition model's `RhythmPattern` (no separate format), visual playback on the TimerClock, printable rhythm charts.
+- **Depends on:** X0.5, X0.6; MIDI engine for strummed audio.
 - **Placement:** Play & Create (the studio); a Practice entry in Learning Studio links to the same studio.
 - **FS:** full. **LP:** works without audio (visual beat stepping); audio loads on Play if allowed. **NP:** printable charts.
 - **Acceptance:** creative-workstation.md section 6. **Complexity:** M to L. **Stage:** X3 (editor, visual playback, presets, print), X4 (audio).
 
 ### MIDI engine and synthesizer
 - **Reuse:** shared AudioContext, transport, metronome, performance `midi-note` types.
-- **New:** event conversion from the composition model, scheduler, WebAudio SoundFont synth (preferred, pending performance tests and licence verification), compact sound set, mute and solo.
-- **Depends on:** composition model; Jason's spike authorisation.
+- **New:** event conversion from the composition model, scheduler, WebAudio SoundFont synth (preferred), compact sound set (after licence verification), mute and solo.
+- **Depends on:** X0.6, X0.5; Spike B; sound licence verification.
 - **Placement:** shared service; the transport bar appears in every tool with playback.
 - **FS:** loaded on first playback. **LP:** loaded on Play, unloaded after 2 minutes idle. **NP:** never loaded.
-- **Android:** CPU and latency measured on a mid-range tablet before committing.
-- **Acceptance:** creative-workstation.md Stage 4 timing criteria; idle CPU back to baseline. **Complexity:** L. **Stage:** X4.
+- **Acceptance:** creative-workstation.md section 14, X4; Spike B thresholds. **Complexity:** L. **Stage:** X4.
 
 ### TAB Editor, Standard Notation Editor and combined view
 - **Reuse:** composition model, Instrument & Tuning Manager (position suggestions), Fretboard for entry, transport.
-- **New:** editors, VexFlow-based rendering (preferred, pending comparison with alphaTab), measure layout, techniques, printing.
-- **Depends on:** composition model, notation renderer decision, MIDI engine for playback.
+- **New:** editors, VexFlow-based rendering (preferred, pending Spike A), measure layout, techniques, printing, the accessible score structure.
+- **Depends on:** X0.6, X4, Spike A.
 - **Placement:** Play & Create.
 - **FS/LP:** full (LP playback on demand). **NP:** print TAB and notation; blank paper.
 - **Android:** tablets edit; phones view and do simple entry first.
-- **Acceptance:** creative-workstation.md Stage 5. **Complexity:** XL. **Stage:** X5.
+- **Acceptance:** creative-workstation.md section 14, X5, and section 16 (accessibility). **Complexity:** XL. **Stage:** X5.
 
 ### Melody & Harmony Assistant
 - **Reuse:** `scalePositions`, `chordToneLabel`, intervals, Fretboard highlights, harmony track, composition model, MIDI audition.
-- **New:** an assistant panel: compatible scale tones per chord, chord tones and target notes, melody-to-chord interval labels, suggested approach, passing and resolution notes, arpeggio shapes; writes only notes the user chooses into a melody clip.
-- **Depends on:** composition model, TAB and notation editors (for writing phrases); can show fretboard guidance earlier.
-- **Placement:** Play & Create, as a panel inside the TAB and notation editors and the Progression Workshop (one panel, not a separate app).
-- **FS:** full. **LP:** full; audition on demand. **NP:** print target-note and arpeggio charts for a progression.
+- **New:** one assistant panel; writes only notes the user chooses into a melody clip (no separate melody format).
+- **Placement:** Play & Create, inside the TAB and notation editors and the Progression Workshop.
+- **FS:** full. **LP:** full; audition on demand. **NP:** print target-note and arpeggio charts.
 - **Acceptance:** creative-workstation.md section 7. **Complexity:** M (guidance), L (composing). **Stage:** X3 (fretboard guidance over a progression), X5 (composing into clips).
 
 ### Ear Training Studio
-- **Reuse:** lessons and practice engines, mastery engine (with its own skill names), reference tones service (plucked-string synthesis already works offline), MIDI engine later, seeded RNG.
-- **New:** ear-training exercise types (intervals, major and minor, chord quality, scales and melodic patterns, progressions, rhythm), missions, adaptive difficulty, its own progress view.
-- **Depends on:** Phase 2 learning core (missions, progress); MIDI engine for chord and progression sounds (intervals and simple chords can use the existing tones).
-- **Placement:** Learning Studio (its own page under Practice, or a Learning Studio sidebar item; see decision D4).
-- **FS:** full. **LP:** audio starts only when an exercise starts. **NP:** not applicable (needs sound); printable answer sheets are not useful, so it is simply not featured.
-- **Acceptance:** creative-workstation.md section 8; existing course, XP, mastery and progress records are unchanged by ear-training activity. **Complexity:** L. **Stage:** X3 (intervals and major/minor with existing tones), X4 (chords, progressions and rhythm with the synth).
+- **Reuse:** lessons and practice engines, mastery engine (own `ear:` skills), reference tones, MIDI engine later, seeded RNG, XP ledger and achievements (Phase 2).
+- **New:** exercise types, short missions, its own mastery rule (`EAR_MASTERY_CONFIG`), untimed accommodation, review scheduling, anti-farming XP limits, its own progress section.
+- **Depends on:** Phase 2 learning core; X0.5 (rhythm exercises); MIDI engine for chords and progressions.
+- **Placement:** **Learning Studio › Practice › Ear Training** (no new workspace or sidebar item).
+- **FS:** full. **LP:** audio starts only when an exercise starts. **NP:** not featured (needs sound).
+- **Acceptance:** creative-workstation.md section 8. **Complexity:** L. **Stage:** X3 (intervals and major/minor with existing tones), X4 (chords, progressions and rhythm with the synth).
 
 ### Music Theory Tools
 - **Reuse:** theory engine, generator data, Instrument & Tuning Manager.
@@ -188,10 +260,10 @@ Complexity: **S** (days), **M** (1 to 2 weeks), **L** (several weeks), **XL** (a
 
 ### Riff Recorder and Idea Vault
 - **Reuse:** shared audio engine, device selection, mic input, Song Project media folder, backup system.
-- **New:** recorder worklet, WAV writing in Rust, takes list, trim, loop, pitch-preserving speed, attach to sections.
+- **New:** recorder worklet, WAV writing in Rust with recoverable partial files, takes list, trim, loop, pitch-preserving speed, attach to sections.
 - **Placement:** Play & Create. **FS:** full. **LP:** loads on Record if allowed. **NP:** not initialised.
-- **Android:** microphone permission flow; storage quotas.
-- **Acceptance:** creative-workstation.md Stage 6. **Complexity:** L. **Stage:** X6.
+- **Android:** microphone permission flow; free-space checks; stops and saves when backgrounded.
+- **Acceptance:** creative-workstation.md section 14, X6. **Complexity:** L. **Stage:** X6.
 
 ### Backing Tracks
 - **Reuse:** audio engine, transport, recorder playback path, MIDI engine for generated arrangements.
@@ -200,84 +272,93 @@ Complexity: **S** (days), **M** (1 to 2 weeks), **L** (several weeks), **XL** (a
 
 ### Guided tours
 - **Reuse:** guided-tours.md architecture. **Depends on:** Help page and the features each step describes.
-- **Placement:** Learning Studio tour in Phase 2; Play & Create and Reference tours when each opens. **FS/LP:** full; LP without animation. **NP:** none.
-- **Complexity:** M. **Stage:** Phase 2, then X1 and X2 for the other tours.
+- **Placement:** Learning Studio tour in Phase 2; Reference tour at X1 and Play & Create tour at X2, when each workspace opens. **FS/LP:** full; LP without animation. **NP:** none.
+- **Complexity:** M. **Stage:** Phase 2, X1, X2.
 
 ### MusicXML and MIDI file interchange
-- **Reuse:** composition model, MIDI engine.
-- **New:** MusicXML and Standard MIDI File converters with a published support list.
+- **Reuse:** composition model (including preservation of unsupported content), MIDI engine.
+- **New:** MusicXML and Standard MIDI File converters with a published support list and import reports.
 - **Placement:** Song menu (import and export). **FS/LP/NP:** identical.
 - **Complexity:** L. **Stage:** X5 (MIDI files), X7 (MusicXML).
 
-## 3. Dependency-aware roadmap
-
-Phase 1 and the approved Phase 2 learning priorities come first and are not disrupted. The expansion stages (X0 to X7) are planning boundaries; each needs authorisation.
-
-| Stage | Contents | Depends on | Student-visible result |
-| --- | --- | --- | --- |
-| Phase 1 | Hardware verification, fixes, PRs #1 to #4 merged | None | Current app accepted |
-| Phase 2 | Courses, missions, mastery reviews, progress, XP, achievements, real-data dashboard, Learning Studio tour; workspace navigation Stages A and B alongside (no Phase 2 delay) | Phase 1 | Learn, Practice, Progress become real; workspace selector |
-| X0 Foundations (no visible change; may overlap late Phase 2) | Instrument & Tuning Manager; theory additions (keys, Roman and Nashville, transposition, capo); capability layer and Operating Profile admin card (Full Studio); chord catalog pipeline (75 shapes after review); unified rendering (`neckLayout`, serializers); Song Project model and storage | Phase 1; Jason's review of 18 shapes | None |
-| X1 Reference and print | Visual Chord Library, Voicing and Alternate Explorers, Compare; Chord Finder; **basic Print Studio** (chord sheets, fretboard maps, scale charts, blank TAB, staff paper, chord boxes, songwriting worksheets, Save to PDF); **Offline Field Library**; Low-Power Field and Field Dashboard; Reference workspace opens | X0 | Chord tools, printing, Field mode |
-| X2 Songwriting core | Songwriting Studio, Arrangement Board, Songbook, Performance Mode, songbook and lead-sheet printing, lesson worksheets, **Prepare for Grid-Down** binder, No-Power Preparation; Play & Create opens | X0, X1 | Write, perform, print songs; field binder |
-| X3 Creative tools without audio | Progression Generator G1 (rock, pop, folk, blues; Lock Chord + Regenerate), Rhythm & Strumming Studio (visual), Music Theory Tools, Melody & Harmony Assistant (fretboard guidance), Ear Training intervals and major/minor (existing tones) | X1, X2 | Generate, strum, theory, first ear training |
-| X4 Playback | MIDI engine and synth (after spike), generator G2, rhythm audio, Ear Training chords, progressions and rhythm | X3; spike authorised | Hear progressions, patterns, ear training |
-| X5 Composition | TAB Editor, Notation Editor, combined view, melody composing in the Assistant, MIDI file import and export, TAB and notation printing | X0, X4; renderer comparison | Write TAB and notation |
-| X6 Recording and practice | Riff Recorder, Idea Vault, Backing Tracks, speed change | X4 | Record ideas, play along |
-| X7 Interop and expansion | MusicXML, generator G3 (country, worship, jazz, mood controls) and G4 (modal), setlists polish, end-to-end tests | X5, X6 | Interchange, more styles |
-
-**What changed from the previous order:** Print Studio and the Offline Field Library move from the last stage to X1 and X2, alongside the chord-reference and songwriting features they print. Creative tools that don't need audio (generator G1, Rhythm Studio visual mode, theory tools, melody guidance, first ear training) move ahead of the synthesizer, so they work in Low-Power Field from the start and deliver value sooner. The earlier provisional post-Phase-2 order is replaced by this table.
-
-## 4. Standing acceptance checks (every stage)
+## 4. Standing acceptance checks (every stage and milestone)
 
 1. All existing tests pass (Rust core, app, TypeScript and scripted click-throughs) and existing features behave as before.
 2. No lesson, mastery, XP, progress or tour data changes except through its own feature.
-3. Student and administrator permissions, workspace access and visibility are unchanged.
+3. Student and administrator permissions, workspace access and visibility are unchanged; students never reach another student's data.
 4. Everything works with networking blocked.
 5. Unavailable features never appear as working controls.
 6. Layouts work at 1280 px and at phone width, with keyboard and screen reader.
 7. Behaviour is correct in each operating profile, and resource measurements are recorded for any new service.
-8. Branding (logo, palette, glow cards) is unchanged.
+8. Branding (logo, palette, glow cards) is unchanged; local files stay authoritative; no SQLite and no mandatory cloud service.
 
-## 5. Architectural gaps and unresolved technical decisions
+## 5. Technical items (formerly gaps G1 to G12)
 
-- **G1 Notation renderer:** VexFlow preferred; the comparison against alphaTab is documented but not yet run (spikes not authorised).
-- **G2 Synthesizer:** WebAudio SoundFont synth preferred; CPU, latency and battery on Windows laptops and Android tablets not yet measured.
-- **G3 Sound licences:** no SoundFont licence is verified until checked against the actual distributable files and attribution requirements.
-- **G4 PDF on Android:** Windows can use WebView2's print-to-PDF; Android needs either the Android print framework or a PDF writer in Rust. To be decided before X1 ships on Android.
-- **G5 Silent clock:** the transport is driven by the audio clock; visual-only rhythm playback in Low-Power Field needs a timer-based clock source for the same transport (not a second transport).
-- **G6 Measurement setup:** reference devices and a repeatable battery test are needed (Jason's actual laptop, tablet and phone).
-- **G7 Lesson content:** lesson worksheets and the binder's lesson section depend on Phase 2 course content being written and approved.
-- **G8 Ear-training mastery:** the locked mastery rule (90%, 10 attempts, under 3 s, 2 days) was written for note mastery; ear training needs its own criteria and a decision on XP (decision D3).
-- **G9 Profile home vs visibility:** in No-Power Preparation the home is the Print/Export Center in Reference; a student who hid Reference still needs that home (decision D2).
-- **G10 Song import collisions:** importing a song that already exists (same id) needs a rule: keep both with a new id, or replace after confirmation.
-- **G11 Notation accessibility:** screen-reader support for TAB and notation editing needs its own design before X5.
-- **G12 Recording storage on Android:** storage quotas and what happens when space runs low.
+| Item | Status after the refinement pass |
+| --- | --- |
+| **T1 Notation renderer** | VexFlow preferred; Spike A criteria and decision rule documented (creative-workstation.md section 3). Spike not authorised. |
+| **T2 Synthesizer** | WebAudio SoundFont synth preferred; Spike B criteria documented. Spike not authorised. |
+| **T3 Sound licences** | Verification procedure documented; FluidR3's MIT licence confirmed from one source copy with a provenance caveat; MuseScore General and GeneralUser GS unverified. No sound asset until verified and approved. |
+| **T4 PDF on Android** | Resolved in design: one shared PDF writer from SVG pages on both platforms; WebView printing only for optional printing (android-platform.md section 3). Spike C criteria documented. |
+| **T5 Silent clock** | Resolved in design: TimerClock in the clock-source abstraction (transport-timing.md). |
+| **T6 Measurement setup** | Still needed: reference laptop now, tablet and phone at the Android stage, and a repeatable battery script (operating-profiles.md). |
+| **T7 Lesson content** | Lesson worksheets and binder lessons depend on Phase 2 course content being written and approved. |
+| **T8 Ear-training mastery** | Resolved in design: own rule and XP limits (creative-workstation.md section 8); initial values need Jason's review before implementation. |
+| **T9 Profile home vs visibility** | Resolved: temporary home rule (operating-profiles.md). |
+| **T10 Song import collisions** | Resolved: separate copy by default; confirmed replacement with backup (composition-model.md section 14). |
+| **T11 Notation accessibility** | Resolved in design: creative-workstation.md section 16. |
+| **T12 Recording storage on Android** | Resolved in design: free-space checks, recoverable partial files, stop-and-save on background (android-platform.md, composition-model.md). Screen-off recording deferred. |
 
-## 6. Conflicts with existing Phase 1 and Phase 2 plans
+## 6. Conflicts with earlier plans (status)
 
-1. **Previous post-Phase-2 order** (Printable Resources, Theory Tools, Tuning & Field Skills, Maintenance, Songbook, Audio Engine, Backing Tracks and Recorder, Songwriting) is superseded by section 3. Please confirm.
-2. **Workspace plan decision 2** (Print Materials stays in Learning Studio until Reference opens, then moves): consistent; Reference opens at X1 because Print Studio is its first substantial feature.
-3. **Dashboard "Print Worksheet" quick action** stays "Coming soon" until basic Print Studio passes its tests at X1.
-4. **Tuning presets** live in the tuner today; the Instrument & Tuning Manager moves them to one shared list. The tuner's behaviour and picker stay the same.
-5. **Mastery rule** is locked for note mastery; ear training must not alter it (G8).
-6. **PR #4 scope:** PR #4 now carries several architecture documents. They don't change code, but you may prefer them moved to a separate documentation PR so PR #4 stays focused on Phase 1.
-7. **Phase 2 priority:** X0 foundations may overlap late Phase 2 only if they never delay the learning core.
+1. **Earlier post-Phase-2 order** (workspace plan and feature-roadmap.md): superseded by section 2, now approved. Both places point here.
+2. **Workspace plan decision on Print Materials** (stays in Learning Studio until Reference opens, then moves): consistent; Reference opens at X1 with Print Studio Core.
+3. **Dashboard "Print Worksheet" quick action** stays "Coming soon" until Print Studio Core passes its tests at X1.
+4. **Tuning presets** move from the tuner to the shared list at X0.1; the tuner's behaviour and picker stay the same.
+5. **Locked note-mastery rule** stays untouched; ear training has its own rule.
+6. **PR #4 scope:** PR #4 carries the architecture documents (no code). Moving them to a separate documentation PR is still open (R1).
+7. **Phase 2 priority:** protected (section 2).
+8. **Chord system and diagram rendering were first written as "Phase 2 architecture".** They are now scheduled at X0.3, X0.7 and X1; Phase 2 itself is the learning core and workspace navigation. Phase 2 lessons use the existing 27 shapes and renderer.
+9. **Work-scope rule** (requirements-v1.md: engines may be built from the current spec without further approval): the X-stage documents are architecture, not a build specification under that rule; Jason has said each stage needs his authorisation. Recorded as R2 for confirmation.
 
-## 7. Decisions still needing Jason
+## 7. Decisions
 
-- **D1** Confirm the roadmap in section 3 (replacing the earlier post-Phase-2 order).
-- **D2** In No-Power Preparation, show the Print/Export Center as home even if the student has hidden Reference (my recommendation), since profiles are administrator-set?
-- **D3** Ear training: its own mastery criteria (my recommendation: accuracy and response-time thresholds per exercise type, reviewed by you) and whether it awards XP once Phase 2 XP exists.
-- **D4** Ear Training Studio placement: a page under Practice (my recommendation, no new sidebar item) or its own Learning Studio sidebar item?
-- **D5** Field binder: allow the administrator to read a student's songs (read-only, audited) for the binder, plus a student "My Field Binder" button?
-- **D6** Move the architecture documents to a separate documentation PR?
-- **D7** When convenient, authorise the two technology spikes (notation renderer and synthesizer) as throwaway code, never merged.
+**Resolved by Jason (2026-11-22, this pass):**
 
-## 8. Recommendation for the next development stage
+- **D1** The X0–X7 roadmap is approved as the working development plan, with X0 split into milestones.
+- **D2** In No-Power Preparation the Print/Export Center is the temporary home even if Reference is hidden, without changing visibility or permissions.
+- **D3** Ear training has its own mastery criteria and takes part in XP and achievements with anti-farming limits.
+- **D4** Ear Training Studio sits under Learning Studio › Practice.
+- **D5** Field binders: students build their own; administrators build shared binders; student songs in an administrator binder only with explicit, revocable, audited student authorisation.
+- **D7** Spikes stay unauthorised; their evaluation criteria and thresholds are now documented for separate approval.
 
-After the currently authorised work (Phase 1 hardware verification, fixes and merging PRs #1 to #4 in order):
+**Still open:**
 
-1. **Start Phase 2 learning core** as already approved, with workspace navigation Stages A and B alongside. This makes Learn, Practice and Progress real, which the binder, lesson worksheets, ear training and tours all depend on.
-2. **In parallel, without visible change, X0's two smallest and most reused foundations:** the Instrument & Tuning Manager and the chord catalog pipeline (loading the 75 shapes once you've reviewed the 18 flagged ones). Every later feature builds on these two, and they carry little risk.
-3. **First visible expansion: X1** (Visual Chord Library, Chord Finder, basic Print Studio with Save to PDF, Offline Field Library and Low-Power Field). It serves learners immediately and gives the grid-down design its first practical value: chord charts, fretboard maps and blank sheets on paper or PDF, and a battery-friendly field mode on a tablet.
+- **R1** (was D6) Move the architecture documents from PR #4 to a separate documentation PR?
+- **R2** Confirm that the requirements-v1 work-scope rule ("engines may be built from the current spec") does not apply to the X-stage documents, so each stage and milestone needs your authorisation (my recommendation, matching your instructions).
+- **R3** Review the initial ear-training thresholds, daily XP cap and rhythm timing windows before X3 implementation (values in creative-workstation.md section 8).
+- **R4** Authorise Spikes A, B and C separately when convenient (none needed before X1's Spike C).
+- **R5** Earlier open items unchanged by this pass: the 18 flagged chord shapes; the 4 chord-system decisions; the workspace navigation plan's open decisions.
+
+## 8. Implementation risks found in this review
+
+1. **Phase 2 slippage from parallel work.** Mitigated by small X0 milestones that pause whenever Phase 2 needs the time.
+2. **Audio timing in hidden or throttled windows.** WebView timers are throttled when hidden; audio could gap. Mitigated by audio-clock scheduling with a larger look-ahead and, if needed, an AudioWorklet scheduler; measured in Spike B.
+3. **Android PDF and printing.** Android's WebView can't print from JavaScript, so PDF needs our own writer and printing needs a small native print adapter (Tauri Android plugin work). Mitigated by Spike C and the shared-writer design.
+4. **Sound licensing and provenance.** A candidate SoundFont may turn out unsuitable (unclear sample provenance or terms). Fallback: a smaller verified set, or the existing reference-tone synthesis for ear training and simple playback.
+5. **Notation editor size.** X5 is the largest item (layout, line breaking, techniques, the accessible parallel structure). Mitigated by Spike A, phone view-only first, and accessibility designed now.
+6. **Composition model edge cases** (pickups, endings, tuplets, meter changes, anchors). Mitigated by rational durations, explicit rules and seeded property tests over 1,000 operation sequences.
+7. **MusicXML fidelity expectations.** Mitigated by preserving unsupported content, import reports and a published support list.
+8. **A new privileged read path** (administrator binder access to authorised songs). Needs a focused security review and tests that refusal is immediate after revocation.
+9. **Storage pressure** from recordings and PDFs, especially on Android. Mitigated by free-space checks, `.partial` files and the backup opt-out for recordings.
+10. **Low-end tablet performance in Low-Power Field.** Requires real reference devices (T6) before restrictions are finalised.
+11. **Documentation drift** across many documents. Mitigated by this index, the terminology section and a consistency check at each stage.
+
+## 9. Recommendation for the next development stage
+
+After the currently authorised work (Phase 1 hardware verification, fixes and merging PRs #1 to #4 in order on your authorisation):
+
+1. **Start Phase 2** as already approved, with workspace navigation Stages A and B alongside.
+2. **Alongside, only where it takes no time from Phase 2:** X0.1 (Instrument & Tuning Manager) and X0.2 (theory additions), then X0.3 (chord catalog, loading the 75 shapes once you've reviewed the 18 flagged ones) and X0.5 (clock sources). These are small, low-risk and used by everything later.
+3. **Before X1:** authorise Spike C (PDF writer), since Print Studio Core and Save to PDF depend on it.
+4. **First visible expansion: X1** (Visual Chord Library, Chord Finder, Print Studio Core with Save to PDF, Offline Field Library and Low-Power Field).

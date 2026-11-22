@@ -1,6 +1,6 @@
 # Chord system: catalog, Visual Chord Library, Voicing Explorer, Alternate Chord Explorer, Reverse Chord Finder
 
-Phase 2 architecture, updated 2026-11-22. **Documented only.** No code is written until Jason explicitly authorises it. Diagrams follow [notation-rendering.md](notation-rendering.md). The first catalog is the 75-shape manifest; its 18 flagged shapes still need Jason's review before final approval.
+Architecture, updated 2026-11-22. First written as Phase 2 architecture; now scheduled in [master-roadmap.md](master-roadmap.md) as **X0.3** (Stage 1, the catalog pipeline) and **X1** (Stages 2 to 5). Phase 2 itself is the learning core and workspace navigation, which use the existing 27 shapes. **Documented only.** No code is written until Jason explicitly authorises it. Diagrams follow [notation-rendering.md](notation-rendering.md). The first catalog is the 75-shape manifest; its 18 flagged shapes still need Jason's review before final approval.
 
 ## Principles
 

@@ -8,7 +8,7 @@ The full decision text is Jason's "Architecture & Feature Planning Update 03". T
 
 - **Hybrid Mastery is approved** (Decision 01). It supersedes the "recommended, not locked" note in [planning-update-02.md](planning-update-02.md). The v1 note-mastery rule stays the baseline.
 - Six shared engines: Learning, Music Theory and Instrument, Audio Services, Content System, Student Data and Reporting, Connectivity Policy.
-- Five phases: 1 Core Foundations, 2 Essential Learning Experience, 3 Expanded Learning and Creative Tools, 4 Advanced Learning Ecosystem, 5 Platform and Optional Service Expansion.
+- Five phases: 1 Core Foundations, 2 Essential Learning Experience, 3 Expanded Learning and Creative Tools, 4 Advanced Learning Ecosystem, 5 Platform and Optional Service Expansion. (Scheduling note, 2026-11-22: phases 3 and 4 are now planned as expansion stages X0 to X7 in [master-roadmap.md](master-roadmap.md); phase 5 is the Android release and any optional online services.)
 
 ## Rules that stay in force
 

@@ -122,7 +122,7 @@ Not built until authorised. Full rules: [guided-tours.md](guided-tours.md).
 - Tour interaction counts as activity for the idle timeout.
 - Timing: the Learning Studio tour is built in Phase 2 once the main learning screens exist; the other two follow when their workspaces get working features.
 
-## Phase 2: unified notation rendering (architecture decision, 2026-11-22)
+## Unified diagram rendering (architecture decision, 2026-11-22; scheduled at X0.7)
 
 Not built until authorised. Full plan: [notation-rendering.md](notation-rendering.md).
 
@@ -131,7 +131,7 @@ Not built until authorised. Full plan: [notation-rendering.md](notation-renderin
 - Reuses the existing chord layout engine and `ChordDiagram`, the `Fretboard` neck renderer, scale placement and the print worksheet layout; extends them with shape metadata, transposition for movable shapes, five display modes (Basic, Beginner Fingering, Note Names, Intervals, Print), richer accessible descriptions, scale box diagrams and one shared neck layout for screen and print.
 - Right- and left-handed throughout; works with any tuning definition.
 
-## Phase 2: chord system (architecture, 2026-11-22)
+## Chord system (architecture, 2026-11-22; scheduled at X0.3 and X1)
 
 Not built until authorised. Full plan with acceptance criteria and tests: [chord-system.md](chord-system.md).
 
@@ -143,9 +143,9 @@ Not built until authorised. Full plan with acceptance criteria and tests: [chord
 
 ## After Phase 2: creative workstation (architecture, 2026-11-22)
 
-Not built until authorised. Full plan: [creative-workstation.md](creative-workstation.md); shared song model: [composition-model.md](composition-model.md).
+Not built until authorised. Full plan: [creative-workstation.md](creative-workstation.md); shared song model: [composition-model.md](composition-model.md); transport: [transport-timing.md](transport-timing.md); Android: [android-platform.md](android-platform.md).
 
-Proposed order (needs Jason's approval; replaces the earlier provisional post-Phase-2 order once approved): 0 prerequisites (Phase 1 acceptance, workspace navigation) → 1 shared foundations and the Song Project model → 2 chord system → 3 songwriting core with Performance Mode and a basic Songbook (Play & Create opens) → 4 Chord Progression Generator (Lock Chord + Regenerate first) and MIDI playback → 5 TAB and notation editors → 6 Riff Recorder and backing tracks → 7 MusicXML, printing and project export. Print Studio is proposed to move up alongside Stage 3.
+The order first proposed here (stages 0 to 7) is **superseded** by the approved X0–X7 roadmap in [master-roadmap.md](master-roadmap.md).
 
 ## Operating Profiles (architecture, 2026-11-22)
 
@@ -153,8 +153,8 @@ Not built until authorised. Full plan: [operating-profiles.md](operating-profile
 
 - Administrator-selected, installation-wide: Full Studio, Low-Power Field (Field Dashboard, reduced visuals, MIDI and recording loaded only on use, administrator overrides), No-Power Preparation (Offline Field Library and Print/Export Center; MIDI and recording never initialised; clear notice that the app still needs power).
 - A separate capability layer: never changes data, progress, XP, mastery or workspace access; one shared set of engines and files.
-- Capability layer and first Low-Power Field with workspace navigation Stage B or creative Stage 1; No-Power Preparation with Print Studio. Every restriction is kept only if measurements show it saves CPU, memory, startup time or battery.
+- Capability layer at X0.4 (after workspace navigation Stage B); Low-Power Field at X1; No-Power Preparation with Expanded Print Studio at X2. Every restriction is kept only if measurements show it saves CPU, memory, startup time or battery.
 
 ## Master roadmap (2026-11-22)
 
-The consolidated feature inventory, feature cards and dependency-aware roadmap (Phase 1, Phase 2, then expansion stages X0 to X7) are in [master-roadmap.md](master-roadmap.md). It supersedes the earlier provisional post-Phase-2 order (pending Jason's confirmation, D1). It adds the Rhythm & Strumming Studio, Ear Training Studio, Melody & Harmony Assistant and Instrument & Tuning Manager, and moves Print Studio and the Offline Field Library to stages X1 and X2.
+The consolidated feature inventory, feature cards and dependency-aware roadmap (Phase 1, Phase 2, then expansion stages X0 to X7) are in [master-roadmap.md](master-roadmap.md). It is the **authoritative planning index**, approved by Jason as the working development plan on 2026-11-22, and supersedes the earlier provisional post-Phase-2 order. It adds the Rhythm & Strumming Studio, Ear Training Studio, Melody & Harmony Assistant and Instrument & Tuning Manager, and moves Print Studio (Core at X1, Expanded from X2) and the Offline Field Library to stages X1 and X2. Ear Training Studio sits under Learning Studio › Practice with its own mastery rule.

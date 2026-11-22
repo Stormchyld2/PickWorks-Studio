@@ -1,6 +1,6 @@
 # Operating Profiles: Full Studio, Low-Power Field, No-Power Preparation
 
-Architecture **finalised** with Jason on 2026-11-22. **Not authorised for implementation.** Roadmap placement and feature cards: [master-roadmap.md](master-roadmap.md).
+Architecture **finalised** with Jason on 2026-11-22, with the final refinement pass the same day (No-Power home rule, binder permissions, lifecycle and power safety). **Not authorised for implementation.** Roadmap placement and feature cards: [master-roadmap.md](master-roadmap.md) (X0.4 capability layer, X1 Low-Power Field, X2 No-Power Preparation). Timing and clocks: [transport-timing.md](transport-timing.md). Android lifecycle: [android-platform.md](android-platform.md).
 
 In a grid-down scenario power may come from solar generators, portable power stations or power banks, and a tablet or phone may be the only practical device. The profiles are designed for that.
 
@@ -14,13 +14,13 @@ Let an administrator switch the whole installation between everyday use and prol
 | --- | --- | --- | --- |
 | Goal | Everything authorised and implemented | Longest battery life while still learning, writing and playing | Print and export physical resources before power runs out |
 | Default | **Yes**, on Windows and Android | Chosen manually by the administrator | Chosen manually by the administrator |
-| Home screen | Normal dashboards | Simplified **Field Dashboard** (automatic) | **Offline Field Library and Print/Export Center** |
+| Home screen | Normal dashboards | Simplified **Field Dashboard** (automatic) | **Print/Export Center** with the Offline Field Library (a temporary home, shown even if the student has hidden Reference; see below) |
 | Lessons, practice, mastery | Yes | Yes | Yes (for printing worksheets and lesson sheets) |
 | Fretboard Explorer, Chord Library, Chord Finder | Yes | Yes | Yes |
 | Songbook, Songwriting Studio | Yes | Yes | Yes (open, edit, print) |
 | Reference | Yes | Yes | Yes |
 | Tuner | Yes | Yes (microphone only while the Tuner is open) | Yes, on demand (microphone only while open) |
-| Metronome | Yes | Yes (audio started on Play) | Yes, lightweight click only, no synth |
+| Metronome | Yes | Yes (audio started on Play; visual-only option needs no audio) | Yes, on demand: lightweight click only, no synth |
 | MIDI playback | Yes | Loaded only when the student presses Play; administrator can turn it off | Not initialised |
 | Recording (Riff Recorder) | Yes | Loaded only when the student presses Record; administrator can turn it off | Not initialised |
 | Backing tracks | Yes | Off by default; administrator can turn it on | Not initialised |
@@ -37,6 +37,16 @@ Let an administrator switch the whole installation between everyday use and prol
 - **One pure function decides.** `capabilities(profile, overrides, platform)` in `engines/profiles/` returns flags (`midi`, `recording`, `backingTracks`, `visualEffects`, `fieldDashboard`, `printCenterHome`...). Every feature registers which capability it needs when it is built, so new features fit profiles automatically and no screen hard-codes profile rules.
 - **Same engines, same files.** There is no separate engine, project format, chord catalog or lesson set per profile. Songs, lessons, chord catalogs and backups are identical and fully accessible in every profile.
 - **Storage.** The installation profile and overrides are kept with the installation settings in the account index, beside self-registration and workspace access. Rust accepts changes only from a signed-in administrator, and each change is written to the Audit Log.
+
+## No-Power Preparation home and workspace visibility (resolved 2026-11-22)
+
+The Print/Export Center lives in the Reference workspace. In No-Power Preparation it is the **temporary home for everyone**, even a student who has hidden Reference in their own workspace preferences:
+
+- The profile shows the Print/Export Center as the start screen and keeps a "Print/Export Center" entry at the top of the sidebar while the profile is active.
+- This is a **display rule of the profile only**. It never changes the student's saved workspace visibility, startup workspace, last-used workspace, administrator workspace access or any permission. Those records aren't written at all.
+- The rest of the sidebar still follows the student's own visibility and the administrator's access rules.
+- When Full Studio is restored, the student's normal home and workspace choices apply again exactly as they were.
+- The Tuner and the lightweight metronome stay available on demand in every profile from the shared Tools group.
 
 ## Administrator controls
 
@@ -103,31 +113,85 @@ It uses the shared renderers and the Print Studio page layout, so it depends on 
 
 ### Prepare for Grid-Down (field binder)
 
-Jason's addition: one administrator action in the Print/Export Center that builds a complete printable **field binder** for a chosen student in a single operation. It ties the three profiles together: create music in Full Studio, keep learning on a solar-charged tablet in Low-Power Field, and keep a physical music library when there's no electricity at all.
+Jason's addition: one action in the Print/Export Center builds a complete printable **field binder** in a single operation. It ties the three profiles together: create music in Full Studio, keep learning on a solar-charged tablet in Low-Power Field, and keep a physical music library when there's no electricity at all. Delivered with Expanded Print Studio at X2 ([master-roadmap.md](master-roadmap.md)).
 
-**Steps for the administrator:** pick a student, review the suggested contents (everything is pre-ticked and can be unticked), choose paper size, then **Build Binder**. The result is one PDF saved to a chosen folder or USB drive, plus the option to print it straight away.
+**Two kinds of binder (initial release):**
 
-**Save to PDF never needs a printer.** It works in every profile (Full Studio, Low-Power Field and No-Power Preparation), before and after the power goes out, and it's the default action; printing is optional. The PDF can be copied to other devices and read in any PDF viewer, and a **screen-reading layout** (single column, larger text, one song or chart per page) can be chosen for phones, tablets and e-readers instead of the paper layout. The app needs no printer driver to save a PDF, because the PDF is written from the shared SVG renderers.
+| | My Field Binder (student) | Shared binder (administrator) |
+| --- | --- | --- |
+| Who builds it | A signed-in student, for themselves | The administrator |
+| Contents | Their lessons, chords, references, blank sheets and **their own songs** | Shared educational and reference material: lesson sheets for a chosen course and level, chord charts, fretboard and scale references, blank sheets, guides |
+| Student songs | Their own, freely | **None**, unless a student has explicitly authorised specific songs (below) |
+| Reads private compositions | Only the student's own | Never without authorisation; with it, only the authorised songs, read-only |
+
+**Steps:** choose the binder type (students see only their own), review the suggested contents (everything pre-ticked, can be unticked), choose paper size or the screen-reading layout, then **Build Binder**. The result is one PDF saved to a chosen folder or USB drive, plus the option to print it.
+
+**Save to PDF never needs a printer.** It works in every profile, before and after the power goes out, and it's the default action; printing is optional. The PDF can be copied to other devices and read in any PDF viewer, and a **screen-reading layout** (single column, larger text, one song or chart per page) can be chosen for phones, tablets and e-readers. PDFs come from the shared PDF writer working on the shared SVG renderers, so no printer driver and no WebView print path is involved ([android-platform.md](android-platform.md) section 3).
 
 **Contents, in order:**
 
-1. Cover page (student name, date, PickWorks logo) and a table of contents with page numbers.
-2. The student's lessons: completed lessons for review and the next lessons in their course, as printable lesson sheets.
-3. Essential chord charts: the chords from the student's level, every chord used in their songs, and the core beginner set, drawn by the shared chord renderer.
-4. Fretboard and scale references matching the student's course.
-5. The student's personal songs as lead sheets (chords over lyrics, plus TAB where it exists).
+1. Cover page (name or "Shared binder", date, PickWorks logo) and a table of contents with page numbers.
+2. Lessons: for My Field Binder, completed lessons for review and the next lessons in the student's course; for a shared binder, the lessons of the chosen course and level.
+3. Essential chord charts: the chosen level's chords, the core beginner set and (My Field Binder) every chord used in the student's songs, drawn by the shared chord renderer.
+4. Fretboard and scale references matching the course.
+5. Songs as lead sheets (chords over lyrics, plus TAB where it exists): the student's own songs in My Field Binder; in a shared binder only songs a student has authorised.
 6. Practice worksheets and blank writing sheets: blank TAB, staff paper, chord boxes and songwriting worksheets (the number of each is adjustable).
 7. Maintenance and tuning guides, once that content has passed the sourcing and review process.
 
-**Rules:**
+### Field binder permissions (resolved 2026-11-22)
 
-- Built entirely from the shared renderers and Print Studio page layout: black and white, consistent page numbers, works offline, duplex-friendly (sections start on odd pages).
-- **Read-only.** Building a binder never changes the student's files, progress, XP, mastery or tour records. It writes only the PDF to the chosen location.
-- **Privacy.** Songs belong to the student. Including them means the administrator's binder action reads that student's songs (read-only), which today's ownership rule doesn't allow. Rust would grant this one read-only purpose to an administrator, and every binder build is written to the Audit Log with the student's name and the sections included. See decision 5.
-- Works in any profile, but is the main action of No-Power Preparation. Pages are counted in advance so the administrator knows how much paper and ink is needed.
-- Depends on Print Studio; until then, the action doesn't appear.
+Student-owned songs and recordings stay private to the student. The rules for the initial release:
 
-**Tests:** a binder for a student with lessons, songs and chords contains each selected section with a correct table of contents and page numbers; unticked sections are absent; the student's files are byte-identical before and after; a student token can't build another student's binder; the audit entry is written; output is black and white only; building works with networking blocked and on Windows and Android; Save to PDF works with no printer installed, in every profile, in both paper and screen-reading layouts.
+1. Students can build their own field binder at any time, in any profile.
+2. Administrators can build shared educational and reference binders **without reading any student's compositions**.
+3. Including a student's songs in an administrator-built binder requires that student's **explicit authorisation**.
+4. Authorised administrator access is **read-only, limited to the songs named in the authorisation, limited to binder building, and recorded in the Audit Log**.
+5. Students never gain access to another student's songs through binder building, backup, export or import; Rust resolves every student path from the signed-in student's own session.
+6. Building a binder never modifies lessons, progress, XP, mastery, tour records or song data. It writes only the PDF to the chosen location (and the audit entry).
+7. Everything works offline.
+
+**Authorisation workflow (student side).**
+
+1. Signed in, the student opens **Settings › Privacy › Share songs for a field binder**.
+2. They tick the songs to share (individual songs; there is no "all songs, including future ones" option) and choose how long the permission lasts: **for one binder** (the default, used up by the next binder build that includes them), **30 days**, or **until I turn it off**.
+3. A plain-language confirmation explains: the administrator will be able to see these songs' lyrics, chords and TAB only to put them in a printed binder; they can't change them; recordings are never included; and a binder already printed or saved can't be taken back.
+4. Rust saves the authorisation in the student's own folder (`sharing/binder-grants.json`: grant id, song ids, purpose `field-binder`, created, expiry, status) and writes an audit entry ("Student allowed 3 songs for a field binder").
+
+**Use (administrator side).**
+
+1. In the binder builder, the administrator sees, per student, only "N songs shared for binders" with titles, never other songs. Students with no active authorisation show "No songs shared"; the app suggests asking the student in person (there is no request or messaging system).
+2. Ticking those songs makes Rust open, read-only, only the authorised song ids for that build, after checking the grant is active, unexpired and still matches existing songs. The song data passes to the renderer for preview and the PDF; nothing is cached after the build.
+3. Each build writes an audit entry: administrator, student, grant id, song ids, sections included, date and output type (PDF or print). A "for one binder" grant is marked used.
+
+**Revocation.**
+
+- The student can turn off any authorisation at any time from the same Settings page; it takes effect immediately, including for an administrator who has the builder open (the next read is refused and the songs disappear from the preview).
+- Authorisations also end automatically when they expire, when they've been used (one binder), when a shared song is deleted (that song only), and when the student is archived or deleted.
+- Every revocation, expiry and automatic end is audited. A revoked grant can't be revived; the student creates a new one.
+- Administrators can't create, extend or edit authorisations, and password resets don't affect them.
+
+**Other rules:**
+
+- Black and white, consistent page numbers, works offline, duplex-friendly (sections start on odd pages). Pages are counted in advance so the right amount of paper and ink is known.
+- Works in any profile, and is the main action of No-Power Preparation.
+- Depends on Expanded Print Studio (X2); until then, the action doesn't appear.
+
+**Tests:** a My Field Binder with lessons, songs and chords contains each selected section with a correct table of contents and page numbers; unticked sections are absent; the student's files are byte-identical before and after; a student token can't build another student's binder or read another student's songs; an administrator token reads no student song without an active grant, reads exactly the granted songs with one, and is refused immediately after revocation, expiry, use of a one-binder grant, song deletion or archiving; every grant, use, revocation and expiry is audited; output is black and white; building works with networking blocked, on Windows and Android, with no printer installed, in every profile and both layouts.
+
+## Lifecycle, storage and power safety
+
+How the profiles behave when things go wrong or the device changes state. Clock and background details: [transport-timing.md](transport-timing.md); Android specifics: [android-platform.md](android-platform.md).
+
+| Situation | Behaviour (all profiles unless stated) |
+| --- | --- |
+| **Android: app backgrounded and resumed** | Checkpoint runs on going to the background; transport stops at its position; microphone released; AudioContext suspended; in Low-Power Field the synthesizer is unloaded straight away. On resume nothing restarts by itself; the student sees the same screen and presses Play to continue. If the idle limit passed meanwhile, the student is signed out on return. If Android stopped the app, it restarts at the profile selector and offers recovered drafts after sign-in. |
+| **Screen off** | Android: treated as backgrounding (above). Windows: display sleep doesn't stop audio the student started (metronome, playback); visuals pause; the idle sign-out rule still applies and stops audio through the sign-out pipeline. Performance Mode and active recording may keep the screen on. |
+| **Microphone release and audio shutdown** | The microphone is held only while the Tuner, a recording or a microphone exercise is open, and is released on leaving it, on sign-out, on profile or workspace switch and on backgrounding. Stopping audio follows one order: stop the transport, stop and save any recording, release the microphone, unload the synthesizer if the profile says so, then suspend or close the AudioContext (30 s of silence before suspension in Low-Power Field; synthesizer unload after 2 minutes idle; both initial values to be confirmed by measurement). |
+| **Interrupted exports (PDF, binder, song, backup)** | Output is written to a `.partial` file and renamed only when complete and verified; an interruption leaves no file that looks finished; leftover partial files are removed on the next attempt or start-up. Source data is only ever read, so nothing else is affected. |
+| **Low storage** | Every large write (PDF, binder, export, backup, recording, import) checks free space first and refuses with a message saying how much is needed. Autosave failures are shown immediately and never truncate the previous file. In No-Power Preparation the Print/Export Center shows each pack's estimated size before export. |
+| **Power loss during autosave** | Writes are atomic (temporary file, flush, keep `.bak`, rename) and songs keep an operation journal, so power loss leaves either the old or the new version, never a broken one, and loses at most the last 2 seconds of song edits. A partial recording is recovered as a playable file on the next start. |
+| **Profile switching with unsaved work** | The checkpoint runs first. If anything can't be saved (for example low storage), the switch is **cancelled** with a message naming what couldn't be saved; it never switches and discards. A running recording is stopped and saved before the switch. |
+| **Restoration to Full Studio** | One click from the Operating Profile card or the administrator dashboard shortcut. Visual effects and photos return, the normal dashboards return as home, and each student's own workspace preferences apply as before. Heavy services (synthesizer, recorder) are **not** preloaded; they load on first use as usual. No student, installation or progress file changes except the profile setting itself, which is audited. |
 
 ## Measuring instead of assuming
 
@@ -153,10 +217,13 @@ Results go into a table in this document. A restriction that doesn't make a meas
 
 ## Roadmap placement
 
-- **With workspace navigation Stage B or creative Stage 1:** the capability layer, the administrator card, Full Studio and a first Low-Power Field (reduced visuals, AudioContext suspension, Field Dashboard). This is small, and building it early means every later feature declares its capability from day one.
-- **With each heavy feature (synth, recorder, backing tracks):** its Low-Power behaviour and measurements.
-- **With Print Studio:** the No-Power Preparation profile and the Print/Export Center.
-- **Android stage:** Field screens tested on real phones and tablets.
+Stages follow [master-roadmap.md](master-roadmap.md):
+
+- **X0.4 (after workspace navigation Stage B):** the capability layer, the administrator card and Full Studio, with no visible change for students. Building it early means every later feature declares its capability from day one.
+- **X1:** Low-Power Field and the Field Dashboard (reduced visuals, AudioContext suspension, visual-only metronome on the TimerClock), with measurements.
+- **X2:** No-Power Preparation, the Print/Export Center as its home and the field binder, with Expanded Print Studio.
+- **X4 and X6 (each heavy feature: synthesizer, recorder, backing tracks):** its Low-Power behaviour and measurements.
+- **Android stage:** Field screens and lifecycle behaviour tested on real phones and tablets.
 
 ## Decisions
 
@@ -168,4 +235,7 @@ Results go into a table in this document. A restriction that doesn't make a meas
 4. 30 seconds of silence before audio suspension and 2 minutes idle before the synthesizer unloads are the initial values, to be validated by real performance and battery measurements.
 5. No separate engines, catalogs or file formats per profile.
 
-**Still open:** the field binder reading a student's songs (master-roadmap.md D5), and the No-Power home when a student has hidden Reference (D2).
+6. In No-Power Preparation the Print/Export Center is the temporary home even if the student has hidden Reference; this never changes their workspace visibility or permissions.
+7. Field binders: students build their own; administrators build shared binders without reading student compositions; student songs in an administrator binder only with the student's explicit, revocable, audited authorisation.
+
+**Still open:** none for this document.
