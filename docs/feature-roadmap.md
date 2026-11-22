@@ -107,15 +107,17 @@ Later, not now: moving audio capture to an AudioWorklet when recording or effect
 
 Approved requirement (2026-11-22): Android ships for phones and tablets with layouts chosen by window width (below 600 px compact, 600–839 px intermediate, 840 px and up desktop/tablet), from the same shared app. See "Android phones and tablets" in [architecture.md](architecture.md). First step when Android work begins: the shared responsive shell, tested on real devices, before device-specific refinements.
 
-## Phase 2: guided tours (approved architecture, 2026-11-22)
+## Phase 2: guided tours and contextual help (approved architecture, 2026-11-22)
 
 Not built until authorised. Full rules: [guided-tours.md](guided-tours.md).
 
-- One tour per workspace: the Learning Studio orientation on a student's first sign-in, and the Play & Create and Reference tours on the first visit to each.
-- Each tour launches automatically once per student, and only when its workspace is implemented, unlocked and not hidden.
-- Every tour has Skip Tour, Back, Next and Learn More. The Learn More modal returns to the same step.
-- Tours can be restarted any time from Help or Settings, without touching progress, XP, achievements or mastery.
-- Tracking is per student and per tour: status (never shown, completed, skipped), last step and content version. App updates never re-launch a completed or skipped tour.
-- Opening a new page never starts a tour. Feature-specific tutorials are optional and start from Help only.
-- Steps only describe features that work today.
-
+- Three tours: the Learning Studio tour on a student's first successful sign-in after account setup, and the Play & Create and Reference tours on the first entry to each.
+- Each tour launches automatically once per student, only when its workspace is implemented, accessible and not hidden, and never during an active lesson, assessment, recording or practice session.
+- Balloons have a title, one or two sentences, a step indicator ("3 of 8"), Next, Back, Skip Tour and Learn More. Skipping dismisses the tour for future automatic launches.
+- Learn More opens a help modal with a fuller explanation, how to use it, an example, an optional screenshot, Try It Now where a working feature exists, and Return to Tour. It always returns to the same step. Try It Now never awards XP, completes lessons or changes mastery.
+- The proposed 9-step Learning Studio tour (Welcome, My Courses, Practice, Fretboard Explorer, My Progress, Tuner, Metronome, Workspace Selector, Profile and Settings) is shortened when features are missing. No fake controls.
+- Tours can be replayed any time from a Guided Tours section in Help, without touching progress, XP, achievements or mastery. Feature-specific tutorials use the same system and start from Help only.
+- Tracking is per student and per workspace in the student's own data: tutorial id, workspace id, status (never shown, in progress, completed, skipped), last step, content version and whether the auto-launch happened. Updates never re-launch a completed or skipped tour.
+- Full keyboard, screen-reader, focus, reduced-motion, text-scaling, high-contrast and touch support. Balloons sit beside controls on Windows and tablets, compact popups or bottom sheets on phones.
+- Tour interaction counts as activity for the idle timeout.
+- Timing: the Learning Studio tour is built in Phase 2 once the main learning screens exist; the other two follow when their workspaces get working features.
