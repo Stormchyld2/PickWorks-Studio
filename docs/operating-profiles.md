@@ -101,6 +101,8 @@ Jason's addition: one administrator action in the Print/Export Center that build
 
 **Steps for the administrator:** pick a student, review the suggested contents (everything is pre-ticked and can be unticked), choose paper size, then **Build Binder**. The result is one PDF saved to a chosen folder or USB drive, plus the option to print it straight away.
 
+**Save to PDF never needs a printer.** It works in every profile (Full Studio, Low-Power Field and No-Power Preparation), before and after the power goes out, and it's the default action; printing is optional. The PDF can be copied to other devices and read in any PDF viewer, and a **screen-reading layout** (single column, larger text, one song or chart per page) can be chosen for phones, tablets and e-readers instead of the paper layout. The app needs no printer driver to save a PDF, because the PDF is written from the shared SVG renderers.
+
 **Contents, in order:**
 
 1. Cover page (student name, date, PickWorks logo) and a table of contents with page numbers.
@@ -119,7 +121,7 @@ Jason's addition: one administrator action in the Print/Export Center that build
 - Works in any profile, but is the main action of No-Power Preparation. Pages are counted in advance so the administrator knows how much paper and ink is needed.
 - Depends on Print Studio; until then, the action doesn't appear.
 
-**Tests:** a binder for a student with lessons, songs and chords contains each selected section with a correct table of contents and page numbers; unticked sections are absent; the student's files are byte-identical before and after; a student token can't build another student's binder; the audit entry is written; output is black and white only; building works with networking blocked and on Windows and Android.
+**Tests:** a binder for a student with lessons, songs and chords contains each selected section with a correct table of contents and page numbers; unticked sections are absent; the student's files are byte-identical before and after; a student token can't build another student's binder; the audit entry is written; output is black and white only; building works with networking blocked and on Windows and Android; Save to PDF works with no printer installed, in every profile, in both paper and screen-reading layouts.
 
 ## Measuring instead of assuming
 
