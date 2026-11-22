@@ -107,3 +107,14 @@ Later, not now: moving audio capture to an AudioWorklet when recording or effect
 
 Approved requirement (2026-11-22): Android ships for phones and tablets with layouts chosen by window width (below 600 px compact, 600–839 px intermediate, 840 px and up desktop/tablet), from the same shared app. See "Android phones and tablets" in [architecture.md](architecture.md). First step when Android work begins: the shared responsive shell, tested on real devices, before device-specific refinements.
 
+## Phase 2: guided tours (approved architecture, 2026-11-22)
+
+Not built until authorised. Full rules: [guided-tours.md](guided-tours.md).
+
+- One tour per workspace: the Learning Studio orientation on a student's first sign-in, and the Play & Create and Reference tours on the first visit to each.
+- Each tour launches automatically once per student, and only when its workspace is implemented, unlocked and not hidden.
+- Every tour has Skip Tour, Back, Next and Learn More. The Learn More modal returns to the same step.
+- Tours can be restarted any time from Help or Settings, without touching progress, XP, achievements or mastery.
+- Tracking is per student and per tour: status (never shown, completed, skipped), last step and content version. App updates never re-launch a completed or skipped tour.
+- Steps only describe features that work today.
+
