@@ -44,11 +44,25 @@ pub struct AdminAccount {
     pub recovery_key_created_ms: u64,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountIndex {
     pub admin: Option<AdminAccount>,
     pub students: Vec<StudentAccount>,
+    /// Whether "Create Student Profile" is offered on the profile selector.
+    /// On by default; the administrator can turn it off.
+    #[serde(default = "default_true")]
+    pub self_registration: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+impl Default for AccountIndex {
+    fn default() -> Self {
+        AccountIndex { admin: None, students: Vec::new(), self_registration: true }
+    }
 }
 
 impl AccountIndex {

@@ -123,4 +123,25 @@ describe('account screens flow', () => {
     expect(friendlyError(new CoreError('corrupt', 'damaged file: x'))).toMatch(/Nothing was changed/);
     expect(friendlyError(new CoreError('invalid-data', "invalid data: That folder isn't a PickWorks Studio backup."))).toBe("That folder isn't a PickWorks Studio backup.");
   });
+
+  it('a student can create their own profile, unless the administrator turned it off', async () => {
+    const { auth, preview } = await app();
+    await preview.setupAdmin('Jason', 'admin-pass-1');
+    await auth.init();
+    expect(auth.screen.name).toBe('profiles');
+    expect(auth.selfRegistration).toBe(true);
+    auth.startRegistration();
+    await expect(auth.register('Kai', 'short', null)).rejects.toMatchObject({ code: 'weak-password' });
+    await auth.register('Kai', 'kai-pass-111', null);
+    expect(auth.screen.name).toBe('app');
+    expect(auth.info?.principal.kind).toBe('student');
+    expect(auth.isAdmin).toBe(false);
+    await auth.signOut('manual', true);
+    const t = (await preview.signInAdmin('admin-pass-1')).token;
+    await preview.adminSetSelfRegistration(t, false);
+    await preview.signOut(t);
+    await auth.showProfiles();
+    expect(auth.selfRegistration).toBe(false);
+    await expect(preview.registerStudent('Lee', 'lee-pass-111', null)).rejects.toMatchObject({ code: 'forbidden' });
+  });
 });

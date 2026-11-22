@@ -213,3 +213,20 @@ pub async fn admin_import_backup(app: tauri::AppHandle, state: State<'_, CoreSta
     let Some(folder) = pick_folder(&app, "Choose the backup folder to bring back") else { return Ok(None) };
     with(&state, |c| c.admin_import_backup(&token, &folder)).map(Some)
 }
+
+// ----- Student self-registration ----------------------------------------
+
+#[tauri::command]
+pub fn auth_self_registration_enabled(state: State<CoreState>) -> Res<bool> {
+    with(&state, |c| c.self_registration_enabled())
+}
+
+#[tauri::command]
+pub fn auth_register_student(state: State<CoreState>, display_name: String, password: String, avatar: Option<String>) -> Res<SessionInfo> {
+    with(&state, |c| c.register_student(&display_name, &password, avatar.as_deref()))
+}
+
+#[tauri::command]
+pub fn admin_set_self_registration(state: State<CoreState>, token: String, enabled: bool) -> Res<()> {
+    with(&state, |c| c.admin_set_self_registration(&token, enabled))
+}

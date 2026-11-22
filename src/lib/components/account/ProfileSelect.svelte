@@ -45,16 +45,23 @@
       </li>
     {/each}
     <li>
-      <button class="prof add" onclick={() => auth.choose('admin')}>
-        <span class="plus" aria-hidden="true"><Plus size={36} /></span>
-        <strong>Add Student</strong>
-        <span class="muted small">(Admin)</span>
-      </button>
+      {#if auth.selfRegistration}
+        <button class="prof add" onclick={() => auth.startRegistration()}>
+          <span class="plus" aria-hidden="true"><Plus size={36} /></span>
+          <strong>Create Student Profile</strong>
+        </button>
+      {:else}
+        <button class="prof add" onclick={() => auth.choose('admin')}>
+          <span class="plus" aria-hidden="true"><Plus size={36} /></span>
+          <strong>Add Student</strong>
+          <span class="muted small">(Admin)</span>
+        </button>
+      {/if}
     </li>
   </ul>
 
   {#if !auth.profiles.length}
-    <p class="muted empty">No students yet. Sign in as the administrator to add one.</p>
+    <p class="muted empty">{auth.selfRegistration ? 'No students yet. Create your profile, or ask the administrator to add one.' : 'No students yet. Sign in as the administrator to add one.'}</p>
   {/if}
 
   <button class="pw-btn adm" onclick={() => auth.choose('admin')}><ShieldCheck size={18} color="var(--pw-amber)" /> Administrator Sign In</button>
@@ -83,7 +90,7 @@
   .notice { margin-bottom: 20px; max-width: 640px; }
   .grid { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; max-width: 1150px; }
   .prof { position: relative; width: 200px; min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px 14px 20px; color: var(--pw-text); cursor: pointer; font: inherit; transition: box-shadow var(--pw-transition), border-color var(--pw-transition); }
-  .prof strong { font-size: 1.25rem; margin-top: 8px; }
+  .prof strong { font-size: 1.25rem; margin-top: 8px; text-align: center; }
   .prof:hover, .prof:focus-visible { border-color: var(--pw-primary-hover); box-shadow: 0 0 0 1px var(--pw-primary-hover), 0 0 28px rgba(35, 139, 235, 0.35); }
   .prof.hl { border-color: var(--pw-primary-hover); box-shadow: 0 0 0 1px var(--pw-primary-hover), 0 0 28px rgba(35, 139, 235, 0.35); }
   .lock { position: absolute; top: 12px; right: 12px; color: var(--pw-text-faint); }

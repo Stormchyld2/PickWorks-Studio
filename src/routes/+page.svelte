@@ -8,14 +8,6 @@
   <p>Continue your guitar journey and build fretboard mastery.</p>
 </header>
 
-<div class="card notice">
-  <div class="eyebrow">Milestone 2</div>
-  <p>
-    The full dashboard (current course, next mission, progress, recent practice and quick actions) is built in
-    Milestone 2, once lessons and progress tracking exist to feed it real numbers.
-  </p>
-</div>
-
 <section class="card preview">
   <h2>Interactive Fretboard</h2>
   <p class="sub">Notes on the A string, calculated from standard tuning.</p>
@@ -47,10 +39,6 @@
     font-size: 1.2rem;
     color: var(--pw-text);
   }
-  .notice {
-    margin-bottom: 20px;
-  }
-  .notice p,
   .sub {
     margin: 6px 0 0;
     color: var(--pw-text-muted);

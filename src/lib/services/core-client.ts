@@ -115,6 +115,11 @@ export const core = {
   setupAdmin: (displayName: string, password: string) => call<string>('auth_setup_admin', { displayName, password }),
   listProfiles: () => call<ProfileCard[]>('auth_list_profiles'),
   signInStudent: (studentId: string, password: string) => call<SessionInfo>('auth_sign_in_student', { studentId, password }),
+  /** Whether the profile selector offers "Create Student Profile" (the administrator can turn it off). */
+  selfRegistrationEnabled: () => call<boolean>('auth_self_registration_enabled'),
+  /** A student creates their own profile and is signed in. Always a student account. */
+  registerStudent: (displayName: string, password: string, avatar: string | null) => call<SessionInfo>('auth_register_student', { displayName, password, avatar }),
+  adminSetSelfRegistration: (token: string, enabled: boolean) => call<void>('admin_set_self_registration', { token, enabled }),
   signInAdmin: (password: string) => call<SessionInfo>('auth_sign_in_admin', { password }),
   signOut: (token: string) => call<void>('auth_sign_out', { token }),
   changePassword: (token: string, current: string, newPassword: string) => call<void>('auth_change_password', { token, current, newPassword }),

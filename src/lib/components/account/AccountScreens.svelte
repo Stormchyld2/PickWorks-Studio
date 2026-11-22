@@ -6,6 +6,7 @@
   import ChangePassword from './ChangePassword.svelte';
   import RecoverAdmin from './RecoverAdmin.svelte';
   import FocusSplit from './FocusSplit.svelte';
+  import CreateProfile from './CreateProfile.svelte';
 </script>
 
 {#if auth.screen.name === 'setup'}
@@ -16,6 +17,8 @@
   {#key auth.screen.profile}
     <PasswordSignIn profile={auth.screen.profile} />
   {/key}
+{:else if auth.screen.name === 'register'}
+  <CreateProfile />
 {:else if auth.screen.name === 'change-password'}
   <ChangePassword />
 {:else if auth.screen.name === 'recover'}

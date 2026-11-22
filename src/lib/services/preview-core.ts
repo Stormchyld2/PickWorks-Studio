@@ -25,6 +25,7 @@ const DELAYS = [0, 0, 0, 30, 30, 60, 60, 300];
 export function createPreviewCore(now: () => number = Date.now): CoreApi & { seed(): Promise<void> } {
   let admin: { name: string; password: string; recoveryKey: string } | null = null;
   const students = new Map<string, Student>();
+  let selfRegistration = true;
   const records = new Map<string, unknown>();
   const logs = new Map<string, unknown[]>();
   const audit: AuditEntry[] = [];
@@ -88,6 +89,27 @@ export function createPreviewCore(now: () => number = Date.now): CoreApi & { see
       if (s.status !== 'active') fail('inactive', 'This profile is not active.');
       check(s, password);
       return start({ principal: { kind: 'student', id: s.id }, displayName: s.displayName, mustChangePassword: s.mustChangePassword, idleTimeoutSecs: 1200 });
+    },
+    async selfRegistrationEnabled() {
+      return admin !== null && selfRegistration;
+    },
+    async registerStudent(displayName, password, avatar) {
+      if (!admin || !selfRegistration) fail('forbidden', 'Creating a profile is turned off. Ask your administrator.');
+      const name = displayName.trim();
+      if (!name) fail('invalid-name', 'Enter a name.');
+      policy(password);
+      if ([...students.values()].some((s) => s.status !== 'archived' && s.displayName.toLowerCase() === name.toLowerCase()))
+        fail('invalid-data', 'That name is already used on this computer. Add an initial or a nickname.');
+      const id = hex(16);
+      students.set(id, { id, displayName: name, password, status: 'active', createdMs: now(), mustChangePassword: false, failures: 0, lockedUntil: 0, avatar: avatar ?? undefined });
+      log('student-self-registered', id);
+      session = null;
+      return start({ principal: { kind: 'student', id }, displayName: name, mustChangePassword: false, idleTimeoutSecs: 1200 });
+    },
+    async adminSetSelfRegistration(token, enabled) {
+      need(token, 'admin');
+      selfRegistration = enabled;
+      log(enabled ? 'self-registration-on' : 'self-registration-off');
     },
     async signInAdmin(password) {
       if (!admin) return fail('not-set-up', 'Not set up yet.');

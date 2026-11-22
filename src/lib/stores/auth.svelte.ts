@@ -18,6 +18,7 @@ export type AuthScreen =
   | { name: 'setup' }
   | { name: 'profiles' }
   | { name: 'sign-in'; profile: ProfileCard | 'admin' }
+  | { name: 'register' }
   | { name: 'change-password' }
   | { name: 'recover' }
   | { name: 'app' };
@@ -25,6 +26,8 @@ export type AuthScreen =
 class AuthStore {
   screen = $state<AuthScreen>({ name: 'loading' });
   profiles = $state<ProfileCard[]>([]);
+  /** Whether "Create Student Profile" is offered (the administrator's setting). */
+  selfRegistration = $state(false);
   info = $state<SessionInfo | null>(null);
   launchMode = $state<LaunchMode>('normal');
   /** Shown on the profile selector after an automatic sign-out. */
@@ -60,7 +63,7 @@ class AuthStore {
   }
 
   private async toProfiles(): Promise<AuthScreen> {
-    this.profiles = await backend.listProfiles();
+    [this.profiles, this.selfRegistration] = await Promise.all([backend.listProfiles(), backend.selfRegistrationEnabled()]);
     return { name: 'profiles' };
   }
 
@@ -78,6 +81,18 @@ class AuthStore {
     this.screen = { name: 'sign-in', profile };
   }
 
+  startRegistration(): void {
+    this.lastSignOut = null;
+    this.screen = { name: 'register' };
+  }
+
+  /** A student creates their own profile and goes straight in. Errors are thrown for the screen to show. */
+  async register(name: string, password: string, avatar: string | null): Promise<void> {
+    if (this.screen.name !== 'register') return;
+    if (session.session) await session.signOut('switch');
+    this.enter(await backend.registerStudent(name, password, avatar));
+  }
+
   /** Signs in the chosen profile. Errors (wrong password, delays) are thrown for the screen to show. */
   async signIn(password: string): Promise<void> {
     if (this.screen.name !== 'sign-in') return;
@@ -85,6 +100,10 @@ class AuthStore {
     // A lingering session (e.g. after a crash in the preview) is ended first.
     if (session.session) await session.signOut('switch');
     const info = who === 'admin' ? await backend.signInAdmin(password) : await backend.signInStudent(who.id, password);
+    this.enter(info);
+  }
+
+  private enter(info: SessionInfo): void {
     const student = info.principal.kind === 'student' ? info.principal : null;
     this.data = student ? new StudentData(info.token, student.id, backend) : null;
     session.begin({ token: info.token, kind: info.principal.kind, data: this.data ?? undefined }, info.idleTimeoutSecs * 1000);

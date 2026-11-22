@@ -410,3 +410,34 @@ fn damaged_backups_are_caught_before_restore_export_or_import() {
     std::fs::remove_file(written.join("student").join("extra.json")).unwrap();
     f.core.admin_import_backup(&t, &written).unwrap();
 }
+
+#[test]
+fn students_can_register_themselves_unless_the_admin_turns_it_off() {
+    let mut f = fixture();
+    assert!(f.core.register_student("Sam", "sam-pass-11", None).is_err(), "not before setup");
+    f.core.setup_admin("Jason", "admin-pass-1").unwrap();
+    assert!(f.core.self_registration_enabled().unwrap(), "on by default");
+    assert!(matches!(f.core.register_student("Sam", "short", None), Err(CoreError::WeakPassword(_))));
+    let s = f.core.register_student("Sam", "sam-pass-11", None).unwrap();
+    assert!(!s.must_change_password && matches!(s.principal, Principal::Student { .. }), "a student, signed in, own password");
+    // Never administrator access.
+    assert!(matches!(f.core.admin_list_students(&s.token), Err(CoreError::Forbidden)));
+    assert!(matches!(f.core.admin_set_self_registration(&s.token, false), Err(CoreError::Forbidden)));
+    f.core.write_record(&s.token, "progress", &env(7)).unwrap();
+    f.core.sign_out(&s.token).unwrap();
+    // Names on profile cards stay distinct.
+    assert!(f.core.register_student("sam", "other-pass-1", None).is_err());
+    // A second student's records are separate.
+    let r = f.core.register_student("Riley", "riley-pass-1", None).unwrap();
+    assert!(f.core.read_record(&r.token, "progress").unwrap().is_none());
+    f.core.sign_out(&r.token).unwrap();
+    // The admin turns it off; it's audited and refused.
+    let t = f.admin();
+    f.core.admin_set_self_registration(&t, false).unwrap();
+    assert!(!f.core.self_registration_enabled().unwrap());
+    assert!(matches!(f.core.register_student("Kai", "kai-pass-111", None), Err(CoreError::Forbidden)));
+    let log = f.core.admin_recent_audit(&t, 50).unwrap();
+    assert!(log.iter().any(|e| e.action == "student-self-registered") && log.iter().any(|e| e.action == "self-registration-off"));
+    // Self-registered students are managed like any other.
+    assert_eq!(f.core.admin_list_students(&t).unwrap().len(), 2);
+}

@@ -304,18 +304,65 @@ impl Core {
     /// Creates a student with a temporary password they must change at first sign-in.
     pub fn admin_create_student(&mut self, token: &str, display_name: &str, temp_password: &str) -> Result<String> {
         self.require_admin(token)?;
-        auth::check_password_policy(temp_password)?;
+        let (id, name) = self.create_student(display_name, temp_password, true)?;
+        self.audit("admin", "student-created", Some(&id), Some(name))?;
+        Ok(id)
+    }
+
+    fn create_student(&mut self, display_name: &str, password: &str, must_change_password: bool) -> Result<(String, String)> {
+        auth::check_password_policy(password)?;
         let name = clean_name(display_name)?;
         let id = auth::new_id();
         std::fs::create_dir_all(self.root.student_dir(&id)?)?;
         let mut creds = accounts::load_credentials(&self.root)?;
-        creds.students.insert(id.clone(), auth::hash_secret(temp_password)?);
+        creds.students.insert(id.clone(), auth::hash_secret(password)?);
         accounts::save_credentials(&self.root, &creds)?;
         let mut index = accounts::load_index(&self.root)?;
-        index.students.push(StudentAccount { id: id.clone(), display_name: name.clone(), status: AccountStatus::Active, created_ms: self.now(), must_change_password: true });
+        index.students.push(StudentAccount { id: id.clone(), display_name: name.clone(), status: AccountStatus::Active, created_ms: self.now(), must_change_password });
         accounts::save_index(&self.root, &index)?;
-        self.audit("admin", "student-created", Some(&id), Some(name))?;
-        Ok(id)
+        Ok((id, name))
+    }
+
+    // ----- Student self-registration ---------------------------------------
+
+    /// Whether the profile selector offers "Create Student Profile".
+    pub fn self_registration_enabled(&self) -> Result<bool> {
+        let index = accounts::load_index(&self.root)?;
+        Ok(index.admin.is_some() && index.self_registration)
+    }
+
+    /// A student creates their own profile and is signed in to it. It is
+    /// always a student account (never administrator), with its own empty
+    /// folder, and the password they chose (no change required). Refused
+    /// when the administrator has turned self-registration off, before
+    /// setup, or when the name is already used on a profile card.
+    pub fn register_student(&mut self, display_name: &str, password: &str, avatar: Option<&str>) -> Result<SessionInfo> {
+        if !self.self_registration_enabled()? {
+            return Err(CoreError::Forbidden);
+        }
+        let wanted = clean_name(display_name)?;
+        let index = accounts::load_index(&self.root)?;
+        if index.students.iter().any(|s| s.status != AccountStatus::Archived && s.display_name.to_lowercase() == wanted.to_lowercase()) {
+            return Err(CoreError::InvalidData("That name is already used on this computer. Add an initial or a nickname.".into()));
+        }
+        if let Some(a) = avatar {
+            avatars::validate(a)?;
+        }
+        let (id, name) = self.create_student(&wanted, password, false)?;
+        if avatar.is_some() {
+            avatars::save(&self.root, &id, avatar)?;
+        }
+        self.audit("student", "student-self-registered", Some(&id), Some(name.clone()))?;
+        self.session = None;
+        Ok(self.start_session(Principal::Student { id }, name, false))
+    }
+
+    pub fn admin_set_self_registration(&mut self, token: &str, enabled: bool) -> Result<()> {
+        self.require_admin(token)?;
+        let mut index = accounts::load_index(&self.root)?;
+        index.self_registration = enabled;
+        accounts::save_index(&self.root, &index)?;
+        self.audit("admin", if enabled { "self-registration-on" } else { "self-registration-off" }, None, None)
     }
 
     fn update_student(&mut self, token: &str, id: &str, f: impl FnOnce(&mut StudentAccount)) -> Result<StudentAccount> {
