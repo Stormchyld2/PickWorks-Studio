@@ -61,6 +61,15 @@ Windows 10 and 11 already include the WebView2 runtime the app needs.
 - [ ] Fretboard › **Chords**: every chord in the list shows on the neck and in the diagram; try note names and intervals; turn on left-handed in Settings and check both mirror.
 - [ ] Fretboard › **Scales**: change the root and the scale; root notes are highlighted.
 - [ ] Practice › **Open Metronome** opens the metronome; Play, tempo, time signature and tap tempo work and it sounds in time.
-- [ ] Dashboard: no developer notices; the guitar photo is a wide band across the top; course shows "Not started yet, 0% complete"; Try This, the fretboard tabs and all three Quick Actions open the right tools.
+- [ ] Dashboard: no developer notices; the guitar photo is a wide band across the top; course shows "Not started yet, 0% complete".
 - [ ] Learn, Practice, Progress, Help and Print show plain wording, not milestone numbers.
 - [ ] Minimise the window while signed in, then come back: still signed in, nothing lost.
+
+## Round 3 (dashboard structure A-G)
+- [ ] Dashboard has no large fretboard. **Fretboard Mastery** shows the current objective and, for a new student, the Start Here notes for the low E and A strings (no made-up numbers).
+- [ ] **Open Fretboard Explorer** (amber) opens the Explorer on Notes.
+- [ ] **Try This: Show Me E Minor** opens Fretboard › Chords with E minor already selected.
+- [ ] Quick Actions: Tuner, Metronome and Chord Shapes open the right tools; Print Worksheet is marked "Coming soon" and opens the Print page.
+- [ ] At the smallest window (1280 wide) and maximised, the two columns line up, nothing overlaps and the Quick Action names fit inside their tiles.
+- [ ] Collapse the sidebar on the dashboard: the cards widen and still line up.
+
