@@ -121,3 +121,12 @@ Not built until authorised. Full rules: [guided-tours.md](guided-tours.md).
 - Full keyboard, screen-reader, focus, reduced-motion, text-scaling, high-contrast and touch support. Balloons sit beside controls on Windows and tablets, compact popups or bottom sheets on phones.
 - Tour interaction counts as activity for the idle timeout.
 - Timing: the Learning Studio tour is built in Phase 2 once the main learning screens exist; the other two follow when their workspaces get working features.
+
+## Phase 2: unified notation rendering (architecture decision, 2026-11-22)
+
+Not built until authorised. Full plan: [notation-rendering.md](notation-rendering.md).
+
+- Chord diagrams, scale diagrams, fretboard exercises and blank printable fretboards are all generated as SVG from data. No stored PNG or JPG per diagram, fully offline.
+- The chord manifest is the single source of truth; lessons, practice and printables refer to shapes by id, so one correction updates every use.
+- Reuses the existing chord layout engine and `ChordDiagram`, the `Fretboard` neck renderer, scale placement and the print worksheet layout; extends them with shape metadata, transposition for movable shapes, five display modes (Basic, Beginner Fingering, Note Names, Intervals, Print), richer accessible descriptions, scale box diagrams and one shared neck layout for screen and print.
+- Right- and left-handed throughout; works with any tuning definition.
