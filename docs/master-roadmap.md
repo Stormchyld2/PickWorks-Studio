@@ -366,6 +366,17 @@ Complexity: **S** (days), **M** (1 to 2 weeks), **L** (several weeks), **XL** (a
 11. **Backing-track realism** depends on sample libraries that may be scarce, large or unclear in licence. Mitigated by Spike D, licence verification and holding back any style that fails the listening tests.
 12. **Documentation drift** across many documents. Mitigated by this index, the terminology section and a consistency check at each stage.
 
+## Wave 1 owner-approved priority (2026-11-22; supersedes conflicting sequence guidance below)
+
+The owner has explicitly authorised **Wave 1 engine development and the metronome UI change**, subject to the Phase 1 integration/branch safeguards. First audit the actual source and outstanding Phase 1 PRs. Do not merge or overwrite work without approval. The earlier documentation-only restriction does not block this specifically authorised Wave 1 scope.
+
+1. Establish reusable, typed, pure-TypeScript learning contracts and orchestration across curriculum/lessons, assessment/placement, practice, performance, mastery, fretboard, Chord System and future instrument modules. Define stable skill IDs, evidence schemas and access decisions without circular engine imports or duplicate skill records.
+2. Define Fretboard Mastery prerequisite graph and evidence gates alongside the **Adaptive Skill Assessment & Placement Engine**. Three universal background questions route a practical adaptive assessment (~5–12 prompts, more when evidence insufficient). A validated candidate item bank (~60–80) is a Wave 1 target, not a substitute for verification. Per-student placement, prior-lesson access, locked future lessons and per-student/per-curriculum Admin Unlock All (access only, audited and revocable) are Wave 1 engine deliverables. The full wizard, Admin UI and other learning screens are later integration work. Detailed behavior: [fretboard-mastery-placement.md](fretboard-mastery-placement.md).
+3. **Metronome Wave 1 UI:** On Windows add a compact pendulum-like dot traversing a semicircular/half-arc track above-right of the tempo setting, synchronized to the authoritative audio beat. Make Play/Stop, Tap Tempo, Volume and Time Signature compact **equal-size 2×2 control blocks**, with tempo display above. On Android place the indicator responsively near tempo and preserve touch targets and no overflow. Respect reduced motion; do not create a second audio clock. Preserve existing functions and test synchronization and layout.
+4. Test each engine seam and persistence/authorization behavior before wiring the wizard, dashboard, Learn, Practice, Progress and Admin UI. The metronome redesign can be implemented independently within Wave 1. Preserve Windows-first/Android-later and local JSON/Rust ownership boundaries.
+
+**Sequence note:** The older recommendation immediately below remains historical planning context; this Wave 1 decision takes precedence where its priority/order differs. It does not approve unrelated roadmap features.
+
 ## 9. Recommendation for the next development stage
 
 After the currently authorised work (Phase 1 hardware verification, fixes and merging PRs #1 to #4 in order on your authorisation):
