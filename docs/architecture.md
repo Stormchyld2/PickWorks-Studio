@@ -66,6 +66,34 @@ backups/
 - The Tauri content security policy allows no remote hosts (`connect-src 'self' ipc:`), so a missed check still cannot reach the internet.
 - No opener, shell or file-system plugins are installed, and a navigation guard refuses any page outside the app.
 
+## Android phones and tablets (approved requirement, 2026-11-22)
+
+Android supports phones and tablets from one shared Svelte app. This is an architectural requirement only: the Windows interface stays exactly as approved, and no Android screens are built until Android development starts.
+
+**Layout is chosen by the app window's width**, never by device type, and updates live on resize, rotation and split-screen:
+
+| Window width | Layout | Navigation |
+|---|---|---|
+| 840 px and up | Desktop / tablet: today's Windows interface, multi-column cards, full-size tools | Persistent sidebar, expanded or icon-only; content resizes with it |
+| 600–839 px | Intermediate | Collapsible or overlay sidebar |
+| below 600 px | Compact phone: single column where appropriate | Drawer or bottom navigation |
+
+These are starting targets, to be checked on real devices. Windows keeps its 1280 px minimum window, so it always gets the desktop layout.
+
+**Shared, not forked.** One component library and design system (tokens, glow cards, logo rules). Engines, note maths, chord diagrams, practice and mastery rules, student data and the Rust core are reused unchanged. Tablets use essentially the Windows interface; phones rearrange the same components rather than replacing them.
+
+**Platform adapters** keep the differences in one place, so screens ask "can this device do X?" instead of checking for Windows:
+- Storage: the core already uses Tauri's app data folder, which is `%APPDATA%\com.pickworks.studio` on Windows and the app-private folder on Android. Local-first storage, accounts and offline behaviour carry over as they are.
+- Administrator recovery: the Windows-administrator route is Windows-only; Android offers the recovery key.
+- Backup copies: Rust folder picker on Windows; Android's system file picker (Storage Access Framework) for USB drives and folders.
+- Microphone: browser audio on Windows; Android microphone permission through Tauri.
+- App lifecycle: Windows signs out when the window closes. Android can pause or close the app at any time, so work is checkpointed whenever the app goes to the background.
+- Printing: Windows print dialog; Android system print or share as PDF.
+
+**Touch and accessibility.** Touch targets of at least 44–48 px on touch screens; swipe and tap gestures only as extras beside visible controls; keyboard support stays for Windows and tablets with keyboards; layouts respect Android font scaling and the existing text-size, contrast and reduced-motion settings; fretboard and chord diagrams scale to their container in both orientations.
+
+**Order when Android starts:** build and test the responsive shell (breakpoints, navigation modes, adapters) first, then the device-specific refinements.
+
 ## Performance pipeline (Virtual Instructor seams)
 
 `src/lib/engines/performance/types.ts` defines three seams used by every exercise:

@@ -102,3 +102,8 @@ Made before more features build on them. Engine-level only; no new screens or fe
 5. **Input sources**: `direct-input` and `midi` observation sources and a `midi-note` observation, kept separate from audio.
 
 Later, not now: moving audio capture to an AudioWorklet when recording or effects are approved (the current frame interface stays the same).
+
+## Android (phones and tablets)
+
+Approved requirement (2026-11-22): Android ships for phones and tablets with layouts chosen by window width (below 600 px compact, 600–839 px intermediate, 840 px and up desktop/tablet), from the same shared app. See "Android phones and tablets" in [architecture.md](architecture.md). First step when Android work begins: the shared responsive shell, tested on real devices, before device-specific refinements.
+
