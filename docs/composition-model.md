@@ -29,7 +29,8 @@ SongProject
 │   ├── conductor      length in bars; meter, tempo and key changes at bar positions (defaults inherited)
 │   ├── harmony[]      chord events: position, length, ChordSymbol, locked, origin
 │   ├── lyrics[]       lines of text with chord anchors that point at harmony event ids
-│   ├── clips[]        one per instrument part: voices of note/chord/rest events on the section's bars
+│   ├── rhythm?        reference to a strumming or fingerpicking pattern (Rhythm & Strumming Studio) for accompaniment and strum arrows
+│   ├── clips[]        one per instrument part (including a melody part from the Melody & Harmony Assistant): voices of note/chord/rest events on the section's bars
 │   └── recordings[]   references to takes, with an optional bar offset
 ├── arrangement[]      ordered entries: { sectionId, repeats, label? }
 ├── progressions[]     saved progressions not yet placed in the song (from the Workshop)
@@ -121,7 +122,7 @@ Editors never change the model directly. They send **operations** (add chord, mo
   autosave.json    crash-recovery journal
 ```
 
-Owned by the student, enforced by Rust, written atomically, included in backups. Paths are relative to the song folder. An older app refuses a newer `schemaVersion` instead of damaging it. Export is the folder with a manifest and SHA-256 checksums.
+Owned by the student (confirmed by Jason 2026-11-22; sharing by export and import), enforced by Rust, written atomically, included in backups with recordings by default and an option to leave recordings out. Paths are relative to the song folder. An older app refuses a newer `schemaVersion` instead of damaging it. Export is the folder with a manifest and SHA-256 checksums.
 
 ## Why this design (and the alternatives rejected)
 

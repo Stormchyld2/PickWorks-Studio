@@ -1,6 +1,6 @@
 # Creative workstation: master expansion architecture
 
-Architecture and roadmap planning only (Jason's Master Expansion Specification, 2026-11-22). **Implementation is not authorised.** Nothing in this document changes existing code, Phase 1 work, branding, accounts or workspace navigation.
+Architecture and roadmap planning only (Jason's Master Expansion Specification, 2026-11-22). **Overall direction approved by Jason on 2026-11-22, with the refinements folded in below. Implementation is not authorised**, and no spikes, dependency installs or code changes happen without his explicit go-ahead. The consolidated feature inventory, feature cards and roadmap are in [master-roadmap.md](master-roadmap.md). Nothing in this document changes existing code, Phase 1 work, branding, accounts or workspace navigation.
 
 Related documents: [operating-profiles.md](operating-profiles.md) (Full Studio, Low-Power Field, No-Power Preparation), [chord-system.md](chord-system.md) (chord catalog, Visual Chord Library, Voicing and Alternate Chord Explorers, Reverse Chord Finder), [notation-rendering.md](notation-rendering.md) (diagram rendering), [guided-tours.md](guided-tours.md), [feature-roadmap.md](feature-roadmap.md), and the Workspace Navigation Implementation Plan.
 
@@ -10,9 +10,9 @@ PickWorks becomes a complete offline environment to learn, write, arrange, pract
 
 Placement follows the approved workspaces:
 
-- **Learning Studio:** lessons, practice, mastery, progress, Fretboard Explorer (including the Visual Chord Library and "What Chord Am I Playing?").
-- **Play & Create:** Songwriting Studio, Song Arrangement Board, Chord Progression Workshop, TAB Editor, Standard Notation Editor, combined TAB + notation, MIDI playback, Riff Recorder and Idea Vault, Personal Songbook, Performance Mode, Backing Tracks, Music Theory Tools, Music Library.
-- **Reference:** maintenance, tuning and field skills, printable resources, offline reference, low-power tools.
+- **Learning Studio:** lessons, practice, mastery, progress, Ear Training Studio, Fretboard Explorer (including the Visual Chord Library and "What Chord Am I Playing?").
+- **Play & Create:** Songwriting Studio, Rhythm & Strumming Studio, Melody & Harmony Assistant, Song Arrangement Board, Chord Progression Workshop, TAB Editor, Standard Notation Editor, combined TAB + notation, MIDI playback, Riff Recorder and Idea Vault, Personal Songbook, Performance Mode, Backing Tracks, Music Theory Tools, Music Library.
+- **Reference:** Print Studio (Printable Resources) and the Offline Field Library, maintenance, tuning and field skills, offline reference, low-power tools.
 
 Each tool lives in one place; other workspaces link to it rather than copying it. Administrators control workspace access, students control visibility, and Play & Create stays hidden until its first substantial feature works.
 
@@ -85,9 +85,20 @@ Designed in detail in **[composition-model.md](composition-model.md)**, which is
 - Chord progressions, chords over lyrics, TAB, notation, MIDI playback and the Arrangement Board are all views or editors of that one model, through one shared operation engine with one undo history.
 - Roman numerals, Nashville numbers, capo shapes, MIDI and the playback timeline are calculated, never stored.
 
-### Instrument definitions
+### Instrument & Tuning Manager (shared system)
 
-`{ id, name, strings: tuning list, fretCount, midiProgram, clef, transposition }`. Six-string guitar first; four-string bass, ukulele and mandolin plug in later through the same model the chord engine and fretboard already use.
+Formalised at Jason's request so no tool keeps its own idea of strings, tunings or capo. It is an architectural foundation, not a curriculum expansion: lessons stay guitar-only.
+
+- **One engine:** `engines/instruments/`, built on the existing `Tuning` model and `fretboard.ts` mapping.
+- **Instrument definition:** `{ id, name, strings: [{ number, openMidi, label }], fretCount, range, clef, transposition, midiProgram }`. Six-string guitar first; bass, seven-string, ukulele and mandolin are data later.
+- **One tuning list** shared by Fretboard Explorer, the Tuner, the chord engine, the TAB and notation editors and the composition tools. The seven presets already defined for the tuner (Standard, Drop D, Half-Step Down, Open G, Whole-Step Down, Open D, DADGAD) move here unchanged; the tuner's picker behaves as today.
+- **Capo:** a capo raises every open string; tools show either the shape (as fingered) or the sounding pitch, and the conversion is one function.
+- **Position mapping:** for any pitch, every playable string and fret within the instrument's range, ordered by how comfortable it is, used for staff-to-TAB suggestions and the Melody & Harmony Assistant.
+- **Tests:** every tool reads the same list; capo 0 to 12 and every preset give correct notes; test definitions for a 4-string bass and a 7-string guitar work in the fretboard and chord engines with no code change.
+
+### Ownership and recovery (confirmed by Jason)
+
+Songs, compositions and recordings belong to the student who made them. Sharing is by explicit export and import; an administrator-managed shared library may come later. Recordings are included in backups by default, with an option to leave them out. Atomic saves, autosave, crash recovery, revisions and migration safety apply, unsaved work is never discarded by a profile change, and every song file is identical across all operating profiles.
 
 ## 5. Chord Progression Generator and Workshop
 
@@ -136,7 +147,51 @@ G1 needs only the theory engine and chord catalog, so it can arrive before MIDI 
 - **Songwriting integration:** Send to Song creates harmony events with no re-typing; the same chords appear in the Arrangement Board, Performance Mode and playback; undo in the song removes them cleanly.
 - **Data-driven styles:** adding a test style file changes results without any code change.
 
-## 6. Dependencies and conflicts
+## 6. Rhythm & Strumming Studio
+
+**Purpose:** learn, create and practise strumming and fingerpicking patterns, and attach them to songs and progressions.
+
+- **Pattern editor:** a grid of steps per beat (subdivisions: quarters, eighths, triplets, sixteenths; time signatures 2/4, 3/4, 4/4, 6/8, 12/8 first). Each step is a downstroke, upstroke, muted stroke (chuck), rest or held; any stroke can be accented. Fingerpicking and arpeggio patterns choose strings per step (thumb on the bass string of the current chord, fingers on the treble strings), so the same pattern works for any chord.
+- **Presets as data:** `rhythm-patterns.json`, versioned, grouped by style (rock, pop, folk, blues first, matching the generator) and level. Students save their own patterns to their own folder.
+- **Playback:** uses the **existing shared transport and metronome**, never a second timing system. With audio: strums sound through the MIDI engine, with a moving highlight on the current step. In Low-Power Field without audio: the same transport runs from a silent timer clock and the highlight steps visually (gap G5 in master-roadmap.md). Tempo and looping come from the transport.
+- **Integration:** the Progression Workshop and Songwriting Studio can attach a pattern to a progression or section (stored as a pattern reference on the section in the composition model); chords-over-lyrics views can show strum arrows; Performance Mode can show the pattern; the practice drills engine gets "strum along" drills that record practice like other drills.
+- **Printing:** rhythm and strumming charts (arrows, counts, accents) in black and white.
+- **Acceptance:** every preset fills its bar exactly in its time signature; playback steps land on the transport's beat times within 5 ms; visual-only mode stays in time without audio; a saved custom pattern survives reload and can be attached to a song section and printed; fingerpicking follows the chord's actual bass string after a chord change.
+
+## 7. Melody & Harmony Assistant
+
+**Purpose:** help musicians write melodies over a progression without making the creative choices for them.
+
+- A panel inside the TAB and notation editors and the Progression Workshop (one component, not a separate app).
+- For the chord under the cursor and the song's key, it shows on the interactive fretboard: compatible scale tones, chord tones (root highlighted), suggested target notes on strong beats, and basic arpeggio shapes near the current position.
+- Selecting or entering a melody note shows its interval against the current chord ("the 3rd of Am", "a passing tone, resolves to C").
+- Suggestions (approach notes, passing tones, resolutions) are highlights the user may click; nothing is written until the user places a note. There is no "write a melody for me" button.
+- Notes go straight into a melody clip in the composition model, so they appear in TAB and notation and play through the MIDI engine (audition only when audio is enabled). Transposing the song moves the melody with it.
+- Uses the existing `scalePositions`, `chordToneLabel`, interval engine, Instrument & Tuning Manager and harmony track.
+- **Acceptance:** chord tones and scale tones shown are correct for every chord quality in all 12 keys; interval labels are correct against the chord at that beat; placing a suggested note writes exactly that note and nothing else; a transposed song keeps melody-to-chord relationships.
+
+## 8. Ear Training Studio (Learning Studio)
+
+Part of Learning Studio, not Play & Create, because it is structured learning.
+
+- **Exercise types:** interval recognition; major vs minor chords; chord quality (7ths, sus, dim, aug); scale and melodic pattern recognition; chord progression recognition (I–IV–V, I–V–vi–IV and others, using the theory engine); rhythm recognition and tap-back repetition.
+- **Structure:** short missions (2 to 5 minutes), beginner-to-advanced levels, immediate feedback with the correct answer played again, optional adaptive difficulty (raises or lowers the level from recent accuracy).
+- **Engines:** the existing lessons and practice engines run the missions; attempts are recorded with their own skill names (for example `ear:interval:M3`) so they never change fretboard, note or course mastery, XP or progress. Intervals and simple triads can sound through the existing reference-tone synthesis; chord qualities, progressions and melodies use the MIDI engine once it exists.
+- **Progress:** its own section in My Progress; mastery criteria for ear training are a decision for Jason (master-roadmap.md D3).
+- **Profiles:** Low-Power Field initialises audio only when the student starts an exercise; not featured in No-Power Preparation.
+- **Acceptance:** each exercise type plays exactly the intended notes (checked against the theory engine); answers and feedback are immediate; adaptive difficulty never jumps more than one level at a time; ear-training activity leaves existing course, XP, mastery and progress records byte-for-byte unchanged.
+
+## 9. Print Studio and Offline Field Library (moved earlier)
+
+Print Studio is essential to the grid-down design, so it now arrives with the early chord-reference and songwriting work (master-roadmap.md stages X1 and X2) instead of at the end.
+
+- **First templates (X1):** chord reference sheets, fretboard maps, scale charts, blank TAB, blank staff paper, blank chord boxes, songwriting worksheets. **Then (X2):** personal songbook and lead sheets, lesson worksheets (once Phase 2 lessons exist), and the Prepare for Grid-Down binder.
+- Compact, black-and-white, ink-efficient layouts (thin lines, no filled backgrounds, several charts per page), with paper sizes from the existing worksheet engine.
+- **Save to PDF is the default and needs no printer**, in every profile; printing is optional. A screen-reading PDF layout is available for phones and tablets.
+- All templates are drawn by the shared renderers; no template appears until its renderer, export path and tests are complete.
+- The Offline Field Library is the home of No-Power Preparation and sits in the Reference workspace with Printable Resources.
+
+## 10. Dependencies and conflicts
 
 **Dependencies**
 
@@ -158,32 +213,15 @@ G1 needs only the theory engine and chord catalog, so it can arrive before MIDI 
 5. **Per-student ownership.** Songs belong to a student. Sharing between students is by export and import, not a shared library, unless you want an installation-wide library.
 6. **Android.** Import and export must use Android's file picker and app-private storage through the platform adapter; the synth and recorder must be measured on a mid-range tablet before Android work is committed.
 
-## 7. Dependency-aware roadmap (refined)
+## 11. Dependency-aware roadmap
 
-Stages are planning boundaries only. Each needs your authorisation.
+Superseded by the consolidated roadmap in [master-roadmap.md](master-roadmap.md) section 3 (Phase 1, Phase 2, then stages X0 to X7), which moves Print Studio and the Offline Field Library to X1 and X2 and puts creative tools that need no audio ahead of the synthesizer.
 
-| Stage | Contents | Depends on | First visible to students |
-| --- | --- | --- | --- |
-| 0. Prerequisites | Phase 1 acceptance, PR merges, workspace navigation Stages A and B | None | Selector, admin access |
-| 1. Shared foundations | Theory additions (keys, Roman and Nashville, transposition, capo), instrument definitions, Song Project and composition schemas with migrations and tests, Rust song storage commands, and two throwaway spikes (notation renderer, synth) | 0 | Nothing |
-| 2. Chord system | chord-system.md Stages 1 to 4, plus Compare Chords | 1 (theory) | Fretboard Explorer: Chord Library, Voicing and Alternate Explorers, "What Chord Am I Playing?" |
-| 3. Songwriting core | Song Projects, Songwriting Studio (writing view, chords over lyrics, sections, key, tempo, capo, tuning, undo and redo, autosave and recovery, revisions), transposition, Song Arrangement Board, Personal Songbook basics (list, search, tags, favourites), **Performance Mode** | 1, 2 | Play & Create opens here (first substantial feature) |
-| 4. Progressions and playback | Chord Progression Generator and Workshop G1 (with Lock Chord + Regenerate) as soon as Stage 2 is stable, then MIDI engine core and synth with G2 playback, count-in and loop on the shared transport, then G3; Music Theory Tools (circle of fifths, scale harmonizer, key finder, capo and transposition calculators) | 2, 3 (Send to Song), synth spike for G2 | Progression Workshop, playback |
-| 5. Composition | TAB Editor (structured, techniques, fretboard entry), synced playback with highlighting, Standard Notation Editor, combined view, MIDI import and export | 1, 4, notation spike | TAB and notation |
-| 6. Recording and practice | Riff Recorder, Idea Vault, attaching takes to songs and sections, backing tracks, speed change, practice playback; optional two-track overdub later | 4 | Recorder, backing tracks |
-| 7. Interop and completion | MusicXML import and export, setlists, lead sheet, TAB and notation printing and PDF (with Print Studio), project export and restore, end-to-end tests | 3 to 6, Print Studio | Printing, interchange |
+## 12. Highest value first
 
-**Changes from your proposed sequence:** Performance Mode and a basic Personal Songbook move from Stage 7 to Stage 3, because they need only lyrics and chords, work with no audio hardware, and give the most practical value early (rehearsals, church, campfire, outages). The MIDI engine starts in Stage 4 with chord playback, so the composition editors in Stage 5 can play back from day one.
+See master-roadmap.md section 8. In short: Phase 2 learning core first, then the Instrument & Tuning Manager and chord catalog as foundations, then the Visual Chord Library, Chord Finder, basic Print Studio and Low-Power Field.
 
-## 8. Highest value first
-
-1. **Chord system** (Stage 2): mostly built on existing engines; useful to every student immediately.
-2. **Songwriting core with Performance Mode and Songbook** (Stage 3): text and chords only, fully usable offline and without audio hardware, low technical risk.
-3. **Chord Progression Generator** (Stage 4): G1 with Lock Chord + Regenerate needs no audio work and gives immediate creative value; playback (G2) follows.
-4. **TAB Editor with playback** (Stage 5): the most guitar-specific composition tool; standard notation follows on the same model.
-5. **Riff Recorder** (Stage 6): valuable, but needs the most hardware testing.
-
-## 9. UI mockup specifications
+## 13. UI mockup specifications
 
 All screens keep the white logo, dark navy theme, glow cards, blue accents and amber highlights, and the approved sidebar and workspace selector. Wide layout is 840 px and up (Windows is always wide); phones get single-column versions noted per screen. Advanced controls sit behind "More" or a side panel.
 
@@ -196,10 +234,13 @@ All screens keep the white logo, dark navy theme, glow cards, blue accents and a
 7. **Performance Mode.** Full screen, large lyrics with chords above, text size buttons, high-contrast toggle, auto-scroll speed, previous and next section, previous and next song in a setlist, and an exit button. No other controls visible.
 8. **Personal Songbook.** Search bar, filters (tags, key, favourites, source), song cards, setlists tab, import and export buttons.
 9. **Idea Vault and Riff Recorder.** A large record button with input level meter, list of takes with waveform, play, loop selection, speed, trim, rename, notes, and "Attach to song or section".
+10. **Rhythm & Strumming Studio.** Pattern grid in the centre (one column per step, rows for stroke type, an accent toggle), counts underneath ("1 & 2 &"), preset list on the left grouped by style and level, transport bar at the bottom, "Attach to song" and "Print chart" buttons. Phone: the grid scrolls horizontally one bar at a time.
+11. **Melody & Harmony Assistant panel.** A side panel in the editors and Workshop: current chord and key at the top, toggles for scale tones, chord tones, targets and arpeggios, a mini fretboard with highlights, and the interval label for the selected note.
+12. **Ear Training Studio.** Mission cards by type and level; an exercise screen with a large Play button, answer buttons (large, touch-friendly), immediate feedback and a progress strip; a results card at the end.
 
 These specifications become interactive mockups (captured from a throwaway prototype, as with the workspace selector) when you ask for them, one screen group per stage.
 
-## 10. Acceptance criteria per stage
+## 14. Acceptance criteria per stage
 
 Every stage must also pass the standing checks: the existing app still works (all current Rust, TypeScript and click-through tests pass); no lesson, mastery, XP or progress data changes; student and administrator permissions are intact; everything works with networking disabled; unavailable features never appear as working controls; layouts work at 1280 px and at phone width.
 
@@ -211,14 +252,18 @@ Every stage must also pass the standing checks: the existing app still works (al
 - **Stage 6:** a 5-minute recording saves as WAV with no dropouts and reopens; trim is non-destructive until "Save trimmed copy"; speed change from 50% to 150% keeps pitch; the tuner and recorder never hold the microphone at the same time; recordings move with the song on export and restore.
 - **Stage 7:** MusicXML export then import preserves the supported element list exactly and reports anything unsupported; printed lead sheets, TAB and notation are black and white and match the screen; a whole song folder exports, restores on another installation and opens without broken references.
 
-## 11. Decisions needing your approval before any coding
+## 15. Decisions
 
-1. **Merged order:** adopt the refined roadmap in section 7 (chord system, then songwriting core with Performance Mode and Songbook, then progressions and playback, then composition, then recording, then interop), after the Phase 2 learning core? And where does Print Studio fit, given that lead sheets and chord sheets depend on it? I'd move it up to sit alongside Stage 3.
-2. **Notation renderer:** VexFlow, confirmed by a short throwaway spike against alphaTab.
-3. **Synthesizer:** a WebAudio SoundFont synth on the shared audio engine, with rustysynth as the fallback and FluidSynth not used.
-4. **Sound set and size:** a compressed SoundFont subset of about 30 to 60 MB with permissive licence and attribution in About.
-5. **Song ownership:** songs belong to each student (recommended), shared by export and import; or an installation-wide library as well?
-6. **Recordings in backups:** included by default with an option to leave them out, or the other way round?
-7. **Spikes:** may I run the two throwaway technology spikes (not merged, not shown to students) before Stage 1 is authorised, or wait?
-8. **Generator styles for G1:** start with rock, pop, folk and blues (worship, country and jazz in G3), or a different first set?
-9. **Teachers:** the spec lists teachers preparing materials. Should teacher tools be an administrator feature, a separate role, or out of scope for now?
+**Resolved by Jason (2026-11-22):**
+
+1. Roadmap: revised as in master-roadmap.md, with Print Studio moved earlier (confirmation of the full table is master-roadmap.md D1).
+2. Notation rendering: VexFlow is the preferred candidate, subject to the documented comparison with alphaTab.
+3. Synthesizer: a WebAudio SoundFont synthesizer is preferred, subject to performance testing and licence verification.
+4. Sound set: the compact instrument set as proposed; no SoundFont licence is treated as verified until checked against the actual distributable files.
+5. Song ownership: student-owned Song Projects; sharing by export and import; a shared administrator library may come later.
+6. Recordings in backups: included by default, with an option to exclude them.
+7. Spikes: none until Jason authorises them.
+8. Generator styles: rock, pop, folk and blues first; country, worship and jazz in the advanced expansion.
+9. Teacher tools: out of scope for the first release; no new user role, but nothing in the design prevents one later.
+
+**Still open:** listed in master-roadmap.md section 7 (D1 to D7).

@@ -154,3 +154,7 @@ Not built until authorised. Full plan: [operating-profiles.md](operating-profile
 - Administrator-selected, installation-wide: Full Studio, Low-Power Field (Field Dashboard, reduced visuals, MIDI and recording loaded only on use, administrator overrides), No-Power Preparation (Offline Field Library and Print/Export Center; MIDI and recording never initialised; clear notice that the app still needs power).
 - A separate capability layer: never changes data, progress, XP, mastery or workspace access; one shared set of engines and files.
 - Capability layer and first Low-Power Field with workspace navigation Stage B or creative Stage 1; No-Power Preparation with Print Studio. Every restriction is kept only if measurements show it saves CPU, memory, startup time or battery.
+
+## Master roadmap (2026-11-22)
+
+The consolidated feature inventory, feature cards and dependency-aware roadmap (Phase 1, Phase 2, then expansion stages X0 to X7) are in [master-roadmap.md](master-roadmap.md). It supersedes the earlier provisional post-Phase-2 order (pending Jason's confirmation, D1). It adds the Rhythm & Strumming Studio, Ear Training Studio, Melody & Harmony Assistant and Instrument & Tuning Manager, and moves Print Studio and the Offline Field Library to stages X1 and X2.

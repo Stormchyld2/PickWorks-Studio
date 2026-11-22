@@ -1,6 +1,8 @@
 # Operating Profiles: Full Studio, Low-Power Field, No-Power Preparation
 
-Architecture and roadmap only (Jason, 2026-11-22). **Not authorised for implementation.**
+Architecture **finalised** with Jason on 2026-11-22. **Not authorised for implementation.** Roadmap placement and feature cards: [master-roadmap.md](master-roadmap.md).
+
+In a grid-down scenario power may come from solar generators, portable power stations or power banks, and a tablet or phone may be the only practical device. The profiles are designed for that.
 
 ## Purpose
 
@@ -11,16 +13,20 @@ Let an administrator switch the whole installation between everyday use and prol
 | | Full Studio | Low-Power Field | No-Power Preparation |
 | --- | --- | --- | --- |
 | Goal | Everything authorised and implemented | Longest battery life while still learning, writing and playing | Print and export physical resources before power runs out |
-| Home screen | Normal dashboards | Simplified **Field Dashboard** | **Offline Field Library and Print/Export Center** |
+| Default | **Yes**, on Windows and Android | Chosen manually by the administrator | Chosen manually by the administrator |
+| Home screen | Normal dashboards | Simplified **Field Dashboard** (automatic) | **Offline Field Library and Print/Export Center** |
 | Lessons, practice, mastery | Yes | Yes | Yes (for printing worksheets and lesson sheets) |
 | Fretboard Explorer, Chord Library, Chord Finder | Yes | Yes | Yes |
 | Songbook, Songwriting Studio | Yes | Yes | Yes (open, edit, print) |
 | Reference | Yes | Yes | Yes |
-| Tuner | Yes | Yes (microphone only while the Tuner is open) | Yes (see decision 2) |
+| Tuner | Yes | Yes (microphone only while the Tuner is open) | Yes, on demand (microphone only while open) |
 | Metronome | Yes | Yes (audio started on Play) | Yes, lightweight click only, no synth |
 | MIDI playback | Yes | Loaded only when the student presses Play; administrator can turn it off | Not initialised |
 | Recording (Riff Recorder) | Yes | Loaded only when the student presses Record; administrator can turn it off | Not initialised |
 | Backing tracks | Yes | Off by default; administrator can turn it on | Not initialised |
+| Rhythm & Strumming Studio | Yes | Yes; visual playback without audio, audio on Play if allowed | Print rhythm charts |
+| Chord Progression Generator, Music Theory Tools, Melody & Harmony Assistant | Yes | Yes; audition on demand | Generate and print charts |
+| Ear Training Studio | Yes | Yes; audio starts only when an exercise starts | Not featured (needs sound) |
 | Notation and TAB editing | Yes | Yes (rendering only; playback follows MIDI setting) | Yes (for printing) |
 | Visual effects | Normal | Reduced (no animation, no glow or blur, no photos); administrator can restore | Reduced |
 | Banner | None | Small "Low-Power Field" badge in the top bar | Clear notice: "PickWorks still needs power. This profile helps you print and export what you'll need when electricity isn't available." |
@@ -152,10 +158,14 @@ Results go into a table in this document. A restriction that doesn't make a meas
 - **With Print Studio:** the No-Power Preparation profile and the Print/Export Center.
 - **Android stage:** Field screens tested on real phones and tablets.
 
-## Decisions for Jason
+## Decisions
 
-1. **Default profile:** Full Studio as the installation default everywhere, including Android, with the administrator choosing Low-Power Field when wanted (my recommendation, since you asked for manual selection)?
-2. **Tuner in No-Power Preparation:** keep it available (it runs only while open and helps prepare instruments), or hide it to keep that profile focused on printing?
-3. **Field Dashboard for students:** replace the normal dashboard in Low-Power Field (my recommendation), or offer it as an option?
-4. **Idle unload timings:** suspend audio after 30 seconds of silence and unload the synth after 2 minutes idle, adjusted after measurement?
-5. **Field binder and student songs:** allow the administrator's Prepare for Grid-Down action to read a student's songs (read-only, audited), as the binder needs? Students would also get a "My Field Binder" button for their own binder, which needs no extra permission.
+**Resolved by Jason (2026-11-22):**
+
+1. Full Studio is the default installation profile on Windows and Android; the other two are chosen manually by the administrator.
+2. The tuner stays available on demand in No-Power Preparation.
+3. Low-Power Field automatically uses the Field Dashboard.
+4. 30 seconds of silence before audio suspension and 2 minutes idle before the synthesizer unloads are the initial values, to be validated by real performance and battery measurements.
+5. No separate engines, catalogs or file formats per profile.
+
+**Still open:** the field binder reading a student's songs (master-roadmap.md D5), and the No-Power home when a student has hidden Reference (D2).
