@@ -116,5 +116,6 @@ Not built until authorised. Full rules: [guided-tours.md](guided-tours.md).
 - Every tour has Skip Tour, Back, Next and Learn More. The Learn More modal returns to the same step.
 - Tours can be restarted any time from Help or Settings, without touching progress, XP, achievements or mastery.
 - Tracking is per student and per tour: status (never shown, completed, skipped), last step and content version. App updates never re-launch a completed or skipped tour.
+- Opening a new page never starts a tour. Feature-specific tutorials are optional and start from Help only.
 - Steps only describe features that work today.
 

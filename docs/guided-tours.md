@@ -28,6 +28,10 @@ Each tour launches automatically only when all of these are true:
 3. The workspace is not hidden in "Show in Workspace Dropdown".
 4. The student is actually in that workspace (first sign-in for Learning Studio, first visit for the others).
 
+Opening a new page inside a workspace never starts a tour. Only these three workspace tours ever launch automatically.
+
+**Feature tutorials are optional.** Short tutorials for single features (for example the Chords tab or the Tuner) are listed in Help and start only when the student chooses one. They use the same balloon, Learn More and tracking, but never launch on their own.
+
 A student who unlocks Play & Create or Reference manually gets that workspace's tour on their first visit only. A hidden workspace's tour never launches.
 
 ## Skipping and restarting
@@ -72,6 +76,7 @@ Each step declares the feature it explains (for example `feature: "fretboard-exp
 ## Tests (planned)
 
 - Auto-launch happens exactly once per student per tour, and never after "completed" or "skipped", including after a `contentVersion` bump.
+- Visiting any page other than a workspace's first visit never launches a tour; feature tutorials never auto-launch.
 - No auto-launch for unimplemented, locked or hidden workspaces. A manually unlocked workspace launches its tour on the first visit only.
 - Steps for unavailable features are dropped.
 - Learn More returns to the same step.
