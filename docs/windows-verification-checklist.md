@@ -53,3 +53,14 @@ Windows 10 and 11 already include the WebView2 runtime the app needs.
 - [ ] Left-handed mirrors the fretboards.
 - [ ] Keyboard only: Tab reaches every control, "Skip to content" appears on first Tab, focus outlines are visible.
 - [ ] Links to outside websites do not open (offline-first).
+
+## Round 2 (after the first Windows test)
+- [ ] Profile screen shows **Create Student Profile**. Create one with a name, a picture and an 8+ character password: it opens straight into that student's dashboard.
+- [ ] A second profile with the same name is refused. The new student can't reach any admin page.
+- [ ] Admin › Settings › Student Profiles: turn it off. The profile screen shows "Add Student (Admin)" again, and the setting is in the Audit Log.
+- [ ] Fretboard › **Chords**: every chord in the list shows on the neck and in the diagram; try note names and intervals; turn on left-handed in Settings and check both mirror.
+- [ ] Fretboard › **Scales**: change the root and the scale; root notes are highlighted.
+- [ ] Practice › **Open Metronome** opens the metronome; Play, tempo, time signature and tap tempo work and it sounds in time.
+- [ ] Dashboard: no developer notices; the guitar photo is a wide band across the top; course shows "Not started yet, 0% complete"; Try This, the fretboard tabs and all three Quick Actions open the right tools.
+- [ ] Learn, Practice, Progress, Help and Print show plain wording, not milestone numbers.
+- [ ] Minimise the window while signed in, then come back: still signed in, nothing lost.
