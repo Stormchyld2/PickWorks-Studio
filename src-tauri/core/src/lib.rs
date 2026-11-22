@@ -644,7 +644,10 @@ impl Core {
         let id = self.require_student(token)?;
         storage::validate_record_name(log)?;
         let path = self.root.student_dir(&id)?.join(format!("{log}.jsonl"));
-        Ok(storage::read_lines(&path)?.iter().filter_map(|l| serde_json::from_str(l).ok()).collect())
+        // Whole records only, in order. Damaged lines are counted by the reader,
+        // and fragments of interrupted writes are kept in `<log>.jsonl.damaged`
+        // (see the recovery rules in storage.rs).
+        Ok(storage::read_log_file(&path)?.records)
     }
 
     /// Application-wide settings (not student data); readable before sign-in.

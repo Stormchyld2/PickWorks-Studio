@@ -22,6 +22,11 @@ fn fixture() -> Fixture {
 }
 
 impl Fixture {
+    /// Closes the core and opens the same data folder again, like an app restart.
+    fn restart(&mut self) {
+        let c = self.clock.clone();
+        self.core = Core::open(self._dir.path(), Box::new(move || c.load(Ordering::SeqCst))).unwrap();
+    }
     fn advance_secs(&self, s: u64) {
         self.clock.fetch_add(s * 1000, Ordering::SeqCst);
     }
@@ -440,4 +445,48 @@ fn students_can_register_themselves_unless_the_admin_turns_it_off() {
     assert!(log.iter().any(|e| e.action == "student-self-registered") && log.iter().any(|e| e.action == "self-registration-off"));
     // Self-registered students are managed like any other.
     assert_eq!(f.core.admin_list_students(&t).unwrap().len(), 2);
+}
+
+/// Simulates a crash part-way through a log append: bytes but no newline.
+fn crash_mid_append(path: &std::path::Path, bytes: &[u8]) {
+    use std::io::Write;
+    let mut f = std::fs::OpenOptions::new().create(true).append(true).open(path).unwrap();
+    f.write_all(bytes).unwrap();
+}
+
+#[test]
+fn an_interrupted_log_write_loses_no_later_record_across_restarts() {
+    let mut f = fixture();
+    let a = f.with_student("Alex", "alex-pass-1");
+    let s = f.core.sign_in_student(&a, "alex-pass-1").unwrap();
+    for n in 1..=2 {
+        f.core.append_log(&s.token, "attempts", &json!({"n": n})).unwrap();
+    }
+    let log = f.core.root().student_dir(&a).unwrap().join("attempts.jsonl");
+    crash_mid_append(&log, b"{\"n\":3,\"skill\":\"pos:5:");
+    f.restart();
+    let s = f.core.sign_in_student(&a, "alex-pass-1").unwrap();
+    let ns = |v: Vec<Value>| v.iter().map(|e| e["n"].as_i64().unwrap()).collect::<Vec<_>>();
+    assert_eq!(ns(f.core.read_log(&s.token, "attempts").unwrap()), [1, 2]);
+    f.core.append_log(&s.token, "attempts", &json!({"n": 4})).unwrap();
+    f.restart();
+    let s = f.core.sign_in_student(&a, "alex-pass-1").unwrap();
+    assert_eq!(ns(f.core.read_log(&s.token, "attempts").unwrap()), [1, 2, 4], "record 4 survives, in order, no duplicates");
+    assert!(storage::damaged_path(&log).exists(), "the fragment is kept beside the log");
+}
+
+#[test]
+fn an_interrupted_audit_write_loses_no_later_entry() {
+    let mut f = fixture();
+    let a = f.with_student("Alex", "alex-pass-1");
+    let audit_file = std::fs::read_dir(f.core.root().audit_dir()).unwrap().next().unwrap().unwrap().path();
+    crash_mid_append(&audit_file, b"{\"atMs\":17952624");
+    f.restart();
+    let t = f.admin();
+    f.core.admin_set_status(&t, &a, AccountStatus::Archived).unwrap();
+    let actions: Vec<_> = f.core.admin_recent_audit(&t, 50).unwrap().into_iter().map(|e| e.action).collect();
+    assert_eq!(actions.first().map(String::as_str), Some("student-archived"), "{actions:?}");
+    assert!(actions.contains(&"sign-in".to_string()), "earlier entries are kept");
+    assert_eq!(storage::read_log_file(&audit_file).unwrap().damaged, 0, "the new entry starts on its own line");
+    assert!(storage::damaged_path(&audit_file).exists(), "the fragment is kept beside the log");
 }

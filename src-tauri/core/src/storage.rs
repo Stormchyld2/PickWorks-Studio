@@ -7,7 +7,7 @@
 //! Reads fall back to the `.bak` copy if the main file is missing or damaged.
 
 use std::fs::{self, File, OpenOptions};
-use std::io::Write;
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 use serde::de::DeserializeOwned;
@@ -142,8 +142,35 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
-/// Appends one line and flushes it. Used for append-only logs (attempts,
-/// mastery events, XP ledger, audit log): a crash can only lose the last line.
+// ----- Append-only logs (JSON Lines) -----------------------------------------
+//
+// Attempts, mastery events, the XP ledger and the audit log are append-only
+// files with one JSON value per line. A crash during an append can leave an
+// unfinished last line. Recovery rules:
+//
+// - Every append writes the record and its newline in one write, then
+//   flushes, so a record is only ever followed by its own newline.
+// - Before appending, the end of the file is checked. If the last line is
+//   unfinished:
+//   - a complete JSON object that only lost its newline is kept, and the
+//     newline is added (nothing is duplicated: the record is not re-written);
+//   - anything else is the fragment of an interrupted write. Its bytes are
+//     copied to `<log>.damaged` (one JSON line each: offset, length, text and
+//     exact hex), then cut from the log, so the next record starts on a line
+//     of its own and no valid record is ever glued onto damaged bytes.
+// - Readers report what they could not use ([`LogRead::damaged`]) instead of
+//   dropping it silently, and recover records that an earlier version glued
+//   onto a crash fragment ([`LogRead::salvaged`]).
+
+/// Where damaged log fragments are kept, next to the log.
+pub fn damaged_path(path: &Path) -> PathBuf {
+    let mut s = path.as_os_str().to_owned();
+    s.push(".damaged");
+    PathBuf::from(s)
+}
+
+/// Appends one record (one line) to an append-only log and flushes it,
+/// first repairing an unfinished last line left by a crash (see above).
 pub fn append_line(path: &Path, line: &str) -> Result<()> {
     if line.contains('\n') {
         return Err(CoreError::InvalidData("log lines cannot contain newlines".into()));
@@ -151,26 +178,128 @@ pub fn append_line(path: &Path, line: &str) -> Result<()> {
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir)?;
     }
+    repair_log_tail(path)?;
+    let mut record = Vec::with_capacity(line.len() + 1);
+    record.extend_from_slice(line.as_bytes());
+    record.push(b'\n');
     let mut f = OpenOptions::new().create(true).append(true).open(path)?;
-    f.write_all(line.as_bytes())?;
-    f.write_all(b"\n")?;
+    f.write_all(&record)?;
     f.sync_all()?;
     Ok(())
 }
 
-/// Reads an append-only log, skipping a damaged final line (from a crash).
-pub fn read_lines(path: &Path) -> Result<Vec<String>> {
-    match fs::read_to_string(path) {
-        Ok(s) => {
-            let mut lines: Vec<String> = s.lines().map(str::to_string).collect();
-            if !s.ends_with('\n') {
-                lines.pop(); // incomplete last line
-            }
-            Ok(lines)
-        }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
-        Err(e) => Err(e.into()),
+fn parse_object(bytes: &[u8]) -> Option<serde_json::Value> {
+    serde_json::from_slice::<serde_json::Value>(bytes).ok().filter(|v| v.is_object())
+}
+
+/// Makes sure the log ends with a complete line (see the rules above).
+/// Returns quickly when the file is missing, empty or already ends in a newline.
+fn repair_log_tail(path: &Path) -> Result<()> {
+    let mut f = match OpenOptions::new().read(true).write(true).open(path) {
+        Ok(f) => f,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(e.into()),
+    };
+    if f.metadata()?.len() == 0 {
+        return Ok(());
     }
+    let mut last = [0u8; 1];
+    f.seek(SeekFrom::End(-1))?;
+    f.read_exact(&mut last)?;
+    if last[0] == b'\n' {
+        return Ok(());
+    }
+    // Rare path (only after a crash): find where the unfinished line starts.
+    let mut bytes = Vec::new();
+    f.seek(SeekFrom::Start(0))?;
+    f.read_to_end(&mut bytes)?;
+    let start = bytes.iter().rposition(|&b| b == b'\n').map_or(0, |i| i + 1);
+    let tail = &bytes[start..];
+    if parse_object(tail).is_some() {
+        // The record was written in full; only its newline is missing.
+        f.seek(SeekFrom::End(0))?;
+        f.write_all(b"\n")?;
+    } else {
+        quarantine_fragment(path, start as u64, tail)?;
+        f.set_len(start as u64)?;
+    }
+    f.sync_all()?;
+    Ok(())
+}
+
+/// Copies a damaged fragment to `<log>.damaged` before it is cut from the log.
+fn quarantine_fragment(path: &Path, offset: u64, fragment: &[u8]) -> Result<()> {
+    let entry = serde_json::json!({
+        "offset": offset,
+        "length": fragment.len(),
+        "text": String::from_utf8_lossy(fragment),
+        "hex": fragment.iter().map(|b| format!("{b:02x}")).collect::<String>(),
+    });
+    let line = entry.to_string();
+    let q = damaged_path(path);
+    // A crash after this copy but before the cut repeats the repair on the
+    // next append; the same fragment is not recorded twice.
+    if let Ok(existing) = fs::read_to_string(&q) {
+        if existing.lines().last() == Some(line.as_str()) {
+            return Ok(());
+        }
+    }
+    let mut f = OpenOptions::new().create(true).append(true).open(&q)?;
+    f.write_all(format!("{line}\n").as_bytes())?;
+    f.sync_all()?;
+    Ok(())
+}
+
+/// The records of an append-only log, in the order they were written.
+#[derive(Debug, Default)]
+pub struct LogRead {
+    pub records: Vec<serde_json::Value>,
+    /// Lines that were not valid JSON: an unfinished last line from an
+    /// interrupted write (moved to `.damaged` by the next append), or older
+    /// damaged lines. A salvaged line also counts here.
+    pub damaged: usize,
+    /// Records recovered from lines where an earlier version appended a
+    /// record directly after a crash fragment.
+    pub salvaged: usize,
+}
+
+/// Reads an append-only log (see the recovery rules above).
+pub fn read_log_file(path: &Path) -> Result<LogRead> {
+    let bytes = match fs::read(path) {
+        Ok(b) => b,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(LogRead::default()),
+        Err(e) => return Err(e.into()),
+    };
+    let mut out = LogRead::default();
+    let mut lines: Vec<&[u8]> = bytes.split(|&b| b == b'\n').collect();
+    // The piece after the last newline: empty for a complete file, otherwise
+    // an unfinished line. It is a record only if it is a whole JSON object,
+    // which is exactly what the next append keeps.
+    let tail = lines.pop().unwrap_or(&[]);
+    for line in lines {
+        if line.is_empty() {
+            continue;
+        }
+        if let Ok(v) = serde_json::from_slice::<serde_json::Value>(line) {
+            out.records.push(v);
+            continue;
+        }
+        out.damaged += 1;
+        // A record glued onto a fragment is the longest suffix that is a
+        // whole JSON object.
+        let salvaged = line.iter().enumerate().skip(1).filter(|&(_, &b)| b == b'{').find_map(|(i, _)| parse_object(&line[i..]));
+        if let Some(v) = salvaged {
+            out.records.push(v);
+            out.salvaged += 1;
+        }
+    }
+    if !tail.is_empty() {
+        match parse_object(tail) {
+            Some(v) => out.records.push(v),
+            None => out.damaged += 1,
+        }
+    }
+    Ok(out)
 }
 
 /// Which copy a read came from.
@@ -286,15 +415,102 @@ mod tests {
         assert!(matches!(read_versioned::<serde_json::Value>(&p, 2, &[m1]), Err(CoreError::NewerVersion { .. })));
     }
 
+    fn log_text(p: &Path) -> String {
+        fs::read_to_string(p).unwrap()
+    }
+
+    fn values(r: &LogRead) -> Vec<i64> {
+        r.records.iter().map(|v| v["a"].as_i64().unwrap()).collect()
+    }
+
+    /// Simulates a crash part-way through an append: some bytes, no newline.
+    fn crash_mid_write(p: &Path, bytes: &[u8]) {
+        let mut f = OpenOptions::new().create(true).append(true).open(p).unwrap();
+        f.write_all(bytes).unwrap();
+    }
+
     #[test]
-    fn append_log_skips_partial_last_line() {
+    fn append_log_reports_partial_last_line() {
         let dir = tempfile::tempdir().unwrap();
         let p = dir.path().join("log.jsonl");
         append_line(&p, "{\"a\":1}").unwrap();
         append_line(&p, "{\"a\":2}").unwrap();
-        let mut f = OpenOptions::new().append(true).open(&p).unwrap();
-        f.write_all(b"{\"a\":3").unwrap(); // crash mid-line
-        assert_eq!(read_lines(&p).unwrap().len(), 2);
+        crash_mid_write(&p, b"{\"a\":3");
+        let r = read_log_file(&p).unwrap();
+        assert_eq!(values(&r), [1, 2]);
+        assert_eq!(r.damaged, 1, "the unfinished line is reported, not hidden");
         assert!(append_line(&p, "a\nb").is_err());
+    }
+
+    #[test]
+    fn interrupted_write_never_swallows_the_next_record() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("log.jsonl");
+        append_line(&p, "{\"a\":1}").unwrap();
+        append_line(&p, "{\"a\":2}").unwrap();
+        let offset = fs::metadata(&p).unwrap().len();
+        crash_mid_write(&p, b"{\"a\":3,\"note\":\"half");
+        append_line(&p, "{\"a\":4}").unwrap();
+        // Before the fix this read [1, 2]: record 4 was glued onto the fragment.
+        let r = read_log_file(&p).unwrap();
+        assert_eq!(values(&r), [1, 2, 4], "valid records kept, in order, none lost");
+        assert_eq!((r.damaged, r.salvaged), (0, 0));
+        assert_eq!(log_text(&p), "{\"a\":1}\n{\"a\":2}\n{\"a\":4}\n");
+        // The fragment is kept for inspection, not silently discarded.
+        let q: Vec<serde_json::Value> = log_text(&damaged_path(&p)).lines().map(|l| serde_json::from_str(l).unwrap()).collect();
+        assert_eq!(q.len(), 1);
+        assert_eq!(q[0]["offset"], offset);
+        assert_eq!(q[0]["text"], "{\"a\":3,\"note\":\"half");
+        append_line(&p, "{\"a\":5}").unwrap();
+        assert_eq!(values(&read_log_file(&p).unwrap()), [1, 2, 4, 5]);
+        assert_eq!(log_text(&damaged_path(&p)).lines().count(), 1, "repair runs once");
+    }
+
+    #[test]
+    fn a_complete_record_that_lost_its_newline_is_kept_once() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("log.jsonl");
+        append_line(&p, "{\"a\":1}").unwrap();
+        crash_mid_write(&p, b"{\"a\":2}"); // crash between the record and its newline
+        assert_eq!(values(&read_log_file(&p).unwrap()), [1, 2], "readable before the next append");
+        append_line(&p, "{\"a\":3}").unwrap();
+        let r = read_log_file(&p).unwrap();
+        assert_eq!(values(&r), [1, 2, 3], "kept, in order, not duplicated");
+        assert_eq!(r.damaged, 0);
+        assert!(!damaged_path(&p).exists());
+    }
+
+    #[test]
+    fn a_crash_during_the_very_first_write_is_recovered() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("log.jsonl");
+        crash_mid_write(&p, b"{\"a\"");
+        append_line(&p, "{\"a\":1}").unwrap();
+        assert_eq!(log_text(&p), "{\"a\":1}\n");
+        assert!(log_text(&damaged_path(&p)).contains("\"offset\":0"));
+    }
+
+    #[test]
+    fn a_crash_during_repair_does_not_record_the_fragment_twice() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("log.jsonl");
+        append_line(&p, "{\"a\":1}").unwrap();
+        let offset = fs::metadata(&p).unwrap().len();
+        crash_mid_write(&p, b"{\"a\":");
+        // Crash after copying the fragment but before cutting it from the log.
+        quarantine_fragment(&p, offset, b"{\"a\":").unwrap();
+        append_line(&p, "{\"a\":2}").unwrap();
+        assert_eq!(values(&read_log_file(&p).unwrap()), [1, 2]);
+        assert_eq!(log_text(&damaged_path(&p)).lines().count(), 1);
+    }
+
+    #[test]
+    fn records_glued_onto_fragments_by_earlier_versions_are_salvaged() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("log.jsonl");
+        fs::write(&p, "{\"a\":1}\n{\"a\":2,\"x\":{\"y\":1}{\"a\":3}\nnot json\n{\"a\":4}\n").unwrap();
+        let r = read_log_file(&p).unwrap();
+        assert_eq!(values(&r), [1, 3, 4]);
+        assert_eq!((r.damaged, r.salvaged), (2, 1));
     }
 }

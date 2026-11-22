@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
-use crate::storage::{append_line, read_lines, DataRoot};
+use crate::storage::{append_line, read_log_file, DataRoot};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -49,10 +49,12 @@ pub fn recent(root: &DataRoot, limit: usize) -> Result<Vec<AuditEntry>> {
     files.sort();
     let mut out = Vec::new();
     for f in files.iter().rev() {
-        let mut lines = read_lines(f)?;
-        lines.reverse();
-        for l in lines {
-            if let Ok(e) = serde_json::from_str::<AuditEntry>(&l) {
+        // Damaged lines are reported by the reader and kept in the
+        // `.damaged` side file; only whole entries are shown.
+        let mut records = read_log_file(f)?.records;
+        records.reverse();
+        for r in records {
+            if let Ok(e) = serde_json::from_value::<AuditEntry>(r) {
                 out.push(e);
                 if out.len() >= limit {
                     return Ok(out);
