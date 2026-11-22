@@ -10,6 +10,7 @@
 | --- | --- |
 | Scheduling, scope, dependencies, decisions, risks | This document |
 | Locked v1 decisions (Show Answer, note mastery, left-handed, Print Studio per-page options, navigation, tuner) | [requirements-v1.md](requirements-v1.md) |
+| Fretboard Mastery placement wizard, directed lesson gates, free review and dashboard behavior | [fretboard-mastery-placement.md](fretboard-mastery-placement.md) |
 | Accounts, storage, sessions, Android layout rules, developer architecture | [architecture.md](architecture.md), [planning-update-04.md](planning-update-04.md) |
 | Approved planning baseline and phases | [planning-update-03.md](planning-update-03.md) |
 | Workspaces, navigation, workspace access and visibility | Workspace Navigation Implementation Plan (Claude Doc) |
@@ -60,7 +61,7 @@
 
 **Planned (architecture approved, not built):**
 
-- Phase 2 learning core: courses (Fretboard Foundations), ADHD-friendly missions, mastery verification and review scheduling, progress, XP, levels, achievements, dashboard tied to real data.
+- Phase 2 learning core: courses (Fretboard Foundations), ADHD-friendly missions, mastery verification and review scheduling, progress, XP, levels, achievements, dashboard tied to real data; per-student Skill Placement Wizard, evidence-based initial unlocks, sequential gated advancement, free access to earlier lessons, and an evolving dashboard Fretboard Mastery navigation block (not a lesson surface). See [fretboard-mastery-placement.md](fretboard-mastery-placement.md).
 - Workspace navigation (selector, Tools group), administrator Workspace Access, student visibility.
 - Guided tours and contextual help.
 - Operating Profiles (Full Studio, Low-Power Field, No-Power Preparation) and the Field Dashboard.
@@ -91,7 +92,7 @@
 | Stage | Contents | Depends on | Student-visible result |
 | --- | --- | --- | --- |
 | **Phase 1** | Hardware verification, fixes, acceptance of existing PRs (#1 to #4, merged in order only on Jason's authorisation) | None | Current app accepted |
-| **Phase 2** | Learning core: courses, missions, mastery verification and reviews, progress, XP, levels, achievements, real-data dashboard, Learning Studio tour; workspace navigation Stages A and B | Phase 1 | Learn, Practice and Progress become real; workspace selector |
+| **Phase 2** | Learning core: courses, missions, per-student placement wizard, directed progression and prerequisite gates, mastery verification and reviews, progress, XP, levels, achievements, real-data dashboard, Learning Studio tour; workspace navigation Stages A and B | Phase 1 | Learn, Practice and Progress become real; workspace selector |
 | **X0** | Shared architectural foundations, as seven milestones (below) | Phase 1; each milestone's own dependencies | None (foundations only) |
 | **X1** | Chord reference tools (Visual Chord Library, Voicing and Alternate Explorers, Compare, Chord Finder); **Print Studio Core**; **Offline Field Library**; **Low-Power Field** and Field Dashboard; Reference workspace opens with its tour | X0.1–X0.5, X0.7; Jason's review of the 18 flagged shapes; Spike C (PDF writer) | Chord tools, printing and Save to PDF, Field mode |
 | **X2** | Songwriting Studio, Arrangement Board, Personal Songbook, Performance Mode; **Expanded Print Studio** (songbooks, lead sheets, lesson worksheets); **field binder**; No-Power Preparation; Play & Create opens with its tour | X0.6, X1; Phase 2 lesson content (for lesson worksheets and binder lessons) | Write, perform and print songs; field binder |
