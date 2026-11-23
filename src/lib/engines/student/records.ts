@@ -7,9 +7,38 @@ import { z } from 'zod';
 import { A4_CHOICES, DEFAULT_A4 } from '../audio/tuner/tuner';
 import { DEFAULT_TUNING_ID } from '../audio/tuner/presets';
 import { MAX_BPM, MIN_BPM } from '../audio/metronome';
+import { DEFAULT_WORKSPACE, WORKSPACE_IDS } from '../workspaces/config';
 
 export const TEXT_SIZES = ['normal', 'large', 'larger'] as const;
 export const PRACTICE_MINUTES = [5, 10, 15, 20, 30, 60] as const;
+
+const workspaceId = z.enum(WORKSPACE_IDS);
+
+export const workspacePreferencesSchema = z.object({
+  /** Workspace opened after sign-in, or the last one used. */
+  startup: z.union([workspaceId, z.literal('last-used')]).catch(DEFAULT_WORKSPACE).default(DEFAULT_WORKSPACE),
+  /** Last workspace the student was in; unknown ids from newer builds are dropped. */
+  lastUsed: workspaceId.nullable().catch(null).default(null),
+  sidebarCollapsed: z.boolean().default(false),
+  /**
+   * "Show in Workspace Dropdown" switches. A missing entry means shown.
+   * Entries for workspaces this build doesn't know are dropped, so a newer
+   * build's preferences never stop an older one from signing in.
+   */
+  shown: z
+    .record(z.string(), z.unknown())
+    .transform((r) => {
+      const out: Partial<Record<(typeof WORKSPACE_IDS)[number], boolean>> = {};
+      for (const id of WORKSPACE_IDS) if (typeof r[id] === 'boolean') out[id] = r[id] as boolean;
+      return out;
+    })
+    .catch({})
+    .default({}),
+});
+export type WorkspacePreferences = z.infer<typeof workspacePreferencesSchema>;
+export function defaultWorkspacePreferences(): WorkspacePreferences {
+  return { startup: DEFAULT_WORKSPACE, lastUsed: null, sidebarCollapsed: false, shown: {} };
+}
 
 export const preferencesSchema = z.object({
   display: z
@@ -54,9 +83,16 @@ export const preferencesSchema = z.object({
       showStreak: z.boolean().default(false),
     })
     .default({ showXp: true, showBadges: true, showStreak: false }),
+  /**
+   * The student's own workspace preferences (version 2, Workspace Navigation
+   * Stage A). Access is NOT stored here: unlocking is decided by administrator
+   * settings and lesson coverage, so a student can't edit it.
+   */
+  workspace: workspacePreferencesSchema.default(defaultWorkspacePreferences()),
 });
 export type Preferences = z.infer<typeof preferencesSchema>;
-export const PREFERENCES_VERSION = 1;
+/** 1: original. 2: adds the `workspace` group. */
+export const PREFERENCES_VERSION = 2;
 export const defaultPreferences = (): Preferences => preferencesSchema.parse({});
 
 export const profileSchema = z.object({
@@ -103,7 +139,18 @@ export interface RecordSpec<T> {
   migrations: Array<(data: unknown) => unknown>;
 }
 
-export const PREFERENCES: RecordSpec<Preferences> = { name: 'preferences', version: PREFERENCES_VERSION, schema: preferencesSchema as z.ZodType<Preferences>, migrations: [] };
+/** Version 1 to 2: add the workspace group with defaults; every other setting is kept as saved. */
+export function migratePreferencesV1toV2(data: unknown): unknown {
+  const prev = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+  return { ...prev, workspace: defaultWorkspacePreferences() };
+}
+
+export const PREFERENCES: RecordSpec<Preferences> = {
+  name: 'preferences',
+  version: PREFERENCES_VERSION,
+  schema: preferencesSchema as z.ZodType<Preferences>,
+  migrations: [migratePreferencesV1toV2],
+};
 export const PROFILE: RecordSpec<Profile> = { name: 'profile', version: PROFILE_VERSION, schema: profileSchema as z.ZodType<Profile>, migrations: [] };
 
 /** Upgrades and validates a stored envelope. Throws on newer or invalid data. */

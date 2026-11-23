@@ -251,7 +251,7 @@ Part of Learning Studio, not Play & Create, because it is structured learning. I
 
 ### Ear-training mastery (its own rule; the locked note-mastery rule is not reused or changed)
 
-Mastery is tracked per item (for example "major 3rd, ascending") with its own configuration, `EAR_MASTERY_CONFIG`, kept in data and internally adjustable like the note rule. Initial values, for Jason's review before implementation:
+Mastery is tracked per item (for example "major 3rd, ascending") with its own configuration, `EAR_MASTERY_CONFIG`, kept in data and internally adjustable like the note rule. **Approved by Jason on 2026-11-23 (decision 18) with these exact values.** Implementation is part of X3 and still needs that stage's authorisation.
 
 | Exercise type | Window | Accuracy | Response-time expectation | Days |
 | --- | --- | --- | --- | --- |
@@ -264,17 +264,19 @@ Mastery is tracked per item (for example "major 3rd, ascending") with its own co
 - Only **first answers** qualify. Replaying the sound before answering is allowed and never penalised; a second try after a wrong answer is good practice but doesn't count as correct.
 - Answers given within 0.3 s of the sound starting are treated as guesses and don't qualify.
 - Mastery is an event in the existing permanent mastery log under the `ear:` skills, so history is never lost.
+- **Accuracy is a whole-number count, not a rounded percentage** (approved 2026-11-23). The required count is the percentage of the window rounded **up**: 85% of 12 is 11 of the last 12 qualifying attempts; 80% of 10 is 8 of 10; 80% of 8 is 7 of 8 (6 of 8 is only 75%). Rhythm: at least 80% of the taps in each of the last 8 attempts, counted the same way, fall inside the window. The engine stores and compares counts, never a rounded figure.
 
 **Accessibility accommodations:**
 
 - **Untimed ear training** (an Accessibility setting the student can turn on, and the administrator can set per student): response time is not measured at all, and mastery is judged on accuracy and days only. The resulting mastery is identical, not a lesser badge.
-- **Wider rhythm windows** (±120 ms) for students with motor difficulties; tap-back accepts any key, a large on-screen button, a touch anywhere or (later) the microphone.
+- **Adjustable rhythm windows up to ±120 ms** for students with motor difficulties; tap-back accepts any key, a large on-screen button, a touch anywhere or (later) the microphone.
+- Students using either accommodation stay fully eligible for learning progression: their mastery opens the next set, counts toward reviews and counts toward lesson coverage exactly like anyone else's (approved 2026-11-23).
 - Unlimited replays, adjustable volume and choice of instrument sound; every question and answer is available to screen readers and the keyboard; feedback never relies on colour alone.
 
 ### Progression and review
 
 - Items are introduced in small sets. The next set opens when 80% of the current set is mastered.
-- Mastered items return for review after 2, 7 and 21 days, mixed into missions. An item that falls below 70% across 5 review attempts goes back to "learning" (its earlier mastery event stays in the history) and gets more practice.
+- Mastered items return for review after 2, 7 and 21 days, mixed into missions. An item that falls below 70% across 5 review attempts (fewer than 4 of 5 correct) goes back to "learning" and gets more practice. Returning an item to learning changes only its forward progression state: it never erases historical mastery events, achievements or XP already earned (approved 2026-11-23).
 - Optional adaptive difficulty adjusts by at most one level at a time from recent accuracy.
 
 ### XP and achievements (anti-farming)
@@ -282,7 +284,8 @@ Mastery is tracked per item (for example "major 3rd, ascending") with its own co
 Ear training uses the existing Phase 2 XP and achievement system (Planning Update 04, Decision 37: Practice XP, Mastery XP, transaction ledger, anti-farming rules). It does not create its own currency.
 
 - **Practice XP per completed mission, not per answer**, and only when the mission reaches at least 60% accuracy with no more than 20% of answers flagged as guesses.
-- **Daily cap** on ear-training Practice XP (initially equal to about six missions). Missions made up only of items already mastered earn a quarter of the normal Practice XP and count toward the cap.
+- **Daily cap** on ear-training Practice XP equal to six missions' worth (approved 2026-11-23). Missions made up only of items already mastered earn a quarter of the normal Practice XP and count toward the cap. The cap limits XP only: it never limits access to lessons, exercises or practice, and a student can keep practising after reaching it.
+- **No missed-day penalties.** Nothing is taken away or reduced for days without practice.
 - **Mastery XP once per item and once per set**, the first time each is mastered. Re-mastering after a lapse earns no new Mastery XP.
 - Replays, retries after a wrong answer, abandoned missions and the Learn More "Try it" examples earn nothing.
 - Achievements are data entries in the existing achievement files (for example "First interval set mastered", "Hears every major and minor triad"), awarded from mastery events, never from repetition counts alone.

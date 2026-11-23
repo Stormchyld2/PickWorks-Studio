@@ -77,12 +77,15 @@ Audio interfaces and MIDI devices are different: audio carries sound, MIDI carri
 
 ## Navigation
 
-The current navigation is locked for v1 (see requirements). New features are **not** added as top-level items. A future grouped structure should distinguish structured learning, guided and independent practice, instrument utilities, musical reference and exploration, audio and performance tools, and progress and personal records. Windows and Android may present it differently. Not yet designed or approved.
+The current sidebar is unchanged. New features are **not** added as top-level items. The grouped structure is now the approved three-workspace design (decisions 1–12, approved 2026-11-23): Learning Studio, Play & Create and Reference, a workspace selector below the logo, and a shared Tools group (Tuner, Metronome). See the Workspaces section of [architecture.md](architecture.md).
+
+- **Stage A, architecture (authorized, no visible change):** workspace configuration and route ownership, the pure `workspaceAccess()` engine, preferences version 2, these docs.
+- **Stage B, navigation (waits for the Project Owner's approval after Windows hardware verification):** the selector (expanded, collapsed rail and collapsed popover layouts from the mockups; the popover stays inside the window, works from the keyboard, closes on Escape, outside click and selection, and never moves the dashboard layout), safe switching, the Tools group, renamed items (My Courses, Fretboard Explorer, My Progress), Achievements kept hidden until Phase 2, the student Workspaces tab, the administrator Workspace Access card and per-student dialog (thresholds validated as whole percentages from 0 to 100), **access enforced on every navigation, not only by hiding sidebar items**, tests and a new .exe.
+- **Stages C and D:** each workspace's foundations and features, per approval.
 
 ## Unresolved decisions
 
 - Release phase and priority of each accepted feature.
-- Grouped navigation structure (Windows and Android).
 - TAB Reader: supported formats (e.g. ASCII tab, Guitar Pro, MusicXML), import methods, playback scope.
 - Guitar Effects: which effects, latency targets, monitoring.
 - MIDI: device classes supported (MIDI guitars, controllers, foot switches) and what they control.
