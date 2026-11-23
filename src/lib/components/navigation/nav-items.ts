@@ -7,6 +7,7 @@ import ChartNoAxesColumn from '@lucide/svelte/icons/chart-no-axes-column';
 import Settings from '@lucide/svelte/icons/settings';
 import CircleQuestionMark from '@lucide/svelte/icons/circle-question-mark';
 import Info from '@lucide/svelte/icons/info';
+import AudioWaveform from '@lucide/svelte/icons/audio-waveform';
 import type { Component } from 'svelte';
 
 export interface NavItem {
@@ -22,6 +23,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { href: '/practice', label: 'Practice', icon: Target },
   { href: '/fretboard', label: 'Fretboard', icon: Grid3x3 },
   { href: '/print', label: 'Print Materials', icon: Printer },
+  { href: '/tuner', label: 'Tuner', icon: AudioWaveform },
   { href: '/progress', label: 'Progress', icon: ChartNoAxesColumn },
 ];
 
