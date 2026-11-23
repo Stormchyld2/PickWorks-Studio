@@ -100,7 +100,13 @@ pub struct Core {
 
 impl Core {
     pub fn open(root: impl Into<std::path::PathBuf>, clock: Clock) -> Result<Self> {
-        Ok(Core { root: DataRoot::new(root)?, clock, session: None })
+        let core = Core { root: DataRoot::new(root)?, clock, session: None };
+        // An installation restore interrupted by a crash is finished first:
+        // rolled back to the complete data from before it (see backup.rs).
+        if let Some(backup::RestoreRecovery::RolledBack { backup }) = backup::recover_interrupted_restore(&core.root)? {
+            core.audit("system", "restore-installation-rolled-back", None, Some(format!("restore from {backup} was interrupted; data from before it was put back")))?;
+        }
+        Ok(core)
     }
 
     pub fn root(&self) -> &DataRoot {

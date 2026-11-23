@@ -8,11 +8,11 @@ Checkpoint written 2026-11-22 by Claude (primary developer). It lets an authoris
 | --- | --- |
 | Repository | `Stormchyld2/PickWorks-Studio` |
 | Working branch | `phase1-storage-accounts` (PR #4) |
-| Last code commit | `7f4d46f` "Fix 1: never lose a log record after an interrupted append" |
+| Last code commits | `7f4d46f` Fix 1 (interrupted log writes); `5d929f2` Fix 2 (all-or-nothing installation restore) |
 | This document | Committed after `7f4d46f`; see `git log -1` |
 | Uncommitted changes | None |
 | `main` | `2710a78`, the initial commit only. Do not modify it. |
-| Open PRs | All four are stacked and unmerged: #1 `milestone-1-foundation`→`main`, #2 `smart-tuner`→#1, #3 `engines-foundation`→#2, #4 `phase1-storage-accounts`→#3 |
+| Open PRs | All unmerged: #1 `milestone-1-foundation`→`main`, #2 `smart-tuner`→#1, #3 `engines-foundation`→#2, #4 `phase1-storage-accounts`→#3, and #5 `chatgpt/dashboard-ui-refinement`→#4 (ChatGPT: dashboard UI and placement architecture docs, based on `40cee66`) |
 | Merges | Only in the order #1→#4, only with checks green, and only on the Project Owner's explicit authorisation |
 
 ## 2. Architecture
@@ -101,26 +101,29 @@ See the [master-roadmap.md](master-roadmap.md) §1 inventory and the audit (`/mn
   - `.damaged` files are diagnostic only, with no UI.
   - Truncation on Windows uses a read-write handle; this has not been exercised on Windows hardware.
 
-## 7. Fix 2: full-install restore atomicity. NOT STARTED, ON HOLD
+## 7. Fix 2: full-install restore atomicity. COMPLETE, pushed in `5d929f2`
 
-Fix 2 is on hold by the Project Owner's instruction. No restore code has been changed. Do not start it without explicit authorisation.
+Authorised by the Project Owner on 2026-11-23.
 
-- **Known failure mechanism:**
-  - `backup::restore_installation` (`src-tauri/core/src/backup.rs`, about line 275) replaces `accounts`, `students` and `application` one after another with `replace_dir`.
-  - A failure or crash between parts leaves a mixed state.
-  - `replace_dir` restores only the part that failed; parts already replaced stay replaced.
-  - A safety backup is taken first in `Core::admin_restore_installation` (`lib.rs`), so manual repair is possible.
-- **Affected files:** `backup.rs` (`restore_installation`, `replace_dir`), `lib.rs` (`Core::open` for crash recovery, `admin_restore_installation`), `tests.rs`.
-- **Recommended approach (proposed to the Project Owner, not yet implemented):**
-  1. Stage all three parts into `<root>/restore-transaction/staged/`, and verify their checksums against the backup's `checksums.json`. A full disk or a damaged file fails here, before anything live is touched.
-  2. Flush the staged files to disk.
-  3. Write a journal (`state: swapping`) with `write_versioned`.
-  4. Swap each part by renaming: live → `previous/<part>`, then staged → live.
-  5. On any error, roll back every part already swapped.
-  6. On success, mark the journal `committed`, then clean up.
-  7. In `Core::open`, finish an interrupted transaction: roll back if the journal says `swapping`, clean up if `committed` or if there is no journal. Record the recovery in the audit log.
-  8. Keep the existing safety backup.
-  9. Tests use a `#[cfg(test)]` fault-injection point to cover a successful restore, a failure while staging, a failure mid-swap (rolled back), and a simulated crash mid-swap recovered by `restart()`.
+- **Root cause:** `restore_installation` replaced `accounts`, `students` and `application` one after another with `replace_dir`. `replace_dir` put back only the part that failed, so an error or crash after the first part left restored and current data mixed.
+- **Fix** (`backup.rs`, section "Installation restore (all or nothing)"):
+  1. **Stage:** copy all parts into `restore-transaction/staged/`, check the copy against the backup's checksums, and flush it to disk. Live data is untouched if this fails.
+  2. **Swap:** write the journal (`swapping`), then rename live → `previous/` and staged → live. Any error rolls back every part already swapped.
+  3. **Commit:** mark the journal `committed`, then remove the transaction folder, journal first.
+  4. **Recovery:** `Core::open` calls `recover_interrupted_restore`. It rolls back a `swapping` journal and audits `restore-installation-rolled-back`; it cleans up otherwise.
+  5. The safety backup is unchanged. `restore_student` (single folder, `replace_dir`) was not changed.
+- **Files:** `src-tauri/core/src/backup.rs`, `lib.rs` (`Core::open`), `storage.rs` (`sync_dir` made crate-visible), `tests.rs`.
+- **Tests added (4, covering 16 fault points):**
+  - `a_restore_that_fails_part_way_leaves_the_data_exactly_as_it_was`
+  - `a_restore_interrupted_by_a_crash_is_rolled_back_when_the_app_reopens`
+  - `a_crash_while_staging_or_after_commit_never_mixes_data`
+  - `a_backup_damaged_after_listing_is_refused_before_anything_changes`
+  - Fault injection is `backup::fault`, compiled only for tests. The two swap tests were confirmed to fail against the old sequential logic.
+- **Remaining risks:**
+  - Durability of renames on NTFS relies on the filesystem, because directory flush is unix-only.
+  - The staging copy needs free space equal to the backup size. Running out of space is caught while staging, but there is no up-front free-space message.
+  - Single-student restore still uses `replace_dir`, which is safe for a single folder: it puts that folder back on error. A crash mid-copy, though, leaves a `.restoring-old` folder that nothing recovers automatically.
+  - Not yet exercised on Windows hardware.
 
 ## 8. Development commands
 
@@ -149,15 +152,15 @@ Windows CI: `.github/workflows/ci.yml` runs on every push. The "Windows app buil
 ## 10. Known blockers
 
 - Windows hardware verification of Phase 1 (audio, idle timeout, throttling, UAC recovery, accessibility, backup edge cases).
-- Remaining audit findings G-05 to G-16, plus Fix 2 (audit G-04), which is on hold.
+- Remaining audit findings G-05 to G-16. G-03 and G-04 are fixed by Fix 1 and Fix 2.
 - Architecture v1.0 freeze conditions: R2 confirmed, the roadmap's verification labels corrected, the R6 decisions written into the docs, and the freeze tied to a merged or tagged commit.
 - PRs merge only on explicit authorisation. No tag yet.
 
 ## 11. Next steps
 
 1. Wait for the Project Owner's authorisation. Nothing is in progress.
-2. If Fix 2 is authorised, follow §7 on `phase1-storage-accounts` as its own commit, run all of §8, push, and report.
-3. Independent review of Fix 1 (`7f4d46f`) by ChatGPT, as the Project Owner intends.
+2. Independent review of Fix 1 (`7f4d46f`) and Fix 2 (`5d929f2`) by ChatGPT, as the Project Owner intends.
+3. Claude reviews PR #5 (ChatGPT's branch) before it is merged into #4, per the return-handoff rule in §12.
 
 ## 12. Rules for a temporary backup developer
 
