@@ -161,6 +161,18 @@ const primaries = rows.filter((r) => r.role === 'primary');
 const alternatives = rows.filter((r) => r.role === 'alternative');
 
 describe('approved chord manifest', () => {
+  it('is the approved 85-shape manifest: 74 primaries and 11 alternatives', () => {
+    expect(rows).toHaveLength(85);
+    expect(primaries).toHaveLength(74);
+    expect(alternatives).toHaveLength(11);
+  });
+
+  it('lists exactly the shapes whose qualities the production engine cannot check yet', () => {
+    const unsupported = rows.filter((r) => r.id !== 'am-over-g' && !(parseName(r.name).suffix in APP_QUALITY)).map((r) => r.name);
+    // These need maj9, m9, 13 and 7#9 added to the theory engine (X0.2) before the full library is released.
+    expect(unsupported.sort()).toEqual(['Cm9', 'Cmaj9', 'E7#9', 'G13']);
+  });
+
   it('has unique ids, one primary per entry and alternatives that point at a primary', () => {
     expect(new Set(rows.map((r) => r.id)).size).toBe(rows.length);
     expect(primaries.map((r) => Number(r.n))).toEqual(primaries.map((_, i) => i + 1));

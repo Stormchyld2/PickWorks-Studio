@@ -17,6 +17,16 @@ He also approved the other fingering choices proposed earlier, keeping useful al
 
 **This is data only.** The chord catalog pipeline (X0.3, chord Stage 1) is not part of this change and has not started. The app still ships the original 27 shapes unchanged.
 
+## Before the full library is released
+
+These must happen before students see the full library:
+
+1. **Four chord qualities need integration into the production engine.** Cmaj9, Cm9, G13 and E7#9 use the maj9, m9, 13 and 7#9 qualities, which the app's theory engine (`engines/music-theory/chords.ts`) doesn't have yet. Their data is checked by this manifest's own test, but not yet by the app's `validateShape()`. Those qualities must be added (X0.2, theory additions), and the four shapes must pass `validateShape()`, before they can be released. A test lists exactly these four, so a fifth can't slip in unnoticed.
+2. **Visual verification by the Project Owner.** It happens once the Chord Finder and Visual Chord Library show the shapes in the app.
+3. **The chord catalog pipeline (X0.3) is authorised and built.** Until then the app ships only the 27 production shapes, which this change leaves untouched. A test checks that they match the manifest exactly.
+
+Programmatic validation (this file and its test) is not the same as user verification of diagrams and playability. A shape counts as user-verified only after step 2.
+
 ## How to read the file
 
 - Strings run from low E (string 6) to high E (string 1).
