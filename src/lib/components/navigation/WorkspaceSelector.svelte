@@ -83,6 +83,15 @@
     else hide(a.returnFocus);
   }
 
+  /**
+   * Moves the list to the end of <body> while it is open, so no sidebar
+   * scroll area, stacking order or effect can clip it or put it behind the page.
+   */
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node);
+    return { destroy: () => node.remove() };
+  }
+
   function onWindowPointer(e: PointerEvent) {
     if (!open) return;
     const t = e.target as Node;
@@ -120,6 +129,7 @@
   {#if open}
     <ul
       bind:this={list}
+      use:portal
       id="{uid}-list"
       class="menu"
       role="listbox"

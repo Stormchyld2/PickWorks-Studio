@@ -73,3 +73,14 @@ Windows 10 and 11 already include the WebView2 runtime the app needs.
 - [ ] At the smallest window (1280 wide) and maximised, the two columns line up, nothing overlaps and the Quick Action names fit inside their tiles.
 - [ ] Collapse the sidebar on the dashboard: the cards widen and still line up.
 
+
+## Round 4 (Workspace Navigation Stage B)
+- [ ] Student sidebar: **Workspace: Learning Studio** selector under the logo; items read Dashboard, My Courses, Practice, Fretboard Explorer, My Progress, Print Materials; a **Tools** group holds Tuner and Metronome; no Achievements item.
+- [ ] Click the selector: the list opens under it, shows only Learning Studio with a tick and "More workspaces will appear here as they're ready", and the dashboard does not move. Escape, a click outside and choosing Learning Studio each close it.
+- [ ] Keyboard only: Tab to the selector, Down Arrow opens it, Up/Down/Home/End move, Enter chooses, Escape closes and puts focus back on the selector.
+- [ ] Collapse the sidebar: the selector becomes an icon; clicking it opens the list beside the rail, fully inside the window, also at the smallest window size and with Larger text.
+- [ ] Open the Metronome from Tools: only Metronome is highlighted (not Practice).
+- [ ] Settings › **Workspaces**: Start in, Remember the last workspace, Keep the sidebar collapsed (sidebar collapses straight away and stays collapsed after signing out and back in), Learning Studio can't be hidden, Play & Create and Reference say "Not available yet".
+- [ ] Admin › Settings › **Workspace Access**: turn Unlock All on and off and Automatic Learning Unlock off and on; each change appears in the Audit Log; students still see only Learning Studio.
+- [ ] Admin › Student Management: the new **Workspace access** button opens the dialog for that student; Play & Create and Reference say "Not available yet".
+- [ ] A student's lessons, XP, progress and settings are unchanged after all of the above.
