@@ -9,6 +9,24 @@ The full plan, with decisions and roadmap, lives in the project document "PickWo
 - **Components draw; engines decide.** The `Fretboard` component renders highlights and emits selections. Whether a selection is correct is decided by the performance evaluator.
 - **No fake progress.** Screens not yet built say so and name the milestone that delivers them.
 
+## Fretboard Mastery placement and progression (Phase 2 design)
+
+The per-student first-use Skill Placement Wizard, evidence-based placement, sequential lesson gates, free review of earlier unlocked lessons, independent free exploration and dashboard-as-navigation contract are specified in [fretboard-mastery-placement.md](fretboard-mastery-placement.md). Placement is distinct from mastery; the existing locked note-mastery rule remains unchanged. Engines enforce access, UI displays derived state, and student data persists through the Rust ownership boundary. **This is approved architecture, not an implemented feature or authorization to code it.**
+
+## Shared learning engine contracts and orchestration — Wave 1
+
+Build engines as pure TypeScript modules with stable typed contracts; reuse the existing lesson, practice, performance, mastery, fretboard and Chord System implementations rather than building parallel engines. A coordinating application/service layer may compose engine results, but avoid circular imports or Svelte/Tauri dependencies inside pure engines.
+
+- Define stable curriculum, lesson, skill, question and evidence IDs and versioned schemas. Assessment observations pass through established performance-evaluation seams. Separate background self-report, observed evidence, placement, unlock access, earned completion, XP and note mastery.
+- A curriculum prerequisite graph and evidence sufficiency rules drive adaptive placement and progression. Per-skill evidence can be collected from compatible fretboard, chord, theory and practice activities without granting unrelated mastery or unlocks. The same engine framework should be reusable for other instruments via instrument-specific curricula and item banks.
+- Shared read contracts supply derived skill profile, placement, next lesson, gaps, review needs and lesson access to Dashboard/Learn/Practice/Progress. No screen owns progression decisions.
+- The administrator's per-student/per-curriculum **Open All Lessons** (distinct from the workspace setting Unlock All Workspaces) is an auditable, revocable **access override**. Grants are written only by the Rust core from an administrator session, stored with the account data rather than in the student's folder, and combined with evidence by the single curriculum engine; it never manufactures completion, XP or mastery. Revoke back to legitimately earned access. See [fretboard-mastery-placement.md](fretboard-mastery-placement.md) for storage, enforcement and how placement counts toward workspace unlocks.
+- Wave 1 builds/test engines and persistence/authorization seams first; placement wizard, Admin controls and full UI wiring follow. The specifically authorised Wave 1 work is described in [master-roadmap.md](master-roadmap.md).
+
+## Metronome Wave 1 interface and timing
+
+The existing audio/metronome engine remains the single timing authority. Add a compact semicircular track with a pendulum-like dot that moves back and forth above-right of tempo on Windows, synchronized to the actual audio beat, resetting/resting on stop and responding to tempo changes. Respect reduced-motion preferences. Arrange Play/Stop, Tap Tempo, Volume and Time Signature as compact, equal-size 2×2 control blocks beneath the prominent tempo display. On Android adapt the arc placement near tempo and size controls for touch, without clipping or a duplicate clock. Test start/stop, tempo, meter, accents where present, visual/audio sync and responsive layouts.
+
 ## Layers
 
 1. Screens (`src/routes`)

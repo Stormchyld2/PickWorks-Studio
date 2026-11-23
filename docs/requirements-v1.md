@@ -37,3 +37,20 @@ Dashboard, Learn, Practice, Fretboard, Print Materials, Tuner, Progress, then Se
 4. The Virtual Instructor stays an architectural provision (input, evaluation and coaching seams), not an implemented engine.
 
 Spec, document or mockup changes are recorded but do not by themselves authorise code changes.
+
+## Fretboard Mastery placement and directed access (approved 2026-11-22)
+
+- Per-student first-use Skill Placement Wizard: self-report guides a brief practical assessment, but does not itself unlock lessons. A new player may start with fundamentals; experienced students can place ahead only through demonstrated prerequisites.
+- All lessons **earlier than or equal to** the student's verified placement are accessible for review. Lessons **beyond the current unlocked progression** remain locked until required evidence or a verified reassessment qualifies the student. Free note/string/key exploration never unlocks directed lessons.
+- Placement/unlock is not note mastery: do not award mastery, XP or fabricated lesson completions for skipped content. The locked note-mastery rule above is unchanged.
+- Dashboard Fretboard Mastery is an evolving progress and **lesson-navigation** block, never the lesson itself. Instruction, exercises and assessment live in Learn/Practice/Fretboard learning experiences.
+- Detailed behavior, Phase 2 scope and acceptance tests: [fretboard-mastery-placement.md](fretboard-mastery-placement.md). This section records requirements; implementation is authorised only within the Wave 1 scope below (confirmed by the Project Owner, 2026-11-23).
+- Automatic Learning Unlock counts lessons **covered** by verified placement evidence as well as completed lessons; lessons opened only by an administrator override do not count. Coverage is derived, never stored as completion.
+
+## Wave 1 decisions (approved 2026-11-22)
+
+- **Engine-first, interoperable learning foundation:** Build stable, typed interfaces and shared orchestration connecting placement, curriculum/lessons, practice, performance, mastery, fretboard and Chord System. Future theory/instrument modules reuse contracts, not duplicate placement engines. UI wiring follows tested engines.
+- **Adaptive placement:** Three universal, unscored questions cover playing experience, comfortable skills and learning goals. Approximately 5–12 adaptive practical tasks follow (more if needed), with a validated candidate question bank targeting 60–80 items. Evidence and prerequisite coverage—not years playing, chord count, or one miss—determine curriculum placement. All earlier lessons remain accessible; future lessons are gated. Placement never fabricates mastery, XP or completions.
+- **Admin Open All Lessons** (not the workspace setting Unlock All Workspaces): authorized per student and curriculum, audited, revocable, and limited to access; student isolation and legitimate progress are preserved. Admin UI can follow the Wave 1 engine.
+- **Metronome visual and layout:** Windows: small semicircular/half-arc pendulum-dot indicator above-right of tempo, synchronized with audio timing; tempo remains prominent above four compact equal-size blocks in a 2×2 grid: Play/Stop, Tap Tempo, Volume, Time Signature. Android: responsive indicator near tempo and accessible touch controls. Respect reduced motion and preserve existing functionality. No independent visual audio clock.
+- **Wave 1 authorization:** The owner expressly authorized engine foundation/placement development and this metronome UI refinement; no blanket approval for unrelated UI redesigns, merges or roadmap features. Detailed implementation and acceptance tests: [fretboard-mastery-placement.md](fretboard-mastery-placement.md), [architecture.md](architecture.md), [master-roadmap.md](master-roadmap.md).

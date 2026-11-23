@@ -10,6 +10,7 @@
 | --- | --- |
 | Scheduling, scope, dependencies, decisions, risks | This document |
 | Locked v1 decisions (Show Answer, note mastery, left-handed, Print Studio per-page options, navigation, tuner) | [requirements-v1.md](requirements-v1.md) |
+| Fretboard Mastery placement wizard, directed lesson gates, free review and dashboard behavior | [fretboard-mastery-placement.md](fretboard-mastery-placement.md) |
 | Accounts, storage, sessions, Android layout rules, developer architecture | [architecture.md](architecture.md), [planning-update-04.md](planning-update-04.md) |
 | Approved planning baseline and phases | [planning-update-03.md](planning-update-03.md) |
 | Workspaces, navigation, workspace access and visibility | Workspace Navigation Implementation Plan (Claude Doc) |
@@ -60,7 +61,7 @@
 
 **Planned (architecture approved, not built):**
 
-- Phase 2 learning core: courses (Fretboard Foundations), ADHD-friendly missions, mastery verification and review scheduling, progress, XP, levels, achievements, dashboard tied to real data.
+- Phase 2 learning core: courses (Fretboard Foundations), ADHD-friendly missions, mastery verification and review scheduling, progress, XP, levels, achievements, dashboard tied to real data; per-student Skill Placement Wizard, evidence-based initial unlocks, sequential gated advancement, free access to earlier lessons, and an evolving dashboard Fretboard Mastery navigation block (not a lesson surface). See [fretboard-mastery-placement.md](fretboard-mastery-placement.md).
 - Workspace navigation (selector, Tools group), administrator Workspace Access, student visibility.
 - Guided tours and contextual help.
 - Operating Profiles (Full Studio, Low-Power Field, No-Power Preparation) and the Field Dashboard.
@@ -91,7 +92,7 @@
 | Stage | Contents | Depends on | Student-visible result |
 | --- | --- | --- | --- |
 | **Phase 1** | Hardware verification, fixes, acceptance of existing PRs (#1 to #4, merged in order only on Jason's authorisation) | None | Current app accepted |
-| **Phase 2** | Learning core: courses, missions, mastery verification and reviews, progress, XP, levels, achievements, real-data dashboard, Learning Studio tour; workspace navigation Stages A and B | Phase 1 | Learn, Practice and Progress become real; workspace selector |
+| **Phase 2** | Learning core: courses, missions, per-student placement wizard, directed progression and prerequisite gates, mastery verification and reviews, progress, XP, levels, achievements, real-data dashboard, Learning Studio tour; workspace navigation Stages A and B | Phase 1 | Learn, Practice and Progress become real; workspace selector |
 | **X0** | Shared architectural foundations, as seven milestones (below) | Phase 1; each milestone's own dependencies | None (foundations only) |
 | **X1** | Chord reference tools (Visual Chord Library, Voicing and Alternate Explorers, Compare, Chord Finder); **Print Studio Core**; **Offline Field Library**; **Low-Power Field** and Field Dashboard; Reference workspace opens with its tour | X0.1–X0.5, X0.7; Jason's review of the 18 flagged shapes; Spike C (PDF writer) | Chord tools, printing and Save to PDF, Field mode |
 | **X2** | Songwriting Studio, Arrangement Board, Personal Songbook, Performance Mode; **Expanded Print Studio** (songbooks, lead sheets, lesson worksheets); **field binder**; No-Power Preparation; Play & Create opens with its tour | X0.6, X1; Phase 2 lesson content (for lesson worksheets and binder lessons) | Write, perform and print songs; field binder |
@@ -340,6 +341,7 @@ Complexity: **S** (days), **M** (1 to 2 weeks), **L** (several weeks), **XL** (a
 - **D4** Ear Training Studio sits under Learning Studio › Practice.
 - **D5** Field binders: students build their own; administrators build shared binders; student songs in an administrator binder only with explicit, revocable, audited student authorisation.
 - **D7** Spikes stay unauthorised; their evaluation criteria and thresholds are now documented for separate approval.
+- **D8** (2026-11-23) Wave 1 confirmed by Jason: learning engine contracts, the Adaptive Skill Assessment & Placement Engine and the metronome Wave 1 UI are authorised (scope in the Wave 1 section below). Automatic Learning Unlock counts lessons covered by verified placement evidence; the lesson override is named Open All Lessons. Storage and enforcement split (facts stored, access derived; Open All Lessons grants in account data) approved, see fretboard-mastery-placement.md.
 
 **Still open:**
 
@@ -364,6 +366,17 @@ Complexity: **S** (days), **M** (1 to 2 weeks), **L** (several weeks), **XL** (a
 10. **Low-end tablet performance in Low-Power Field.** Requires real reference devices (T6) before restrictions are finalised.
 11. **Backing-track realism** depends on sample libraries that may be scarce, large or unclear in licence. Mitigated by Spike D, licence verification and holding back any style that fails the listening tests.
 12. **Documentation drift** across many documents. Mitigated by this index, the terminology section and a consistency check at each stage.
+
+## Wave 1 owner-approved priority (2026-11-22; supersedes conflicting sequence guidance below)
+
+The owner has explicitly authorised **Wave 1 engine development and the metronome UI change**, subject to the Phase 1 integration/branch safeguards. First audit the actual source and outstanding Phase 1 PRs. Do not merge or overwrite work without approval. The earlier documentation-only restriction does not block this specifically authorised Wave 1 scope.
+
+1. Establish reusable, typed, pure-TypeScript learning contracts and orchestration across curriculum/lessons, assessment/placement, practice, performance, mastery, fretboard, Chord System and future instrument modules. Define stable skill IDs, evidence schemas and access decisions without circular engine imports or duplicate skill records.
+2. Define Fretboard Mastery prerequisite graph and evidence gates alongside the **Adaptive Skill Assessment & Placement Engine**. Three universal background questions route a practical adaptive assessment (~5–12 prompts, more when evidence insufficient). A validated candidate item bank (~60–80) is a Wave 1 target, not a substitute for verification. Per-student placement, prior-lesson access, locked future lessons and per-student/per-curriculum Admin **Open All Lessons** (access only, audited and revocable; distinct from Unlock All Workspaces) are Wave 1 engine deliverables. The full wizard, Admin UI and other learning screens are later integration work. Detailed behavior: [fretboard-mastery-placement.md](fretboard-mastery-placement.md).
+3. **Metronome Wave 1 UI:** On Windows add a compact pendulum-like dot traversing a semicircular/half-arc track above-right of the tempo setting, synchronized to the authoritative audio beat. Make Play/Stop, Tap Tempo, Volume and Time Signature compact **equal-size 2×2 control blocks**, with tempo display above. On Android place the indicator responsively near tempo and preserve touch targets and no overflow. Respect reduced motion; do not create a second audio clock. Preserve existing functions and test synchronization and layout.
+4. Test each engine seam and persistence/authorization behavior before wiring the wizard, dashboard, Learn, Practice, Progress and Admin UI. The metronome redesign can be implemented independently within Wave 1. Preserve Windows-first/Android-later and local JSON/Rust ownership boundaries.
+
+**Sequence note:** The older recommendation immediately below remains historical planning context; this Wave 1 decision takes precedence where its priority/order differs. It does not approve unrelated roadmap features.
 
 ## 9. Recommendation for the next development stage
 
