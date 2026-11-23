@@ -17,6 +17,8 @@
     interactive?: boolean;
     accidentals?: AccidentalPreference;
     label?: string;
+    /** Mirror the drawing for left-handed players. Note identities and theory are unchanged. */
+    leftHanded?: boolean;
     onselect?: (pos: FretPosition) => void;
   }
 
@@ -28,6 +30,7 @@
     interactive = true,
     accidentals = 'sharp',
     label = 'Guitar fretboard',
+    leftHanded = false,
     onselect,
   }: Props = $props();
 
@@ -53,6 +56,13 @@
   function xOf(fret: number): number {
     if (fret === 0) return LABEL_W + OPEN_W / 2;
     return nutX + (fret - firstFretted + 0.5) * FRET_W;
+  }
+  /** Mirrors an x coordinate (or a box starting at x with width w) in left-handed mode. */
+  function mx(x: number): number {
+    return leftHanded ? width - x : x;
+  }
+  function bx(x: number, w: number): number {
+    return leftHanded ? width - x - w : x;
   }
   function yOf(stringNumber: number): number {
     const idx = strings.findIndex((s) => s.number === stringNumber);
@@ -81,8 +91,8 @@
     const map: Record<string, [number, number]> = {
       ArrowUp: [-1, 0],
       ArrowDown: [1, 0],
-      ArrowLeft: [0, -1],
-      ArrowRight: [0, 1],
+      ArrowLeft: [0, leftHanded ? 1 : -1],
+      ArrowRight: [0, leftHanded ? -1 : 1],
     };
     if (e.key in map) {
       e.preventDefault();
@@ -120,28 +130,28 @@
   >
     <!-- fret numbers -->
     {#each frets as f (f)}
-      <text class="fret-num" x={xOf(f)} y={14} text-anchor="middle">{f}</text>
+      <text class="fret-num" x={mx(xOf(f))} y={14} text-anchor="middle">{f}</text>
     {/each}
 
     <!-- board -->
-    <rect class="wood" x={nutX} y={boardTop} width={fretCount * FRET_W} height={boardBottom - boardTop} rx="3" />
+    <rect class="wood" x={bx(nutX, fretCount * FRET_W)} y={boardTop} width={fretCount * FRET_W} height={boardBottom - boardTop} rx="3" />
 
     <!-- inlays -->
     {#each frets as f (f)}
       {#if f > 0 && markerAt(f) === 'single'}
-        <circle class="inlay" cx={xOf(f)} cy={(yOf(strings[2].number) + yOf(strings[3].number)) / 2} r="7" />
+        <circle class="inlay" cx={mx(xOf(f))} cy={(yOf(strings[2].number) + yOf(strings[3].number)) / 2} r="7" />
       {:else if f > 0 && markerAt(f) === 'double'}
-        <circle class="inlay" cx={xOf(f)} cy={(yOf(strings[1].number) + yOf(strings[2].number)) / 2} r="7" />
-        <circle class="inlay" cx={xOf(f)} cy={(yOf(strings[3].number) + yOf(strings[4].number)) / 2} r="7" />
+        <circle class="inlay" cx={mx(xOf(f))} cy={(yOf(strings[1].number) + yOf(strings[2].number)) / 2} r="7" />
+        <circle class="inlay" cx={mx(xOf(f))} cy={(yOf(strings[3].number) + yOf(strings[4].number)) / 2} r="7" />
       {/if}
     {/each}
 
     <!-- fret wires -->
     {#each Array.from({ length: fretCount }, (_, i) => i + 1) as i (i)}
-      <line class="wire" x1={nutX + i * FRET_W} x2={nutX + i * FRET_W} y1={boardTop} y2={boardBottom} />
+      <line class="wire" x1={mx(nutX + i * FRET_W)} x2={mx(nutX + i * FRET_W)} y1={boardTop} y2={boardBottom} />
     {/each}
     {#if hasOpen}
-      <rect class="nut" x={nutX - 6} y={boardTop - 2} width="8" height={boardBottom - boardTop + 4} rx="2" />
+      <rect class="nut" x={bx(nutX - 6, 8)} y={boardTop - 2} width="8" height={boardBottom - boardTop + 4} rx="2" />
     {/if}
 
     <!-- strings + labels -->
@@ -149,14 +159,14 @@
       {@const y = yOf(s.number)}
       {@const focused = focusString === s.number}
       <g class="string-label" class:focused>
-        <rect x="6" y={y - 14} width="34" height="28" rx="8" />
-        <text x="23" y={y + 5} text-anchor="middle">{s.label}</text>
+        <rect x={bx(6, 34)} y={y - 14} width="34" height="28" rx="8" />
+        <text x={mx(23)} y={y + 5} text-anchor="middle">{s.label}</text>
       </g>
       <line
         class="string"
         class:focused
-        x1={hasOpen ? LABEL_W : nutX}
-        x2={nutX + fretCount * FRET_W}
+        x1={mx(hasOpen ? LABEL_W : nutX)}
+        x2={mx(nutX + fretCount * FRET_W)}
         y1={y}
         y2={y}
         stroke-width={0.9 + (s.number - 1) * 0.35}
@@ -170,7 +180,7 @@
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <rect
             class="hit"
-            x={f === 0 ? LABEL_W : xOf(f) - FRET_W / 2}
+            x={bx(f === 0 ? LABEL_W : xOf(f) - FRET_W / 2, f === 0 ? OPEN_W : FRET_W)}
             y={yOf(s.number) - STRING_GAP / 2}
             width={f === 0 ? OPEN_W : FRET_W}
             height={STRING_GAP}
@@ -185,14 +195,14 @@
     {#each highlights as h (`${h.string}:${h.fret}`)}
       {@const text = h.label ?? noteName(resolve(tuning, h).pitchClass, accidentals)}
       <g class="dot {h.variant ?? 'note'}" pointer-events="none">
-        <circle cx={xOf(h.fret)} cy={yOf(h.string)} r="16" />
-        <text x={xOf(h.fret)} y={yOf(h.string) + 5} text-anchor="middle">{text}</text>
+        <circle cx={mx(xOf(h.fret))} cy={yOf(h.string)} r="16" />
+        <text x={mx(xOf(h.fret))} y={yOf(h.string) + 5} text-anchor="middle">{text}</text>
       </g>
     {/each}
 
     <!-- keyboard cursor -->
     {#if interactive && hasFocus}
-      <circle class="cursor" cx={xOf(cursor.fret)} cy={yOf(cursor.string)} r="19" pointer-events="none" />
+      <circle class="cursor" cx={mx(xOf(cursor.fret))} cy={yOf(cursor.string)} r="19" pointer-events="none" />
     {/if}
   </svg>
   {#if interactive}

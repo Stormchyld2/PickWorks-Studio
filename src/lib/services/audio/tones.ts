@@ -4,12 +4,9 @@
  * attack, decaying through a low-pass filter.
  */
 
-let shared: AudioContext | null = null;
-function ctx(): AudioContext {
-  shared ??= new AudioContext();
-  if (shared.state === 'suspended') void shared.resume();
-  return shared;
-}
+import { audioEngine } from './audio-engine';
+
+const ctx = () => audioEngine.context();
 
 export function playReferenceTone(frequency: number, { seconds = 2.5, volume = 0.5 } = {}): void {
   const ac = ctx();
@@ -22,7 +19,7 @@ export function playReferenceTone(frequency: number, { seconds = 2.5, volume = 0
   filter.type = 'lowpass';
   filter.frequency.setValueAtTime(Math.min(8000, frequency * 12), now);
   filter.frequency.exponentialRampToValueAtTime(Math.max(200, frequency * 2), now + seconds);
-  filter.connect(out).connect(ac.destination);
+  filter.connect(out).connect(audioEngine.output());
 
   for (const [type, gain] of [
     ['sawtooth', 0.35],
@@ -52,7 +49,7 @@ export function playInTuneChime(volume = 0.25): void {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(volume, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-    osc.connect(g).connect(ac.destination);
+    osc.connect(g).connect(audioEngine.output());
     osc.start(t);
     osc.stop(t + 0.4);
   });

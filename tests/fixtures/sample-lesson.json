@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "a-string-note-locations",
+  "courseId": "fretboard-foundations",
+  "moduleId": "anchor-notes",
+  "title": "The A String: Note Locations",
+  "objectives": ["Find the natural notes on the A string from fret 0 to 12"],
+  "payoff": "You can find the root of any A-string power chord.",
+  "prerequisites": ["low-e-anchors"],
+  "estimatedMinutes": 8,
+  "steps": [
+    { "kind": "discover", "id": "overview", "title": "A String Overview", "body": "The A string is the 5th string.", "fretboard": { "highlights": [{ "string": 5, "fret": 3 }], "focusString": 5, "range": { "minFret": 0, "maxFret": 12 } } },
+    { "kind": "recall", "id": "find-notes", "title": "Find the notes", "exercise": { "types": ["find-note"], "count": 5, "range": { "minFret": 0, "maxFret": 12 }, "strings": [5], "naturalsOnly": true } },
+    { "kind": "play", "id": "power-chords", "title": "Play it", "body": "Play a power chord rooted on C at the 3rd fret." },
+    { "kind": "review", "id": "wrap-up", "title": "Review", "body": "C, D and E sit at frets 3, 5 and 7." }
+  ],
+  "completion": { "minAccuracy": 0.8 }
+}
