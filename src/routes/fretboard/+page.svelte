@@ -1,5 +1,7 @@
 <script lang="ts">
   import Fretboard from '$lib/components/fretboard/Fretboard.svelte';
+  import { preferences } from '$lib/stores/preferences.svelte';
+  import { page } from '$app/state';
   import type { FretHighlight } from '$lib/components/fretboard/types';
   import {
     allPositions,
@@ -20,10 +22,42 @@
     pitchName,
     type AccidentalPreference,
   } from '$lib/engines/music-theory';
+  import { getChordQuality, spellChord } from '$lib/engines/music-theory/chords';
+  import { SCALES, getScale, spellScale } from '$lib/engines/music-theory/scales';
+  import { parseSpelling, spellingToPitchClass } from '$lib/engines/music-theory/notes';
+  import { scalePositions } from '$lib/engines/fretboard/scale-positions';
+  import { STARTER_CHORDS, analyzeShape, chordDiagram } from '$lib/engines/chords';
+  import ChordDiagram from '$lib/components/chord/ChordDiagram.svelte';
 
-  type Mode = 'notes' | 'intervals';
+  type Mode = 'notes' | 'chords' | 'scales' | 'intervals';
+  type Labels = 'notes' | 'intervals';
 
-  let mode = $state<Mode>('notes');
+  // Chords: the provisional starter shapes, grouped by chord type in library order.
+  const chordGroups = [...new Set(STARTER_CHORDS.map((c) => c.quality))].map((q) => ({
+    name: getChordQuality(q).name,
+    shapes: STARTER_CHORDS.filter((c) => c.quality === q),
+  }));
+  const ROOTS = ['C', 'C#', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  // ?chord=e-minor-open (dashboard "Try This") preselects a shape.
+  const askedChord = page.url.searchParams.get('chord');
+  let chordId = $state(STARTER_CHORDS.some((c) => c.id === askedChord) ? askedChord! : STARTER_CHORDS[0].id);
+  let scaleRoot = $state('A');
+  let scaleId = $state('minor-pentatonic');
+  let labels = $state<Labels>('notes');
+  let diagramLabels = $state<'fingers' | 'notes' | 'intervals'>('fingers');
+
+  const chord = $derived(STARTER_CHORDS.find((c) => c.id === chordId) ?? STARTER_CHORDS[0]);
+  const chordInfo = $derived(analyzeShape(chord, STANDARD_TUNING));
+  const chordName = (c: (typeof STARTER_CHORDS)[number]) => analyzeShape(c, STANDARD_TUNING).symbol.replace('b', '♭').replace('#', '♯') + (c.voicing ? ` (${c.voicing})` : '');
+  const diagram = $derived(chordDiagram(chord, STANDARD_TUNING, { leftHanded: preferences.value.display.leftHanded, labels: diagramLabels }));
+  const scale = $derived(getScale(scaleId));
+  const scaleRootPc = $derived(spellingToPitchClass(parseSpelling(scaleRoot)));
+  const scaleNotes = $derived(scale.degrees ? spellScale(parseSpelling(scaleRoot), scale) : null);
+
+  // ?mode=chords etc. (dashboard links) opens a tab directly.
+  const MODES: Mode[] = ['notes', 'chords', 'scales', 'intervals'];
+  const asked = page.url.searchParams.get('mode') as Mode | null;
+  let mode = $state<Mode>(asked && MODES.includes(asked) ? asked : 'notes');
   let maxFret = $state(12);
   let accidentals = $state<AccidentalPreference>('sharp');
   let showAll = $state(false);
@@ -35,6 +69,22 @@
 
   const highlights = $derived.by<FretHighlight[]>(() => {
     const out: FretHighlight[] = [];
+    if (mode === 'chords') {
+      for (const n of chordInfo.notes) {
+        if (n.fret === null) continue;
+        out.push({ string: n.string, fret: n.fret, label: (labels === 'notes' ? n.name : n.interval) ?? undefined, variant: n.interval === 'R' ? 'root' : 'note' });
+      }
+      return out;
+    }
+    if (mode === 'scales') {
+      const names = scaleNotes;
+      for (const p of scalePositions(STANDARD_TUNING, scaleRootPc, scale, range)) {
+        const i = scale.labels.indexOf(p.label);
+        const label = labels === 'intervals' ? p.label : names && i >= 0 ? names[i] : noteName(p.pitchClass, accidentals);
+        out.push({ string: p.string, fret: p.fret, label, variant: p.isRoot ? 'root' : 'note' });
+      }
+      return out;
+    }
     if (mode === 'intervals' && info) {
       for (const p of allPositions(STANDARD_TUNING, range)) {
         const iv = intervalInfo(info.pitchClass, p.pitchClass);
@@ -72,8 +122,8 @@
   </div>
   <div class="tabs" role="tablist" aria-label="Overlay">
     <button role="tab" aria-selected={mode === 'notes'} class:active={mode === 'notes'} onclick={() => (mode = 'notes')}>Notes</button>
-    <button role="tab" aria-selected="false" disabled title="Arrives with the chords course (Phase 2)">Chords</button>
-    <button role="tab" aria-selected="false" disabled title="Arrives with the scales course (Phase 3)">Scales</button>
+    <button role="tab" aria-selected={mode === 'chords'} class:active={mode === 'chords'} onclick={() => (mode = 'chords')}>Chords</button>
+    <button role="tab" aria-selected={mode === 'scales'} class:active={mode === 'scales'} onclick={() => (mode = 'scales')}>Scales</button>
     <button role="tab" aria-selected={mode === 'intervals'} class:active={mode === 'intervals'} onclick={() => (mode = 'intervals')}>Intervals</button>
   </div>
 </header>
@@ -82,8 +132,31 @@
   <div class="board-meta">
     <span>{STANDARD_TUNING.name} (E A D G B E) · Frets 0 – {maxFret}</span>
     <div class="controls">
-      <label><input type="checkbox" bind:checked={showAll} disabled={mode === 'intervals'} /> All notes</label>
-      <label><input type="checkbox" bind:checked={showOccurrences} disabled={mode === 'intervals'} /> Every occurrence</label>
+      {#if mode === 'chords'}
+        <select bind:value={chordId} aria-label="Chord">
+          {#each chordGroups as g (g.name)}
+            <optgroup label={g.name}>
+              {#each g.shapes as c (c.id)}<option value={c.id}>{chordName(c)}</option>{/each}
+            </optgroup>
+          {/each}
+        </select>
+      {:else if mode === 'scales'}
+        <select bind:value={scaleRoot} aria-label="Scale root">
+          {#each ROOTS as r (r)}<option value={r}>{r.replace('b', '♭').replace('#', '♯')}</option>{/each}
+        </select>
+        <select bind:value={scaleId} aria-label="Scale">
+          {#each SCALES as sc (sc.id)}<option value={sc.id}>{sc.name}</option>{/each}
+        </select>
+      {:else}
+        <label><input type="checkbox" bind:checked={showAll} disabled={mode === 'intervals'} /> All notes</label>
+        <label><input type="checkbox" bind:checked={showOccurrences} disabled={mode === 'intervals'} /> Every occurrence</label>
+      {/if}
+      {#if mode === 'chords' || mode === 'scales'}
+        <select bind:value={labels} aria-label="Labels">
+          <option value="notes">Note names</option>
+          <option value="intervals">Intervals</option>
+        </select>
+      {/if}
       <select bind:value={accidentals} aria-label="Accidentals">
         <option value="sharp">Sharps (♯)</option>
         <option value="flat">Flats (♭)</option>
@@ -96,16 +169,52 @@
     </div>
   </div>
   <Fretboard
+    leftHanded={preferences.value.display.leftHanded}
     {range}
     {highlights}
     {accidentals}
-    focusString={selected?.string ?? null}
+    focusString={mode === "chords" || mode === "scales" ? null : (selected?.string ?? null)}
     onselect={(p) => (selected = p)}
     label="Interactive fretboard explorer"
   />
 </section>
 
-{#if info}
+{#if mode === 'chords'}
+  <section class="theory" aria-live="polite">
+    <div class="card diagram">
+      <ChordDiagram {diagram} width={200} />
+      <select bind:value={diagramLabels} aria-label="Diagram labels">
+        <option value="fingers">Fingers</option>
+        <option value="notes">Note names</option>
+        <option value="intervals">Intervals</option>
+      </select>
+    </div>
+    <div class="card stat wide">
+      <div class="eyebrow">Chord</div>
+      <div class="big">{chordInfo.symbol.replace('b', '♭').replace('#', '♯')}</div>
+      <div class="muted">{getChordQuality(chord.quality).name}{chord.voicing ? ` · ${chord.voicing}` : ''}</div>
+      <div class="tones">
+        {#each spellChord(parseSpelling(chord.root), getChordQuality(chord.quality)) as n, i (i)}
+          <span class="pw-pill">{n.replace('b', '♭').replace('#', '♯')} <small>{getChordQuality(chord.quality).labels[i]}</small></span>
+        {/each}
+      </div>
+      <p class="muted small">Provisional starter set: {STARTER_CHORDS.length} shapes for testing. The full chord library is still to be reviewed.</p>
+    </div>
+  </section>
+{:else if mode === 'scales'}
+  <section class="theory" aria-live="polite">
+    <div class="card stat wide">
+      <div class="eyebrow">Scale</div>
+      <div class="big">{scaleRoot.replace('b', '♭').replace('#', '♯')} {scale.name}</div>
+      <div class="tones">
+        {#each scale.labels as l, i (l + i)}
+          <span class="pw-pill">{scaleNotes ? scaleNotes[i].replace('b', '♭').replace('#', '♯') : noteName(((scaleRootPc + scale.intervals[i]) % 12) as typeof scaleRootPc, accidentals)} <small>{l}</small></span>
+        {/each}
+      </div>
+      <p class="muted small">Every place the scale's notes fall from fret 0 to {maxFret}. Root notes are highlighted.</p>
+    </div>
+  </section>
+{:else if info}
   <section class="details" aria-live="polite">
     <div class="card stat">
       <div class="eyebrow">Note</div>
@@ -131,6 +240,12 @@
 {/if}
 
 <style>
+  .theory { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+  .diagram { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .wide { flex: 1; min-width: 320px; }
+  .tones { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+  .tones small { color: var(--pw-text-muted); margin-left: 4px; }
+  .small { font-size: 0.88rem; margin: 10px 0 0; }
   .head {
     display: flex;
     justify-content: space-between;

@@ -121,6 +121,8 @@ export function submitAnswer(
     sessionId: s.id,
     lessonId: s.config.lessonId,
     revealed: s.revealed.includes(ex.id) || undefined,
+    context: s.config.assessment ? 'assessment' : s.config.lessonId ? 'lesson' : 'practice',
+    evidence: 'objective',
   };
   const result: PracticeResult = { exercise: ex, evaluation, feedback: feedbackFor(ex, evaluation, timedOut, !!s.config.assessment), attempt };
   return { session: { ...s, results: [...s.results, result] }, result };

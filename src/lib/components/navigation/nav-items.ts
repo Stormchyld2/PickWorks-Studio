@@ -8,6 +8,10 @@ import Settings from '@lucide/svelte/icons/settings';
 import CircleQuestionMark from '@lucide/svelte/icons/circle-question-mark';
 import Info from '@lucide/svelte/icons/info';
 import AudioWaveform from '@lucide/svelte/icons/audio-waveform';
+import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
+import Users from '@lucide/svelte/icons/users';
+import DatabaseBackup from '@lucide/svelte/icons/database-backup';
+import ScrollText from '@lucide/svelte/icons/scroll-text';
 import type { Component } from 'svelte';
 
 export interface NavItem {
@@ -33,6 +37,28 @@ export const SECONDARY_NAV: NavItem[] = [
   { href: '/about', label: 'About', icon: Info },
 ];
 
+/** Administrator sidebar (approved 2026-11-21). Sign Out is a button below these. */
+export const ADMIN_PRIMARY_NAV: NavItem[] = [
+  { href: '/admin', label: 'Administration Dashboard', icon: LayoutDashboard },
+  { href: '/admin/students', label: 'Student Management', icon: Users },
+  { href: '/admin/backups', label: 'Backups & Restore', icon: DatabaseBackup },
+  { href: '/admin/audit', label: 'Audit Log', icon: ScrollText },
+];
+
+export const ADMIN_SECONDARY_NAV: NavItem[] = [
+  { href: '/admin/settings', label: 'Settings', icon: Settings },
+  { href: '/help', label: 'Help', icon: CircleQuestionMark },
+  { href: '/about', label: 'About', icon: Info },
+];
+
+/** Pages each kind of account may open. */
+export function allowedFor(kind: 'student' | 'admin', pathname: string): boolean {
+  const adminArea = pathname === '/admin' || pathname.startsWith('/admin/');
+  if (kind === 'student') return !adminArea;
+  return adminArea || pathname === '/help' || pathname === '/about';
+}
+
 export function isActive(href: string, pathname: string): boolean {
-  return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/');
+  if (href === '/' || href === '/admin') return pathname === href;
+  return pathname === href || pathname.startsWith(href + '/');
 }

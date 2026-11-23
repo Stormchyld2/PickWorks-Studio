@@ -20,10 +20,21 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  core:
+    name: Native core tests (storage, accounts)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: cargo test --manifest-path src-tauri/Cargo.toml -p pickworks-core
+
   windows:
     name: Windows app build
     runs-on: windows-latest
-    needs: web
+    needs: [web, core]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,12 +46,11 @@ jobs:
         with:
           workspaces: src-tauri
       - run: npm ci
-      - run: cargo test --manifest-path src-tauri/Cargo.toml
-      - run: npm run tauri build
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --workspace
+      # Plain .exe for hardware testing; the installer comes later.
+      - run: npm run tauri build -- --no-bundle
       - uses: actions/upload-artifact@v4
         with:
-          name: pickworks-studio-windows
-          path: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
-          if-no-files-found: warn
+          name: pickworks-studio-windows-exe
+          path: src-tauri/target/release/pickworks-studio.exe
+          if-no-files-found: error

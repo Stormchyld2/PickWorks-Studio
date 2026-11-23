@@ -2,9 +2,15 @@
   import { page } from '$app/state';
   import PanelLeftClose from '@lucide/svelte/icons/panel-left-close';
   import PanelLeftOpen from '@lucide/svelte/icons/panel-left-open';
+  import LogOut from '@lucide/svelte/icons/log-out';
   import { PRIMARY_NAV, SECONDARY_NAV, isActive, type NavItem } from './nav-items';
 
-  let { collapsed = $bindable(false) }: { collapsed?: boolean } = $props();
+  let {
+    collapsed = $bindable(false),
+    primary = PRIMARY_NAV,
+    secondary = SECONDARY_NAV,
+    onsignout,
+  }: { collapsed?: boolean; primary?: NavItem[]; secondary?: NavItem[]; onsignout?: () => void } = $props();
 </script>
 
 {#snippet link(item: NavItem)}
@@ -24,8 +30,8 @@
 <nav class="sidebar" class:collapsed aria-label="Main">
   <div class="brand">
     {#if collapsed}
-      <!-- Collapsed navigation uses the approved pick icon only. -->
-      <img src="/branding/pickworks-icon.png" alt="PickWorks Studio" class="icon" />
+      <!-- The pick icon is reserved for the app icon, taskbar and launcher, so collapsed navigation shows no logo. -->
+      <span class="sr-only">PickWorks Studio</span>
     {:else}
       <!-- Expanded navigation uses the approved logo only, never the icon beside it. -->
       <img src="/branding/pickworks-logo.png" alt="PickWorks Studio" class="logo" />
@@ -34,13 +40,21 @@
   </div>
 
   <ul>
-    {#each PRIMARY_NAV as item (item.href)}<li>{@render link(item)}</li>{/each}
+    {#each primary as item (item.href)}<li>{@render link(item)}</li>{/each}
   </ul>
 
   <div class="spacer"></div>
 
   <ul class="secondary">
-    {#each SECONDARY_NAV as item (item.href)}<li>{@render link(item)}</li>{/each}
+    {#each secondary as item (item.href)}<li>{@render link(item)}</li>{/each}
+    {#if onsignout}
+      <li>
+        <button class="nav-link signout" onclick={onsignout} title={collapsed ? 'Sign Out' : undefined}>
+          <LogOut size={24} aria-hidden="true" />
+          {#if !collapsed}<span>Sign Out</span>{/if}
+        </button>
+      </li>
+    {/if}
   </ul>
 
   <button
@@ -84,10 +98,15 @@
     max-width: 232px;
     height: auto;
   }
-  .icon {
-    width: 44px;
-    height: 44px;
-    object-fit: contain;
+  .collapsed .brand {
+    min-height: 44px;
+  }
+  .signout {
+    width: 100%;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    text-align: left;
   }
   .tagline {
     margin-top: 2px;
@@ -111,7 +130,8 @@
     align-items: center;
     gap: 14px;
     min-height: 48px;
-    padding: 0 16px;
+    padding: 6px 16px;
+    line-height: 1.2;
     border-radius: var(--pw-radius-sm);
     color: var(--pw-text);
     text-decoration: none;

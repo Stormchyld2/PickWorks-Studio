@@ -102,3 +102,64 @@ Made before more features build on them. Engine-level only; no new screens or fe
 5. **Input sources**: `direct-input` and `midi` observation sources and a `midi-note` observation, kept separate from audio.
 
 Later, not now: moving audio capture to an AudioWorklet when recording or effects are approved (the current frame interface stays the same).
+
+## Android (phones and tablets)
+
+Approved requirement (2026-11-22): Android ships for phones and tablets with layouts chosen by window width (below 600 px compact, 600–839 px intermediate, 840 px and up desktop/tablet), from the same shared app. See "Android phones and tablets" in [architecture.md](architecture.md). First step when Android work begins: the shared responsive shell, tested on real devices, before device-specific refinements.
+
+## Phase 2: guided tours and contextual help (approved architecture, 2026-11-22)
+
+Not built until authorised. Full rules: [guided-tours.md](guided-tours.md).
+
+- Three tours: the Learning Studio tour on a student's first successful sign-in after account setup, and the Play & Create and Reference tours on the first entry to each.
+- Each tour launches automatically once per student, only when its workspace is implemented, accessible and not hidden, and never during an active lesson, assessment, recording or practice session.
+- Balloons have a title, one or two sentences, a step indicator ("3 of 8"), Next, Back, Skip Tour and Learn More. Skipping dismisses the tour for future automatic launches.
+- Learn More opens a help modal with a fuller explanation, how to use it, an example, an optional screenshot, Try It Now where a working feature exists, and Return to Tour. It always returns to the same step. Try It Now never awards XP, completes lessons or changes mastery.
+- The proposed 9-step Learning Studio tour (Welcome, My Courses, Practice, Fretboard Explorer, My Progress, Tuner, Metronome, Workspace Selector, Profile and Settings) is shortened when features are missing. No fake controls.
+- Tours can be replayed any time from a Guided Tours section in Help, without touching progress, XP, achievements or mastery. Feature-specific tutorials use the same system and start from Help only.
+- Tracking is per student and per workspace in the student's own data: tutorial id, workspace id, status (never shown, in progress, completed, skipped), last step, content version and whether the auto-launch happened. Updates never re-launch a completed or skipped tour.
+- Full keyboard, screen-reader, focus, reduced-motion, text-scaling, high-contrast and touch support. Balloons sit beside controls on Windows and tablets, compact popups or bottom sheets on phones.
+- Tour interaction counts as activity for the idle timeout.
+- Timing: the Learning Studio tour is built in Phase 2 once the main learning screens exist; the other two follow when their workspaces get working features.
+
+## Unified diagram rendering (architecture decision, 2026-11-22; scheduled at X0.7)
+
+Not built until authorised. Full plan: [notation-rendering.md](notation-rendering.md).
+
+- Chord diagrams, scale diagrams, fretboard exercises and blank printable fretboards are all generated as SVG from data. No stored PNG or JPG per diagram, fully offline.
+- The chord manifest is the single source of truth; lessons, practice and printables refer to shapes by id, so one correction updates every use.
+- Reuses the existing chord layout engine and `ChordDiagram`, the `Fretboard` neck renderer, scale placement and the print worksheet layout; extends them with shape metadata, transposition for movable shapes, five display modes (Basic, Beginner Fingering, Note Names, Intervals, Print), richer accessible descriptions, scale box diagrams and one shared neck layout for screen and print.
+- Right- and left-handed throughout; works with any tuning definition.
+
+## Chord system (architecture, 2026-11-22; scheduled at X0.3 and X1)
+
+Not built until authorised. Full plan with acceptance criteria and tests: [chord-system.md](chord-system.md).
+
+1. Expandable chord catalog: CSV authoring, build-time import to a bundled JSON catalog, stable ids, multiple voicings per chord, movable shapes and tunings, automated validation kept separate from human review (review resets if a shape changes), chord packs, no size limit.
+2. Searchable Visual Chord Library in Fretboard Explorer's Chords tab: live search by name, symbol, alias and quality; level, family, root and tuning filters; detail view with fingers, fret numbers, note names and intervals; left-handed.
+3. Voicing Explorer (every validated voicing of the selected chord, beginner shapes first) and Alternate Chord Explorer (extensions, suspended, inversions and slash chords, and context-dependent substitutions, each explained).
+4. Reverse Chord Finder ("What chord am I playing?"): build a chord on the fretboard and get ranked, explained candidates from chord formulas, including inversions, slash chords and chords not in the catalog.
+5. Integration with lessons, practice, Compare Chords and printing, all by shape id.
+
+## After Phase 2: creative workstation (architecture, 2026-11-22)
+
+Not built until authorised. Full plan: [creative-workstation.md](creative-workstation.md); shared song model: [composition-model.md](composition-model.md); transport: [transport-timing.md](transport-timing.md); Android: [android-platform.md](android-platform.md).
+
+The order first proposed here (stages 0 to 7) is **superseded** by the approved X0–X7 roadmap in [master-roadmap.md](master-roadmap.md).
+
+## Operating Profiles (architecture, 2026-11-22)
+
+Not built until authorised. Full plan: [operating-profiles.md](operating-profiles.md).
+
+- Administrator-selected, installation-wide: Full Studio, Low-Power Field (Field Dashboard, reduced visuals, MIDI and recording loaded only on use, administrator overrides), No-Power Preparation (Offline Field Library and Print/Export Center; MIDI and recording never initialised; clear notice that the app still needs power).
+- A separate capability layer: never changes data, progress, XP, mastery or workspace access; one shared set of engines and files.
+- Capability layer at X0.4 (after workspace navigation Stage B); Low-Power Field at X1; No-Power Preparation with Expanded Print Studio at X2. Every restriction is kept only if measurements show it saves CPU, memory, startup time or battery.
+
+## Master roadmap (2026-11-22)
+
+The consolidated feature inventory, feature cards and dependency-aware roadmap (Phase 1, Phase 2, then expansion stages X0 to X7) are in [master-roadmap.md](master-roadmap.md). It is the **authoritative planning index**, approved by Jason as the working development plan on 2026-11-22, and supersedes the earlier provisional post-Phase-2 order. It adds the Rhythm & Strumming Studio, Ear Training Studio, Melody & Harmony Assistant and Instrument & Tuning Manager, and moves Print Studio (Core at X1, Expanded from X2) and the Offline Field Library to stages X1 and X2. Ear Training Studio sits under Learning Studio › Practice with its own mastery rule.
+
+## Offline Backing Track Generator and Arrangement Studio (architecture, 2026-11-22)
+
+Approved addition to the product scope, architecture only. Full plan: [backing-track-generator.md](backing-track-generator.md); scheduling in [master-roadmap.md](master-roadmap.md) (X0.6 representation, X3 inputs and style schema, X4 playback and mixing, X6 the generator, X7 more styles). It expands accepted concept 26 (Backing Tracks) and answers its open question: tracks are **generated** offline from the song's harmony, not bundled audio, with every sound licensed for offline redistribution. An arrangement layer over the existing engines (no second model, transport, progression generator or audio engine); four styles first (rock, blues, pop, folk/acoustic), judged by listening tests.
+

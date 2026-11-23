@@ -1,10 +1,7 @@
 <script lang="ts">
-  import PlannedScreen from '$lib/components/ui/PlannedScreen.svelte';
+  import ComingSoon from '$lib/components/ui/ComingSoon.svelte';
 </script>
 
-<PlannedScreen
-  title="Learn"
-  milestone={4}
-  summary="Course catalog, modules and missions for Fretboard Foundations, with resume for unfinished lessons."
-  items={['Course and module list', 'Mission screen (approved mockup B)', 'Resume where you left off']}
-/>
+<ComingSoon title="Learn" message="Your lessons are coming soon. In the meantime, explore the fretboard.">
+  <a class="pw-btn primary" href="/fretboard">Open Fretboard Explorer</a>
+</ComingSoon>

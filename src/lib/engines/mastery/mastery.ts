@@ -1,5 +1,5 @@
 import type { SkillDimension } from '../practice/exercises';
-import { DEFAULT_MASTERY_CONFIG, type Attempt, type MasteryConfig } from './attempts';
+import { countsTowardGate, DEFAULT_MASTERY_CONFIG, isObjective, type Attempt, type MasteryConfig } from './attempts';
 
 export type SkillStatus = 'new' | 'learning' | 'weak' | 'mastered';
 
@@ -37,7 +37,8 @@ export function skillStats(
   now: Date = new Date(),
 ): SkillStats {
   // Revealed answers stay in the rolling window but never count as a recall.
-  const mine = attempts.filter((a) => a.skillKey === skillKey).sort((a, b) => a.at.localeCompare(b.at));
+  // Guided and self-assessed results are history only, never proficiency.
+  const mine = attempts.filter((a) => a.skillKey === skillKey && isObjective(a)).sort((a, b) => a.at.localeCompare(b.at));
   const dimension = mine[0]?.dimension ?? 'fretboard';
   const window = mine.slice(-config.windowAttempts);
   const correctInWindow = window.filter((a) => a.correct && !a.revealed);
@@ -159,4 +160,18 @@ export function progressSummary(attempts: readonly Attempt[], sessionDurationsMs
     practiceDays,
     currentStreakDays: streak,
   };
+}
+
+/**
+ * Current proficiency (skillStats) counts all objective attempts. Curriculum
+ * gates use only lesson, assessment and placement evidence, so free practice
+ * alone can never unlock a gate (product rule 3).
+ */
+export function gateStats(
+  skillKey: string,
+  attempts: readonly Attempt[],
+  config: MasteryConfig = DEFAULT_MASTERY_CONFIG,
+  now: Date = new Date(),
+): SkillStats {
+  return skillStats(skillKey, attempts.filter(countsTowardGate), config, now);
 }
