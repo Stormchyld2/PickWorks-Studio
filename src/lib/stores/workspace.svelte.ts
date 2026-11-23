@@ -13,7 +13,7 @@ import { session } from '$lib/services/session';
 import { DEFAULT_WORKSPACE, workspaceById, type WorkspaceId } from '$lib/engines/workspaces/config';
 import { fallbackWorkspace, startupWorkspace, visibleWorkspaces, type WorkspaceAccess } from '$lib/engines/workspaces/access';
 import { accessFrom } from '$lib/engines/workspaces/facts';
-import { guardPath } from '$lib/engines/workspaces/navigation';
+import { guardPath, mustLeaveWorkspace, selectorWorkspaces } from '$lib/engines/workspaces/navigation';
 import { auth } from './auth.svelte';
 import { preferences } from './preferences.svelte';
 
@@ -42,6 +42,11 @@ class WorkspaceStore {
   get visible(): WorkspaceId[] {
     const a = this.access;
     return a ? visibleWorkspaces(a) : [DEFAULT_WORKSPACE];
+  }
+
+  /** Workspaces in the selector: the visible ones, plus the current one while the student is in a hidden one. */
+  get listed(): WorkspaceId[] {
+    return selectorWorkspaces(this.access, this.current);
   }
 
   /** Called after a student signs in (and preferences have loaded). Returns the start-up address. */
@@ -99,7 +104,7 @@ class WorkspaceStore {
    * student hasn't chosen to switch anyway.
    */
   async switchTo(id: WorkspaceId, force = false): Promise<{ switched: boolean; unsaved: string[] }> {
-    if (!this.visible.includes(id)) return { switched: false, unsaved: [] };
+    if (!this.listed.includes(id)) return { switched: false, unsaved: [] };
     session.activity();
     if (id === this.current) {
       await goto(workspaceById(id).home);
@@ -116,12 +121,14 @@ class WorkspaceStore {
 
   /**
    * After the student hides workspaces or access changes: if the current
-   * workspace is no longer visible, move to Learning Studio (or the next
-   * visible workspace). Returns the new home address when a move is needed.
+   * workspace is no longer open, or the student has just hidden it, move to
+   * Learning Studio (or the next visible workspace). A workspace that was
+   * already hidden and reached by a link stays current. Returns the new home
+   * address when a move is needed.
    */
-  settle(): string | null {
+  settle(previouslyVisible: readonly WorkspaceId[]): string | null {
     const a = this.access;
-    if (!a || this.visible.includes(this.current)) return null;
+    if (!a || !mustLeaveWorkspace(a, this.current, previouslyVisible)) return null;
     this.current = fallbackWorkspace(a, this.current);
     void this.rememberLastUsed(this.current);
     return workspaceById(this.current).home;

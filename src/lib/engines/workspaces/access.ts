@@ -221,3 +221,8 @@ export function startupWorkspace(
   if (wanted && visibleWorkspaces(access).includes(wanted)) return wanted;
   return fallbackWorkspace(access, wanted ?? undefined);
 }
+
+/** True for text an administrator typed that is a whole percentage from 0 to 100. */
+export function isWholePercent(text: string): boolean {
+  return /^\d{1,3}$/.test(text.trim()) && Number(text) <= 100;
+}

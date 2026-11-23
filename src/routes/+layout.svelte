@@ -5,7 +5,7 @@
   import { page } from '$app/state';
   import Sidebar from '$lib/components/navigation/Sidebar.svelte';
   import { ADMIN_PRIMARY_NAV, ADMIN_SECONDARY_NAV, SECONDARY_NAV, TOOLS_NAV, allowedFor, workspaceNav } from '$lib/components/navigation/nav-items';
-  import { ownerOfPath } from '$lib/engines/workspaces/config';
+  import { ownerOfPath, type WorkspaceId } from '$lib/engines/workspaces/config';
   import { workspace } from '$lib/stores/workspace.svelte';
   import AccountScreens from '$lib/components/account/AccountScreens.svelte';
   import ProfileChip from '$lib/components/account/ProfileChip.svelte';
@@ -112,13 +112,15 @@
   });
 
   // When the student hides the workspace they're in (or it stops being
-  // available), move to Learning Studio, or the next visible workspace.
+  // available), move to Learning Studio, or the next visible workspace. A
+  // workspace that was already hidden and reached by a link is not left.
+  let previouslyVisible: WorkspaceId[] = [];
   $effect(() => {
     if (!signedIn || kind !== 'student') return;
-    const visible = workspace.visible.join(',');
+    const visible = workspace.visible;
     untrack(() => {
-      void visible;
-      const home = workspace.settle();
+      const home = workspace.settle(previouslyVisible);
+      previouslyVisible = [...visible];
       const owner = ownerOfPath(page.url.pathname);
       if (home && owner.kind === 'workspace' && owner.workspace !== workspace.current) void goto(home);
     });

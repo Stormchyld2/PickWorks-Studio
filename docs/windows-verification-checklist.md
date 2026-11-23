@@ -82,5 +82,6 @@ Windows 10 and 11 already include the WebView2 runtime the app needs.
 - [ ] Open the Metronome from Tools: only Metronome is highlighted (not Practice).
 - [ ] Settings › **Workspaces**: Start in, Remember the last workspace, Keep the sidebar collapsed (sidebar collapses straight away and stays collapsed after signing out and back in), Learning Studio can't be hidden, Play & Create and Reference say "Not available yet".
 - [ ] Admin › Settings › **Workspace Access**: turn Unlock All on and off and Automatic Learning Unlock off and on; each change appears in the Audit Log; students still see only Learning Studio.
+- [ ] **Unlock thresholds**: change Beginner to 70 and Intermediate to 40 and Save Thresholds; the sentence above them updates and the Audit Log shows it. Typing 101, -1 or 50.5 shows an error and Save stays off. Use Defaults puts back 80 and 50. Sign out and in: the saved values remain.
 - [ ] Admin › Student Management: the new **Workspace access** button opens the dialog for that student; Play & Create and Reference say "Not available yet".
 - [ ] A student's lessons, XP, progress and settings are unchanged after all of the above.

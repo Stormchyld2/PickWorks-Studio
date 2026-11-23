@@ -41,3 +41,28 @@ export function guardPath(pathname: string, access: readonly WorkspaceAccess[] |
       : `${name} isn't open for your profile yet. Your administrator decides which workspaces you can use.`;
   return { allow: false, workspace: target, redirect: workspaceById(target).home, message };
 }
+
+/**
+ * The workspaces listed in the selector. Normally the visible ones. When the
+ * student is in a workspace they have hidden but may still use (they followed
+ * a link into it), it is listed too while they are there, so the selector
+ * shows where they are. Their hide setting is not changed.
+ */
+export function selectorWorkspaces(access: readonly WorkspaceAccess[] | null, current: WorkspaceId): WorkspaceId[] {
+  if (!access) return [DEFAULT_WORKSPACE];
+  const visible = access.filter((a) => a.state === 'visible').map((a) => a.id);
+  if (visible.includes(current) || !isAvailable(access, current)) return visible;
+  return access.map((a) => a.id).filter((id) => id === current || visible.includes(id));
+}
+
+/**
+ * Whether the student must leave the current workspace: it is no longer open
+ * to them, or they have just hidden it (it was visible before this change).
+ * Being in a workspace that was already hidden (reached by a link) is fine.
+ */
+export function mustLeaveWorkspace(access: readonly WorkspaceAccess[] | null, current: WorkspaceId, previouslyVisible: readonly WorkspaceId[]): boolean {
+  if (!access || current === DEFAULT_WORKSPACE) return false;
+  if (!isAvailable(access, current)) return true;
+  const nowVisible = access.some((a) => a.id === current && a.state === 'visible');
+  return !nowVisible && previouslyVisible.includes(current);
+}

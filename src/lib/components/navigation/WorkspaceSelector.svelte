@@ -27,7 +27,7 @@
   const uid = `ws-${Math.random().toString(36).slice(2, 8)}`;
 
   const current = $derived(workspaceById(workspace.current));
-  const options = $derived(workspace.visible.map((id) => workspaceById(id)));
+  const options = $derived(workspace.listed.map((id) => workspaceById(id)));
   const CurrentIcon = $derived(WORKSPACE_ICONS[workspace.current]);
 
   function place() {

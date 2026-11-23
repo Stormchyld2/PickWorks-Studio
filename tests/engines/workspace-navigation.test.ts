@@ -5,8 +5,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import { WORKSPACES, type WorkspaceDefinition } from '$lib/engines/workspaces/config';
-import { DEFAULT_ADMIN_WORKSPACE_SETTINGS, workspaceAccess, type WorkspaceAccessInput } from '$lib/engines/workspaces/access';
-import { guardPath } from '$lib/engines/workspaces/navigation';
+import { DEFAULT_ADMIN_WORKSPACE_SETTINGS, isWholePercent, workspaceAccess, type WorkspaceAccessInput } from '$lib/engines/workspaces/access';
+import { guardPath, mustLeaveWorkspace, selectorWorkspaces } from '$lib/engines/workspaces/navigation';
 import { accessFrom, NO_LESSONS } from '$lib/engines/workspaces/facts';
 import { LEARNING_STUDIO_NAV, SECONDARY_NAV, TOOLS_NAV, activeHref, allowedFor, workspaceNav } from '$lib/components/navigation/nav-items';
 import { COLLAPSED_POPOVER_WIDTH, POPOVER_MARGIN, popoverPosition } from '$lib/components/navigation/popover';
@@ -274,5 +274,69 @@ describe('administrator and student permissions (preview core)', () => {
     expect(await core.readRecord(s.token, 'preferences')).toBeNull();
     expect(await core.readLog(s.token, 'attempts')).toEqual([]);
     expect(await core.readLog(s.token, 'mastery-events')).toEqual([]);
+  });
+});
+
+describe('hidden but open workspaces (once more than one workspace is built)', () => {
+  const granted = (shown: WorkspaceAccessInput['shown']) => built({ studentGrants: ['play-create', 'reference'], shown });
+
+  it('lets an authorised link open a hidden workspace', () => {
+    expect(guardPath('/create/songbook', granted({ 'play-create': false }), 'learning-studio')).toEqual({ allow: true, workspace: 'play-create' });
+  });
+
+  it('shows the hidden workspace in the selector only while the student is in it', () => {
+    const a = granted({ 'play-create': false });
+    expect(selectorWorkspaces(a, 'learning-studio')).toEqual(['learning-studio', 'reference']);
+    expect(selectorWorkspaces(a, 'play-create')).toEqual(['learning-studio', 'play-create', 'reference']);
+  });
+
+  it('never changes the hide setting when revealing it', () => {
+    const shown = { 'play-create': false };
+    const a = granted(shown);
+    selectorWorkspaces(a, 'play-create');
+    expect(shown).toEqual({ 'play-create': false });
+    expect(a.find((x) => x.id === 'play-create')?.state).toBe('hidden');
+  });
+
+  it('keeps the student in a hidden workspace they reached by a link', () => {
+    const a = granted({ 'play-create': false });
+    expect(mustLeaveWorkspace(a, 'play-create', ['learning-studio', 'reference'])).toBe(false);
+  });
+
+  it('moves the student out when they hide the workspace they are in', () => {
+    const a = granted({ 'play-create': false });
+    expect(mustLeaveWorkspace(a, 'play-create', ['learning-studio', 'play-create', 'reference'])).toBe(true);
+  });
+
+  it('keeps locked and unbuilt workspaces out of reach and out of the selector', () => {
+    const locked = built({ shown: {} });
+    expect(guardPath('/create', locked).allow).toBe(false);
+    expect(selectorWorkspaces(locked, 'play-create')).toEqual(['learning-studio']);
+    expect(mustLeaveWorkspace(locked, 'play-create', ['learning-studio', 'play-create'])).toBe(true);
+    const real = accessFrom(facts({ unlockAll: true }), { 'play-create': false });
+    expect(selectorWorkspaces(real, 'play-create')).toEqual(['learning-studio']);
+  });
+
+  it('never moves the student out of Learning Studio, and lists only it before access loads', () => {
+    expect(mustLeaveWorkspace(granted({ 'learning-studio': false }), 'learning-studio', ['learning-studio'])).toBe(false);
+    expect(selectorWorkspaces(null, 'play-create')).toEqual(['learning-studio']);
+  });
+});
+
+describe('administrator threshold input', () => {
+  it('accepts whole percentages from 0 to 100 only', () => {
+    for (const ok of ['0', '50', '80', '100', ' 7 ']) expect(isWholePercent(ok), ok).toBe(true);
+    for (const bad of ['', '101', '-1', '50.5', '1e2', 'abc', '1000']) expect(isWholePercent(bad), bad).toBe(false);
+  });
+
+  it('saves edited thresholds through the core and audits them', async () => {
+    const core = createPreviewCore();
+    await core.setupAdmin('Admin', 'admin-pass-1');
+    const admin = await core.signInAdmin('admin-pass-1');
+    const base = await core.adminWorkspaceSettings(admin.token);
+    await core.adminSetWorkspaceSettings(admin.token, { ...base, beginnerLessonsPercent: 70, intermediateLessonsPercent: 40 });
+    expect(await core.adminWorkspaceSettings(admin.token)).toMatchObject({ beginnerLessonsPercent: 70, intermediateLessonsPercent: 40 });
+    expect((await core.adminRecentAudit(admin.token, 1))[0].action).toBe('workspace-access-changed');
+    await expect(core.adminSetWorkspaceSettings(admin.token, { ...base, intermediateLessonsPercent: 101 })).rejects.toThrow();
   });
 });

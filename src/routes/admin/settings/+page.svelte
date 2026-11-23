@@ -20,6 +20,7 @@
   import { platform, printPage } from '$lib/services/platform';
   import type { StudentAdminView, WorkspaceAccessSettings } from '$lib/services/core-client';
   import { DEFAULT_WORKSPACE, WORKSPACES } from '$lib/engines/workspaces/config';
+  import { isWholePercent } from '$lib/engines/workspaces/access';
 
   let dialog = $state<'password' | 'key' | { delete: StudentAdminView } | null>(null);
   let current = $state('');
@@ -72,6 +73,41 @@
       input.checked = !input.checked;
     }
   }
+  // Editable unlock thresholds: whole percentages 0 to 100, saved together with Save.
+  let beginnerPct = $state('');
+  let intermediatePct = $state('');
+  let thresholdsSaved = $state(false);
+  $effect(() => {
+    if (wsSettings && beginnerPct === '' && intermediatePct === '') {
+      beginnerPct = String(wsSettings.beginnerLessonsPercent);
+      intermediatePct = String(wsSettings.intermediateLessonsPercent);
+    }
+  });
+  const pctValid = isWholePercent;
+  const thresholdsValid = $derived(pctValid(beginnerPct) && pctValid(intermediatePct));
+  const thresholdsChanged = $derived(
+    !!wsSettings && thresholdsValid && (Number(beginnerPct) !== wsSettings.beginnerLessonsPercent || Number(intermediatePct) !== wsSettings.intermediateLessonsPercent),
+  );
+  async function saveThresholds(e: SubmitEvent) {
+    e.preventDefault();
+    if (!wsSettings || !thresholdsValid) return;
+    const next = { ...($state.snapshot(wsSettings) as WorkspaceAccessSettings), beginnerLessonsPercent: Number(beginnerPct), intermediateLessonsPercent: Number(intermediatePct) };
+    wsError = '';
+    thresholdsSaved = false;
+    try {
+      await admin.act((t) => backend.adminSetWorkspaceSettings(t, next), []);
+      wsSettings = next;
+      thresholdsSaved = true;
+    } catch (err) {
+      wsError = friendlyError(err);
+    }
+  }
+  function resetThresholds() {
+    beginnerPct = '80';
+    intermediatePct = '50';
+    thresholdsSaved = false;
+  }
+
   function toggleNewProfile(id: string, on: boolean) {
     return (s: WorkspaceAccessSettings) => {
       s.newProfileWorkspaces = on ? [...s.newProfileWorkspaces.filter((x) => x !== id), id] : s.newProfileWorkspaces.filter((x) => x !== id);
@@ -147,6 +183,24 @@
         <h3>All students</h3>
         <label class="toggle"><input type="checkbox" checked={ws.unlockAll} onchange={(e) => saveWorkspaceAccess((s) => (s.unlockAll = e.currentTarget.checked), e.currentTarget)} /><span><b>Unlock All Workspaces for Students</b><br /><span class="muted">Opens every finished workspace for every student now.</span></span></label>
         <label class="toggle"><input type="checkbox" checked={ws.automaticLearningUnlock} onchange={(e) => saveWorkspaceAccess((s) => (s.automaticLearningUnlock = e.currentTarget.checked), e.currentTarget)} /><span><b>Automatic Learning Unlock</b><br /><span class="muted">Opens the other workspaces for a student who has covered {ws.beginnerLessonsPercent}% of Beginner lessons and {ws.intermediateLessonsPercent}% of Intermediate lessons, by completing them or through placement.</span></span></label>
+        <form class="thr" onsubmit={saveThresholds} aria-labelledby="thr-h">
+          <h4 id="thr-h">Unlock thresholds</h4>
+          <div class="thr-row">
+            <label for="thr-b">Beginner lessons covered</label>
+            <span class="pct"><input id="thr-b" type="number" inputmode="numeric" min="0" max="100" step="1" value={beginnerPct} oninput={(e) => ((beginnerPct = e.currentTarget.value), (thresholdsSaved = false))} aria-invalid={!pctValid(beginnerPct)} aria-describedby="thr-help" />%</span>
+          </div>
+          <div class="thr-row">
+            <label for="thr-i">Intermediate lessons covered</label>
+            <span class="pct"><input id="thr-i" type="number" inputmode="numeric" min="0" max="100" step="1" value={intermediatePct} oninput={(e) => ((intermediatePct = e.currentTarget.value), (thresholdsSaved = false))} aria-invalid={!pctValid(intermediatePct)} aria-describedby="thr-help" />%</span>
+          </div>
+          <p id="thr-help" class="muted small">Whole numbers from 0 to 100. Defaults: 80% and 50%. Changes apply to every student at once, counted from the lessons each has covered. They never change lessons, placement, XP or mastery. Until the lesson system arrives with Phase 2, no student can reach these thresholds, so changing them has no effect yet.</p>
+          {#if !thresholdsValid}<div class="pw-note error" role="alert"><CircleAlert size={18} /> <span>Enter a whole number from 0 to 100 for each threshold.</span></div>{/if}
+          {#if thresholdsSaved && !thresholdsChanged}<div class="pw-note ok" role="status"><CircleCheck size={18} /> <span>Thresholds saved. The change is in the Audit Log.</span></div>{/if}
+          <div class="thr-actions">
+            <button type="button" class="pw-btn" onclick={resetThresholds}>Use Defaults</button>
+            <button type="submit" class="pw-btn primary" disabled={!thresholdsChanged}>Save Thresholds</button>
+          </div>
+        </form>
       </div>
       <div>
         <h3>New student profiles start with</h3>
@@ -254,5 +308,12 @@
   .wsl small { color: var(--pw-text-muted); font-size: 0.85rem; }
   .wsl li.na { opacity: 0.7; border-style: dashed; }
   .wsl input { width: 22px; height: 22px; accent-color: var(--pw-primary); }
-  @media (max-width: 839.98px) { .wsa { grid-template-columns: 1fr; } }
+  .thr { margin: 6px 0 0 32px; padding: 14px 16px; border: 1px solid var(--pw-border-strong); border-radius: 12px; background: var(--pw-bg-raised); }
+  .thr h4 { margin: 0 0 8px; font-size: 0.98rem; }
+  .thr-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; }
+  .pct { display: inline-flex; align-items: center; gap: 6px; }
+  .pct input { width: 76px; padding: 8px 10px; border-radius: var(--pw-radius-sm); border: 1px solid var(--pw-border-strong); background: var(--pw-surface); color: var(--pw-text); font: inherit; text-align: right; }
+  .pct input[aria-invalid='true'] { border-color: var(--pw-amber); }
+  .thr-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+  @media (max-width: 839.98px) { .thr { margin-left: 0; } .wsa { grid-template-columns: 1fr; } }
 </style>
