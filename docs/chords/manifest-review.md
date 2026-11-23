@@ -13,6 +13,8 @@ Jason approved chord decisions 13–16 and the 75-shape manifest on 2026-11-23. 
 
 He also approved the other fingering choices proposed earlier, keeping useful alternatives. The approved data is in [chord-manifest.csv](chord-manifest.csv).
 
+**Verification status: validated programmatically only, NOT user-verified.** No screen in the app shows the full library yet, so nobody has checked these shapes by eye. Visual verification by the Project Owner happens once the Chord Finder and Visual Chord Library exist. The `review` column records approval of the decisions, not visual verification.
+
 **This is data only.** The chord catalog pipeline (X0.3, chord Stage 1) is not part of this change and has not started. The app still ships the original 27 shapes unchanged.
 
 ## How to read the file
