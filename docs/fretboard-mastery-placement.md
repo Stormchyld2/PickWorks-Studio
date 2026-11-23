@@ -75,7 +75,7 @@ Not covered:
 - An administrator can still use Unlock All Workspaces or a per-student workspace override regardless of coverage.
 - If evidence later declines, already-unlocked workspaces stay unlocked. Workspace unlocks are never taken back automatically, matching the "recommend review, never relock earned access" rule above.
 
-## Storage and enforcement (proposed 2026-11-23, needs owner approval)
+## Storage and enforcement (approved by the Project Owner, 2026-11-23)
 
 **Principle: store facts, derive access.** No stored list of unlocked lessons exists to drift, contradict or be restored out of date. Access is always computed from three kinds of stored facts:
 
@@ -166,7 +166,6 @@ Wave 1 order: inspect existing engine APIs; define contracts; implement prerequi
 
 - Exact course lesson IDs, prerequisite graph and stage completion gates.
 - Adaptive placement item bank, evidence sufficiency, assessment duration and how to handle mixed skills.
-- Approval of the proposed storage and enforcement split (section above).
 - How lessons completed while Open All Lessons was active contribute to later prerequisite gates (proposal: a completed lesson counts like any completion, because completion has its own evidence gate).
 - Whether reassessment is launched from Progress, Settings, Learn or multiple places.
 - Student-facing explanation and remediation for a failed placement gate.

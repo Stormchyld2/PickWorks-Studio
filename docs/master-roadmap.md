@@ -341,7 +341,7 @@ Complexity: **S** (days), **M** (1 to 2 weeks), **L** (several weeks), **XL** (a
 - **D4** Ear Training Studio sits under Learning Studio › Practice.
 - **D5** Field binders: students build their own; administrators build shared binders; student songs in an administrator binder only with explicit, revocable, audited student authorisation.
 - **D7** Spikes stay unauthorised; their evaluation criteria and thresholds are now documented for separate approval.
-- **D8** (2026-11-23) Wave 1 confirmed by Jason: learning engine contracts, the Adaptive Skill Assessment & Placement Engine and the metronome Wave 1 UI are authorised (scope in the Wave 1 section below). Automatic Learning Unlock counts lessons covered by verified placement evidence; the lesson override is named Open All Lessons. Storage and enforcement split proposed in fretboard-mastery-placement.md, pending approval.
+- **D8** (2026-11-23) Wave 1 confirmed by Jason: learning engine contracts, the Adaptive Skill Assessment & Placement Engine and the metronome Wave 1 UI are authorised (scope in the Wave 1 section below). Automatic Learning Unlock counts lessons covered by verified placement evidence; the lesson override is named Open All Lessons. Storage and enforcement split (facts stored, access derived; Open All Lessons grants in account data) approved, see fretboard-mastery-placement.md.
 
 **Still open:**
 
