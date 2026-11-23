@@ -164,6 +164,8 @@ Wave 1 order: inspect existing engine APIs; define contracts; implement prerequi
 
 ## Open implementation decisions
 
+These are now numbered in the "Phase 2 decisions and Wave 1 plan" document (2026-11-23): graph and gates (P2), item bank and evidence sufficiency (P3), lessons completed under Open All Lessons (P7), reassessment entry point (P8) and whether workspace unlocks earned by learning stay when an administrator raises a threshold (P11). None is decided until Jason answers.
+
 - Exact course lesson IDs, prerequisite graph and stage completion gates.
 - Adaptive placement item bank, evidence sufficiency, assessment duration and how to handle mixed skills.
 - How lessons completed while Open All Lessons was active contribute to later prerequisite gates (proposal: a completed lesson counts like any completion, because completion has its own evidence gate).
