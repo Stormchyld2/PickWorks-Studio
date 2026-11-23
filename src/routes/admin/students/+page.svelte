@@ -9,6 +9,7 @@
   import Camera from '@lucide/svelte/icons/camera';
   import Info from '@lucide/svelte/icons/info';
   import CircleAlert from '@lucide/svelte/icons/circle-alert';
+  import LayoutGrid from '@lucide/svelte/icons/layout-grid';
   import PageHead from '$lib/components/admin/PageHead.svelte';
   import Dialog from '$lib/components/ui/Dialog.svelte';
   import Avatar from '$lib/components/account/Avatar.svelte';
@@ -17,7 +18,8 @@
   import { formatDate, toAvatarDataUrl } from '$lib/components/admin/format';
   import { admin } from '$lib/stores/admin.svelte';
   import { backend } from '$lib/services/backend';
-  import type { StudentAdminView } from '$lib/services/core-client';
+  import type { StudentAdminView, WorkspaceAccessSettings } from '$lib/services/core-client';
+  import { DEFAULT_WORKSPACE, WORKSPACES } from '$lib/engines/workspaces/config';
 
   type Mode = { kind: 'add' } | { kind: 'rename' | 'reset' | 'picture'; s: StudentAdminView } | null;
   let mode = $state<Mode>(null);
@@ -76,6 +78,38 @@
 
   const quick = (fn: (t: string) => Promise<unknown>) => admin.act(fn).catch((e) => (loadError = friendlyError(e)));
 
+  // Per-student workspace access (approved mockup 10).
+  let wsFor = $state<StudentAdminView | null>(null);
+  let wsGrants = $state<string[]>([]);
+  let wsAll = $state<WorkspaceAccessSettings | null>(null);
+  function openWorkspaces(s: StudentAdminView) {
+    wsFor = s;
+    wsGrants = [...(s.workspaceGrants ?? [])];
+    error = '';
+    admin.act((t) => backend.adminWorkspaceSettings(t), []).then((v) => (wsAll = v)).catch(() => (wsAll = null));
+  }
+  function grantHint(id: string): string {
+    if (wsAll?.unlockAll) return 'Unlocked for all students';
+    if (wsGrants.includes(id)) return 'Opened for this student';
+    return 'Locked unless opened here, for all students, or by Automatic Learning Unlock';
+  }
+  async function saveWorkspaces() {
+    const s = wsFor;
+    if (!s) return;
+    busy = true;
+    error = '';
+    try {
+      await admin.act((t) => backend.adminSetStudentWorkspaces(t, s.id, wsGrants));
+      wsFor = null;
+    } catch (e) {
+      error = friendlyError(e);
+    } finally {
+      busy = false;
+    }
+  }
+  const grantable = WORKSPACES.filter((w) => w.id !== DEFAULT_WORKSPACE);
+  const anyGrantable = grantable.some((w) => w.implemented);
+
   function status(s: StudentAdminView): { label: string; cls: string } {
     if (s.status === 'archived') return { label: 'Archived', cls: '' };
     if (s.status === 'deactivated') return { label: 'Deactivated', cls: '' };
@@ -110,6 +144,7 @@
                 {:else}
                   <button class="icon" title="Rename" aria-label="Rename {s.displayName}" onclick={() => open({ kind: 'rename', s })}><Pencil size={18} /></button>
                   <button class="icon" title="Profile picture" aria-label="Profile picture for {s.displayName}" onclick={() => open({ kind: 'picture', s })}><Camera size={18} /></button>
+                  <button class="icon" title="Workspace access" aria-label="Workspace access for {s.displayName}" onclick={() => openWorkspaces(s)}><LayoutGrid size={18} /></button>
                   <button class="icon" title="Reset password" aria-label="Reset password for {s.displayName}" onclick={() => open({ kind: 'reset', s })}><KeyRound size={18} /></button>
                   {#if s.lockedForSecs > 0}
                     <button class="icon amber" title="Clear sign-in delay" aria-label="Clear sign-in delay for {s.displayName}" onclick={() => quick((t) => backend.adminUnlock(t, s.id))}><LockOpen size={18} /></button>
@@ -130,6 +165,37 @@
     <span>Archiving hides a student from the profile screen and keeps all their records. Password resets never change progress, mastery or history. Permanent deletion is under Settings › Maintenance and asks for confirmation. Every change here is written to the Audit Log.</span>
   </div>
 </section>
+
+{#if wsFor}
+  {@const who = wsFor}
+  <Dialog title={`Workspace Access for ${who.displayName}`} onclose={() => (wsFor = null)}>
+    <p class="muted">Open a workspace for this student only. It doesn't change their lessons, XP, mastery or progress, or the settings for other students.</p>
+    <ul class="wsl">
+      <li><span><b>Learning Studio</b><small>Always available</small></span><input type="checkbox" checked disabled aria-label="Learning Studio, always available" /></li>
+      {#each grantable as w (w.id)}
+        {#if w.implemented}
+          <li>
+            <span><b>{w.name}</b><small class:lock={!wsAll?.unlockAll && !wsGrants.includes(w.id)}>{grantHint(w.id)}</small></span>
+            <input
+              type="checkbox"
+              checked={wsGrants.includes(w.id)}
+              aria-label="Unlock {w.name} for {who.displayName}"
+              onchange={(e) => (wsGrants = e.currentTarget.checked ? [...wsGrants, w.id] : wsGrants.filter((x) => x !== w.id))}
+            />
+          </li>
+        {:else}
+          <li class="na"><span><b>{w.name}</b><small>Not available yet</small></span></li>
+        {/if}
+      {/each}
+    </ul>
+    <p class="muted small">{who.displayName} can still hide workspaces from their own dropdown, but can't change access. Changes are written to the Audit Log.</p>
+    {#if error}<div class="pw-note error" role="alert"><CircleAlert size={18} /> <span>{error}</span></div>{/if}
+    <div class="dlg-actions">
+      <button class="pw-btn" onclick={() => (wsFor = null)}>{anyGrantable ? 'Cancel' : 'Close'}</button>
+      {#if anyGrantable}<button class="pw-btn primary" disabled={busy} onclick={saveWorkspaces}>Save</button>{/if}
+    </div>
+  </Dialog>
+{/if}
 
 {#if mode}
   <Dialog
@@ -195,4 +261,12 @@
   .pic { display: flex; align-items: center; gap: 20px; margin-bottom: 12px; }
   .pic-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
   label.pw-btn { cursor: pointer; }
+  .wsl { list-style: none; padding: 0; margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+  .wsl li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border: 1px solid var(--pw-border-strong); border-radius: 12px; background: var(--pw-bg-raised); }
+  .wsl li span { display: flex; flex-direction: column; gap: 2px; }
+  .wsl small { color: var(--pw-text-muted); font-size: 0.85rem; }
+  .wsl small.lock { color: var(--pw-amber); }
+  .wsl li.na { opacity: 0.7; border-style: dashed; }
+  .wsl input { width: 22px; height: 22px; accent-color: var(--pw-primary); }
+  .small { font-size: 0.88rem; }
 </style>

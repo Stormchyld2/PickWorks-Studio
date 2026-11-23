@@ -1,10 +1,12 @@
 <script lang="ts">
   import '$lib/styles/base.css';
   import { onMount, untrack } from 'svelte';
-  import { goto } from '$app/navigation';
+  import { beforeNavigate, goto } from '$app/navigation';
   import { page } from '$app/state';
   import Sidebar from '$lib/components/navigation/Sidebar.svelte';
-  import { ADMIN_PRIMARY_NAV, ADMIN_SECONDARY_NAV, PRIMARY_NAV, SECONDARY_NAV, allowedFor } from '$lib/components/navigation/nav-items';
+  import { ADMIN_PRIMARY_NAV, ADMIN_SECONDARY_NAV, SECONDARY_NAV, TOOLS_NAV, allowedFor, workspaceNav } from '$lib/components/navigation/nav-items';
+  import { ownerOfPath } from '$lib/engines/workspaces/config';
+  import { workspace } from '$lib/stores/workspace.svelte';
   import AccountScreens from '$lib/components/account/AccountScreens.svelte';
   import ProfileChip from '$lib/components/account/ProfileChip.svelte';
   import IdleWarning from '$lib/components/account/IdleWarning.svelte';
@@ -51,12 +53,84 @@
     };
   });
 
-  // Load the student's settings at sign-in; everyone else uses the defaults.
+  // Load the student's settings and workspace access at sign-in; everyone else uses the defaults.
   $effect(() => {
     const student = auth.info?.principal.kind === 'student' && !auth.info.mustChangePassword;
     const token = auth.info?.token;
-    untrack(() => (student && token ? void preferences.load() : preferences.reset()));
+    untrack(() => {
+      if (student && token) void startStudent();
+      else {
+        preferences.reset();
+        workspace.reset();
+        collapsed = false;
+      }
+    });
   });
+
+  async function startStudent() {
+    await preferences.load();
+    collapsed = preferences.value.workspace.sidebarCollapsed;
+    const home = await workspace.load();
+    // Open the start-up workspace (Learning Studio unless another one is chosen and open).
+    if (home !== '/' && page.url.pathname === '/') void goto(home, { replaceState: true });
+  }
+
+  // "Keep the sidebar collapsed" in Settings applies straight away.
+  $effect(() => {
+    if (kind !== 'student' || !preferences.loaded) return;
+    const c = preferences.value.workspace.sidebarCollapsed;
+    untrack(() => (collapsed = c));
+  });
+
+  function rememberCollapsed(c: boolean) {
+    if (kind === 'student' && preferences.loaded) void preferences.update((p) => (p.workspace.sidebarCollapsed = c));
+  }
+
+  // Workspace access is enforced on every navigation, not only by what the
+  // sidebar shows. Links, back and forward are stopped before they leave...
+  beforeNavigate((nav) => {
+    if (!signedIn || kind !== 'student' || !nav.to || nav.to.url.origin !== location.origin) return;
+    const g = workspace.guard(nav.to.url.pathname);
+    if (!g.allow) {
+      nav.cancel();
+      workspace.notice = g.message;
+    }
+  });
+
+  // ...and any address that is open anyway (typed, pasted, start-up, or access
+  // that changed) is replaced before its page is shown.
+  $effect(() => {
+    if (!signedIn || kind !== 'student') return;
+    const path = page.url.pathname;
+    const g = workspace.guard(path);
+    untrack(() => {
+      if (!g.allow) {
+        workspace.notice = g.message;
+        void goto(g.redirect, { replaceState: true });
+      } else workspace.follow(path);
+    });
+  });
+
+  // When the student hides the workspace they're in (or it stops being
+  // available), move to Learning Studio, or the next visible workspace.
+  $effect(() => {
+    if (!signedIn || kind !== 'student') return;
+    const visible = workspace.visible.join(',');
+    untrack(() => {
+      void visible;
+      const home = workspace.settle();
+      const owner = ownerOfPath(page.url.pathname);
+      if (home && owner.kind === 'workspace' && owner.workspace !== workspace.current) void goto(home);
+    });
+  });
+
+  $effect(() => {
+    if (!workspace.notice) return;
+    const t = setTimeout(() => (workspace.notice = null), 8000);
+    return () => clearTimeout(t);
+  });
+
+  const pageAllowed = $derived(allowedFor(kind, page.url.pathname) && (kind === 'admin' || workspace.guard(page.url.pathname).allow));
 
   // Tuner changes made on the Tuner screen are saved to the student's settings.
   $effect(() => {
@@ -88,12 +162,20 @@
     {#if kind === 'admin'}
       <Sidebar bind:collapsed primary={ADMIN_PRIMARY_NAV} secondary={ADMIN_SECONDARY_NAV} onsignout={() => auth.requestSignOut()} />
     {:else}
-      <Sidebar bind:collapsed primary={PRIMARY_NAV} secondary={SECONDARY_NAV} />
+      <Sidebar bind:collapsed primary={workspaceNav(workspace.current)} secondary={SECONDARY_NAV} tools={TOOLS_NAV} workspaces oncollapse={rememberCollapsed} />
     {/if}
     <main id="main" tabindex="-1">
       <div class="topbar"><ProfileChip /></div>
-      {#if allowedFor(kind, page.url.pathname)}{@render children()}{/if}
+      {#if pageAllowed}{@render children()}{/if}
     </main>
+  </div>
+{/if}
+
+<div class="sr-only" aria-live="polite" role="status">{signedIn ? workspace.announcement : ''}</div>
+{#if workspace.notice && signedIn}
+  <div class="save-error pw-note" role="alert">
+    {workspace.notice}
+    <button class="pw-btn ghost" onclick={() => (workspace.notice = null)}>Dismiss</button>
   </div>
 {/if}
 

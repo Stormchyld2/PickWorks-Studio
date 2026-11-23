@@ -3,10 +3,10 @@
 
 use std::sync::Mutex;
 
-use pickworks_core::accounts::AccountStatus;
+use pickworks_core::accounts::{AccountStatus, WorkspaceAccessSettings};
 use pickworks_core::audit::AuditEntry;
 use pickworks_core::backup::BackupInfo;
-use pickworks_core::{Core, ElevationProof, ErrorPayload, ProfileCard, SessionInfo, StudentAdminView};
+use pickworks_core::{Core, ElevationProof, ErrorPayload, ProfileCard, SessionInfo, StudentAdminView, StudentWorkspaceAccess};
 use serde_json::Value;
 use tauri::State;
 
@@ -229,4 +229,26 @@ pub fn auth_register_student(state: State<CoreState>, display_name: String, pass
 #[tauri::command]
 pub fn admin_set_self_registration(state: State<CoreState>, token: String, enabled: bool) -> Res<()> {
     with(&state, |c| c.admin_set_self_registration(&token, enabled))
+}
+
+// ----- Workspace access (Stage B) ----------------------------------------
+
+#[tauri::command]
+pub fn admin_workspace_settings(state: State<CoreState>, token: String) -> Res<WorkspaceAccessSettings> {
+    with(&state, |c| c.admin_workspace_settings(&token))
+}
+
+#[tauri::command]
+pub fn admin_set_workspace_settings(state: State<CoreState>, token: String, settings: WorkspaceAccessSettings) -> Res<()> {
+    with(&state, |c| c.admin_set_workspace_settings(&token, settings))
+}
+
+#[tauri::command]
+pub fn admin_set_student_workspaces(state: State<CoreState>, token: String, student_id: String, grants: Vec<String>) -> Res<()> {
+    with(&state, |c| c.admin_set_student_workspaces(&token, &student_id, grants))
+}
+
+#[tauri::command]
+pub fn student_workspace_access(state: State<CoreState>, token: String) -> Res<StudentWorkspaceAccess> {
+    with(&state, |c| c.student_workspace_access(&token))
 }

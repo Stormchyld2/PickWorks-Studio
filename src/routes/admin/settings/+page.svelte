@@ -9,6 +9,7 @@
   import Printer from '@lucide/svelte/icons/printer';
   import CircleAlert from '@lucide/svelte/icons/circle-alert';
   import CircleCheck from '@lucide/svelte/icons/circle-check';
+  import LayoutGrid from '@lucide/svelte/icons/layout-grid';
   import PageHead from '$lib/components/admin/PageHead.svelte';
   import Dialog from '$lib/components/ui/Dialog.svelte';
   import PasswordField from '$lib/components/account/PasswordField.svelte';
@@ -17,7 +18,8 @@
   import { auth } from '$lib/stores/auth.svelte';
   import { backend } from '$lib/services/backend';
   import { platform, printPage } from '$lib/services/platform';
-  import type { StudentAdminView } from '$lib/services/core-client';
+  import type { StudentAdminView, WorkspaceAccessSettings } from '$lib/services/core-client';
+  import { DEFAULT_WORKSPACE, WORKSPACES } from '$lib/engines/workspaces/config';
 
   let dialog = $state<'password' | 'key' | { delete: StudentAdminView } | null>(null);
   let current = $state('');
@@ -48,6 +50,34 @@
       (e.currentTarget as HTMLInputElement).checked = selfRegistration;
     }
   }
+  // Workspace Access (approved mockups 8 and 9). Each change is saved and audited by the native core.
+  let wsSettings = $state<WorkspaceAccessSettings | null>(null);
+  let wsError = $state('');
+  $effect(() => {
+    admin
+      .act((t) => backend.adminWorkspaceSettings(t), [])
+      .then((v) => (wsSettings = v))
+      .catch((e) => (wsError = friendlyError(e)));
+  });
+  async function saveWorkspaceAccess(change: (s: WorkspaceAccessSettings) => void, input: HTMLInputElement) {
+    if (!wsSettings) return;
+    const next = $state.snapshot(wsSettings) as WorkspaceAccessSettings;
+    change(next);
+    wsError = '';
+    try {
+      await admin.act((t) => backend.adminSetWorkspaceSettings(t, next), []);
+      wsSettings = next;
+    } catch (err) {
+      wsError = friendlyError(err);
+      input.checked = !input.checked;
+    }
+  }
+  function toggleNewProfile(id: string, on: boolean) {
+    return (s: WorkspaceAccessSettings) => {
+      s.newProfileWorkspaces = on ? [...s.newProfileWorkspaces.filter((x) => x !== id), id] : s.newProfileWorkspaces.filter((x) => x !== id);
+    };
+  }
+
   const archived = $derived(admin.students.filter((s) => s.status === 'archived'));
 
   function open(d: typeof dialog) {
@@ -105,6 +135,37 @@
     <span><b>Let students create their own profiles</b><br /><span class="muted">Shows "Create Student Profile" on the profile screen. Students choose their own name, picture and password, and always get a student account, never administrator access. You can still add, rename, reset, archive and delete students here as usual.</span></span>
   </label>
   {#if regError}<div class="pw-note error" role="alert"><CircleAlert size={18} /> <span>{regError}</span></div>{/if}
+</section>
+
+<section class="glow-card reg">
+  <h2><LayoutGrid size={22} /> Workspace Access</h2>
+  <p class="muted">Decides which workspaces students can open. These settings never change XP, lessons, mastery or any learning record, and never give a student administrator access. Workspaces that aren't built yet stay unavailable whatever is set here.</p>
+  {#if wsSettings}
+    {@const ws = wsSettings}
+    <div class="wsa">
+      <div>
+        <h3>All students</h3>
+        <label class="toggle"><input type="checkbox" checked={ws.unlockAll} onchange={(e) => saveWorkspaceAccess((s) => (s.unlockAll = e.currentTarget.checked), e.currentTarget)} /><span><b>Unlock All Workspaces for Students</b><br /><span class="muted">Opens every finished workspace for every student now.</span></span></label>
+        <label class="toggle"><input type="checkbox" checked={ws.automaticLearningUnlock} onchange={(e) => saveWorkspaceAccess((s) => (s.automaticLearningUnlock = e.currentTarget.checked), e.currentTarget)} /><span><b>Automatic Learning Unlock</b><br /><span class="muted">Opens the other workspaces for a student who has covered {ws.beginnerLessonsPercent}% of Beginner lessons and {ws.intermediateLessonsPercent}% of Intermediate lessons, by completing them or through placement.</span></span></label>
+      </div>
+      <div>
+        <h3>New student profiles start with</h3>
+        <ul class="wsl">
+          {#each WORKSPACES as w (w.id)}
+            {#if w.id === DEFAULT_WORKSPACE}
+              <li><span><b>{w.name}</b><small>Always available</small></span><input type="checkbox" checked disabled aria-label="{w.name}, always available" /></li>
+            {:else if w.implemented}
+              <li><span><b>{w.name}</b><small>Unlocked from the start</small></span><input type="checkbox" checked={ws.newProfileWorkspaces.includes(w.id)} aria-label="{w.name} unlocked for new profiles" onchange={(e) => saveWorkspaceAccess(toggleNewProfile(w.id, e.currentTarget.checked), e.currentTarget)} /></li>
+            {:else}
+              <li class="na"><span><b>{w.name}</b><small>Not available yet</small></span></li>
+            {/if}
+          {/each}
+        </ul>
+        <p class="muted small">Applies to profiles created after you change it. To open a workspace for one student, use Student Management.</p>
+      </div>
+    </div>
+  {/if}
+  {#if wsError}<div class="pw-note error" role="alert"><CircleAlert size={18} /> <span>{wsError}</span></div>{/if}
 </section>
 
 <section class="glow-card maint">
@@ -184,4 +245,14 @@
     .print-key .key { background: #fff; border-color: #000; }
   }
   @media (max-width: 839.98px) { .grid { grid-template-columns: 1fr; } }
+  .wsa { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 10px; }
+  .wsa h3 { font-size: 1.02rem; margin: 0 0 8px; }
+  .wsa .toggle { margin-bottom: 10px; }
+  .wsl { list-style: none; padding: 0; margin: 0 0 10px; display: flex; flex-direction: column; gap: 8px; }
+  .wsl li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border: 1px solid var(--pw-border-strong); border-radius: 12px; background: var(--pw-bg-raised); }
+  .wsl li span { display: flex; flex-direction: column; gap: 2px; }
+  .wsl small { color: var(--pw-text-muted); font-size: 0.85rem; }
+  .wsl li.na { opacity: 0.7; border-style: dashed; }
+  .wsl input { width: 22px; height: 22px; accent-color: var(--pw-primary); }
+  @media (max-width: 839.98px) { .wsa { grid-template-columns: 1fr; } }
 </style>

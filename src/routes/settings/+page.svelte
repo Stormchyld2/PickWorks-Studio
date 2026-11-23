@@ -11,6 +11,8 @@
   import CircleAlert from '@lucide/svelte/icons/circle-alert';
   import CircleCheck from '@lucide/svelte/icons/circle-check';
   import LogOut from '@lucide/svelte/icons/log-out';
+  import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+  import Lock from '@lucide/svelte/icons/lock';
   import type { Snippet } from 'svelte';
   import PasswordField from '$lib/components/account/PasswordField.svelte';
   import { friendlyError } from '$lib/components/account/errors';
@@ -22,9 +24,13 @@
   import { A4_CHOICES } from '$lib/engines/audio/tuner/tuner';
   import { TUNING_PRESETS } from '$lib/engines/audio/tuner/presets';
   import { MAX_BPM, MIN_BPM, clampBpm } from '$lib/engines/audio/metronome';
+  import { workspace } from '$lib/stores/workspace.svelte';
+  import { DEFAULT_WORKSPACE, WORKSPACES, workspaceById, type WorkspaceId } from '$lib/engines/workspaces/config';
+  import { canHide, type WorkspaceAccess } from '$lib/engines/workspaces/access';
 
   const TABS = [
     { id: 'general', label: 'General', icon: SettingsIcon },
+    { id: 'workspaces', label: 'Workspaces', icon: LayoutGrid },
     { id: 'audio', label: 'Audio', icon: Volume2 },
     { id: 'tuner', label: 'Tuner', icon: AudioWaveform },
     { id: 'accessibility', label: 'Accessibility', icon: Accessibility },
@@ -63,6 +69,25 @@
       busy = false;
     }
   }
+  // Workspaces tab (approved mockups 5 and 7).
+  const wsAccess = $derived(workspace.access);
+  const rememberLast = $derived(p.workspace.startup === 'last-used');
+  const startIn = $derived<WorkspaceId>(p.workspace.startup === 'last-used' ? DEFAULT_WORKSPACE : p.workspace.startup);
+  const onlyOne = $derived(workspace.visible.length <= 1);
+  function wsState(id: WorkspaceId): WorkspaceAccess | undefined {
+    return wsAccess?.find((a) => a.id === id);
+  }
+  function wsHint(id: WorkspaceId, a: WorkspaceAccess | undefined): string {
+    if (!a || a.state === 'not-implemented') return 'Not available yet';
+    if (a.state === 'locked') return 'Locked. Your administrator decides when it opens';
+    if (id === DEFAULT_WORKSPACE) return onlyOne ? 'Always available. Your only workspace, so it stays visible' : 'Always available. Hiding it only removes it from the dropdown';
+    if (a.unlockedBy === 'student-grant' || a.unlockedBy === 'unlock-all') return 'Available (opened by your administrator)';
+    return 'Available';
+  }
+  function setShown(id: WorkspaceId, show: boolean) {
+    void set((x) => (x.workspace.shown = { ...x.workspace.shown, [id]: show }));
+  }
+
   const textSizeLabel = { normal: 'Normal', large: 'Large', larger: 'Larger' } as const;
 </script>
 
@@ -172,6 +197,48 @@
     {@render row('Mode', mode, 'mode')}
     {@render toggle('Precise mode (±2 cents)', p.tuner.precise, (v) => set((x) => (x.tuner.precise = v)))}
     {@render toggle('Play a chime when a string is in tune', p.tuner.chime, (v) => set((x) => (x.tuner.chime = v)))}
+  {:else if tab === 'workspaces'}
+    <div class="cols">
+      <div>
+        <h2>Start-up</h2>
+        {#snippet startSel()}
+          <select id="wsstart" value={startIn} disabled={rememberLast} onchange={(e) => set((x) => (x.workspace.startup = e.currentTarget.value as WorkspaceId))}>
+            {#each workspace.visible as id (id)}<option value={id}>{workspaceById(id).name}</option>{/each}
+          </select>
+        {/snippet}
+        {@render row('Start in', startSel, 'wsstart')}
+        {@render toggle('Remember the last workspace I used', rememberLast, (v) => set((x) => (x.workspace.startup = v ? 'last-used' : startIn)), 'Overrides "Start in" when on')}
+        {@render toggle('Keep the sidebar collapsed', p.workspace.sidebarCollapsed, (v) => set((x) => (x.workspace.sidebarCollapsed = v)), 'Remembered for this profile')}
+        <h2 class="gap">Workspace access</h2>
+        <div class="pw-note"><Lock size={18} color="var(--pw-primary-hover)" /> <span>Your administrator decides which workspaces you can open. New workspaces appear here as they're ready. Access never changes your lessons, XP, mastery or progress.</span></div>
+      </div>
+      <div class="divider">
+        <h2>Show in Workspace Dropdown</h2>
+        <ul class="wsl">
+          {#each WORKSPACES as w (w.id)}
+            {@const a = wsState(w.id)}
+            {@const available = a?.state === 'visible' || a?.state === 'hidden'}
+            {#if available}
+              <li>
+                <span><b>{w.name}</b><small>{wsHint(w.id, a)}</small></span>
+                <input
+                  type="checkbox"
+                  checked={a?.state === 'visible'}
+                  disabled={a?.state === 'visible' && !canHide(wsAccess ?? [], w.id)}
+                  aria-label="Show {w.name} in the workspace dropdown"
+                  onchange={(e) => setShown(w.id, e.currentTarget.checked)}
+                />
+              </li>
+            {:else}
+              <li class="na" class:locked={a?.state === 'locked'}>
+                <span><b>{w.name}</b><small class:lock={a?.state === 'locked'}>{#if a?.state === 'locked'}<Lock size={13} aria-hidden="true" />{/if}{wsHint(w.id, a)}</small></span>
+              </li>
+            {/if}
+          {/each}
+        </ul>
+        <div class="pw-note"><Info size={18} color="var(--pw-primary-hover)" /> <span>Hiding a workspace only removes it from the dropdown. Your songs, recordings, notes and progress are kept. At least one workspace always stays visible, and you can show a hidden workspace again here at any time.</span></div>
+      </div>
+    </div>
   {:else if tab === 'accessibility'}
     <h2>Display</h2>
     {@render toggle('Left-handed fretboard', p.display.leftHanded, (v) => set((x) => (x.display.leftHanded = v)), 'Mirrors fretboards and chord diagrams. Notes and answers stay the same.')}
@@ -220,6 +287,15 @@
   h2 { font-size: 1.2rem; margin-bottom: 12px; }
   h2.gap { margin-top: 26px; }
   h3 { font-size: 1.05rem; margin-bottom: 10px; }
+  .wsl { list-style: none; padding: 0; margin: 0 0 14px; display: flex; flex-direction: column; gap: 8px; }
+  .wsl li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--pw-border-strong); border-radius: 12px; background: var(--pw-bg-raised); }
+  .wsl li span { display: flex; flex-direction: column; gap: 2px; }
+  .wsl small { color: var(--pw-text-muted); font-size: 0.85rem; }
+  .wsl small.lock { color: var(--pw-amber); display: inline-flex; flex-direction: row; gap: 6px; align-items: center; }
+  .wsl li.na { opacity: 0.7; border-style: dashed; }
+  .wsl li.na.locked { opacity: 1; border-style: solid; }
+  .wsl input { width: 22px; height: 22px; accent-color: var(--pw-primary); }
+  select:disabled { opacity: 0.6; }
   .toggle-row { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; cursor: pointer; }
   .toggle-row input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--pw-primary); flex-shrink: 0; }
   .toggle-row .t { display: flex; flex-direction: column; }

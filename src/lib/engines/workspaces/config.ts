@@ -1,5 +1,6 @@
 /**
- * Workspace configuration (Workspace Navigation, Stage A — approved 2026-11-23).
+ * Workspace configuration (Workspace Navigation, Stage A — approved 2026-11-23;
+ * the selector and sidebars that use it are Stage B, authorized 2026-11-23).
  *
  * Workspaces are navigation modes over one app: they share accounts, engines,
  * storage, settings and the design system. This module only describes them
@@ -17,6 +18,8 @@ export const DEFAULT_WORKSPACE: WorkspaceId = 'learning-studio';
 export interface WorkspaceDefinition {
   id: WorkspaceId;
   name: string;
+  /** One line under the name in the workspace selector. */
+  description: string;
   /** Address the selector opens when the student switches to this workspace. */
   home: string;
   /**
@@ -36,12 +39,13 @@ export const WORKSPACES: readonly WorkspaceDefinition[] = [
   {
     id: 'learning-studio',
     name: 'Learning Studio',
+    description: 'Courses, practice and tools',
     home: '/',
     owns: ['/', '/learn', '/practice', '/fretboard', '/progress', '/achievements', '/print'],
     implemented: true,
   },
-  { id: 'play-create', name: 'Play & Create', home: '/create', owns: ['/create'], implemented: false },
-  { id: 'reference', name: 'Reference', home: '/reference', owns: ['/reference'], implemented: false },
+  { id: 'play-create', name: 'Play & Create', description: 'Songbook, backing tracks and songwriting', home: '/create', owns: ['/create'], implemented: false },
+  { id: 'reference', name: 'Reference', description: 'Maintenance, field tuning and printables', home: '/reference', owns: ['/reference'], implemented: false },
 ];
 
 /**

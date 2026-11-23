@@ -17,7 +17,7 @@ pub mod storage;
 use serde::Serialize;
 use serde_json::Value;
 
-use accounts::{AccountIndex, AccountStatus, AdminAccount, StudentAccount};
+use accounts::{AccountIndex, AccountStatus, AdminAccount, StudentAccount, WorkspaceAccessSettings};
 use audit::AuditEntry;
 pub use error::{CoreError, ErrorPayload, Result};
 use storage::DataRoot;
@@ -48,6 +48,18 @@ pub struct SessionInfo {
     pub must_change_password: bool,
     /// Inactivity limit agreed for this kind of account.
     pub idle_timeout_secs: u64,
+}
+
+/// What a signed-in student may know about their own workspace access: the
+/// installation rules and their own grants. Never another student's.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct StudentWorkspaceAccess {
+    pub unlock_all: bool,
+    pub automatic_learning_unlock: bool,
+    pub beginner_lessons_percent: u8,
+    pub intermediate_lessons_percent: u8,
+    pub grants: Vec<String>,
 }
 
 pub const STUDENT_IDLE_SECS: u64 = 20 * 60;
@@ -324,7 +336,9 @@ impl Core {
         creds.students.insert(id.clone(), auth::hash_secret(password)?);
         accounts::save_credentials(&self.root, &creds)?;
         let mut index = accounts::load_index(&self.root)?;
-        index.students.push(StudentAccount { id: id.clone(), display_name: name.clone(), status: AccountStatus::Active, created_ms: self.now(), must_change_password });
+        // New profiles start with the administrator's new-profile workspaces.
+        let workspace_grants = index.workspace_access.new_profile_workspaces.clone();
+        index.students.push(StudentAccount { id: id.clone(), display_name: name.clone(), status: AccountStatus::Active, created_ms: self.now(), must_change_password, workspace_grants });
         accounts::save_index(&self.root, &index)?;
         Ok((id, name))
     }
@@ -369,6 +383,70 @@ impl Core {
         index.self_registration = enabled;
         accounts::save_index(&self.root, &index)?;
         self.audit("admin", if enabled { "self-registration-on" } else { "self-registration-off" }, None, None)
+    }
+
+    // ----- Workspace access (Workspace Navigation, Stage B) -------------------
+
+    /// Stored settings, or the safe defaults if the file holds values outside
+    /// the rules (for example edited by hand): access is never decided from
+    /// invalid settings.
+    fn workspace_settings(index: &AccountIndex) -> WorkspaceAccessSettings {
+        let s = index.workspace_access.clone();
+        if s.validate().is_ok() { s } else { WorkspaceAccessSettings::default() }
+    }
+
+    pub fn admin_workspace_settings(&self, token: &str) -> Result<WorkspaceAccessSettings> {
+        self.require_admin(token)?;
+        Ok(Self::workspace_settings(&accounts::load_index(&self.root)?))
+    }
+
+    /// Changes the installation-wide workspace access. Never touches any
+    /// student's records, progress, XP or mastery. Audited.
+    pub fn admin_set_workspace_settings(&mut self, token: &str, settings: WorkspaceAccessSettings) -> Result<()> {
+        self.require_admin(token)?;
+        settings.validate()?;
+        let mut index = accounts::load_index(&self.root)?;
+        let before = Self::workspace_settings(&index);
+        if before == settings {
+            return Ok(());
+        }
+        index.workspace_access = settings.clone();
+        accounts::save_index(&self.root, &index)?;
+        let detail = format!(
+            "unlock all {}, automatic {} ({}% beginner, {}% intermediate), new profiles: {}",
+            if settings.unlock_all { "on" } else { "off" },
+            if settings.automatic_learning_unlock { "on" } else { "off" },
+            settings.beginner_lessons_percent,
+            settings.intermediate_lessons_percent,
+            if settings.new_profile_workspaces.is_empty() { "none".to_string() } else { settings.new_profile_workspaces.join(", ") },
+        );
+        self.audit("admin", "workspace-access-changed", None, Some(detail))
+    }
+
+    /// Opens workspaces for one student. Only implemented workspaces ever
+    /// appear (the interface decides that); this stores the grant. Audited.
+    pub fn admin_set_student_workspaces(&mut self, token: &str, id: &str, grants: Vec<String>) -> Result<()> {
+        self.require_admin(token)?;
+        accounts::check_grants(&grants)?;
+        self.update_student(token, id, |s| s.workspace_grants = grants.clone())?;
+        let detail = if grants.is_empty() { "none".to_string() } else { grants.join(", ") };
+        self.audit("admin", "student-workspaces-changed", Some(id), Some(detail))
+    }
+
+    /// The signed-in student's own workspace access facts.
+    pub fn student_workspace_access(&self, token: &str) -> Result<StudentWorkspaceAccess> {
+        let id = self.require_student(token)?;
+        let index = accounts::load_index(&self.root)?;
+        let s = Self::workspace_settings(&index);
+        let mut grants = index.student(&id).ok_or(CoreError::UnknownStudent)?.workspace_grants.clone();
+        grants.retain(|g| accounts::GRANTABLE_WORKSPACES.contains(&g.as_str()));
+        Ok(StudentWorkspaceAccess {
+            unlock_all: s.unlock_all,
+            automatic_learning_unlock: s.automatic_learning_unlock,
+            beginner_lessons_percent: s.beginner_lessons_percent,
+            intermediate_lessons_percent: s.intermediate_lessons_percent,
+            grants,
+        })
     }
 
     fn update_student(&mut self, token: &str, id: &str, f: impl FnOnce(&mut StudentAccount)) -> Result<StudentAccount> {

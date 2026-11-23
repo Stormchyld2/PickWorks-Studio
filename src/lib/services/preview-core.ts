@@ -6,7 +6,7 @@
  * password, one session at a time, growing delays after wrong passwords.
  * It keeps nothing on disk and never ships in the desktop build.
  */
-import { CoreError, type AccountStatus, type BackupInfo, type AuditEntry, type CoreApi, type Envelope, type SessionInfo, type StudentAdminView } from './core-client';
+import { CoreError, type WorkspaceAccessSettings, type AccountStatus, type BackupInfo, type AuditEntry, type CoreApi, type Envelope, type SessionInfo, type StudentAdminView } from './core-client';
 
 interface Student {
   id: string;
@@ -18,7 +18,10 @@ interface Student {
   failures: number;
   lockedUntil: number;
   avatar?: string;
+  workspaceGrants: string[];
 }
+
+const GRANTABLE = ['play-create', 'reference'];
 
 const DELAYS = [0, 0, 0, 30, 30, 60, 60, 300];
 
@@ -26,6 +29,12 @@ export function createPreviewCore(now: () => number = Date.now): CoreApi & { see
   let admin: { name: string; password: string; recoveryKey: string } | null = null;
   const students = new Map<string, Student>();
   let selfRegistration = true;
+  let workspaceAccess: WorkspaceAccessSettings = { unlockAll: false, automaticLearningUnlock: true, beginnerLessonsPercent: 80, intermediateLessonsPercent: 50, newProfileWorkspaces: [] };
+  const checkGrants = (ids: string[]) =>
+    ids.forEach((id, i) => {
+      if (!GRANTABLE.includes(id)) fail('invalid-data', `"${id}" is not a workspace that can be opened for students.`);
+      if (ids.indexOf(id) !== i) fail('invalid-data', `"${id}" is listed twice.`);
+    });
   const records = new Map<string, unknown>();
   const logs = new Map<string, unknown[]>();
   const audit: AuditEntry[] = [];
@@ -101,7 +110,7 @@ export function createPreviewCore(now: () => number = Date.now): CoreApi & { see
       if ([...students.values()].some((s) => s.status !== 'archived' && s.displayName.toLowerCase() === name.toLowerCase()))
         fail('invalid-data', 'That name is already used on this computer. Add an initial or a nickname.');
       const id = hex(16);
-      students.set(id, { id, displayName: name, password, status: 'active', createdMs: now(), mustChangePassword: false, failures: 0, lockedUntil: 0, avatar: avatar ?? undefined });
+      students.set(id, { id, displayName: name, password, status: 'active', createdMs: now(), mustChangePassword: false, failures: 0, lockedUntil: 0, avatar: avatar ?? undefined, workspaceGrants: [...workspaceAccess.newProfileWorkspaces] });
       log('student-self-registered', id);
       session = null;
       return start({ principal: { kind: 'student', id }, displayName: name, mustChangePassword: false, idleTimeoutSecs: 1200 });
@@ -162,6 +171,7 @@ export function createPreviewCore(now: () => number = Date.now): CoreApi & { see
           mustChangePassword: s.mustChangePassword,
           lockedForSecs: Math.max(0, Math.ceil((s.lockedUntil - now()) / 1000)),
           failedAttempts: s.failures,
+          ...(s.workspaceGrants.length ? { workspaceGrants: [...s.workspaceGrants] } : {}),
         }),
       );
     },
@@ -170,7 +180,7 @@ export function createPreviewCore(now: () => number = Date.now): CoreApi & { see
       if (!displayName.trim()) fail('invalid-name', 'Enter a name.');
       policy(tempPassword);
       const id = hex(16);
-      students.set(id, { id, displayName: displayName.trim(), password: tempPassword, status: 'active', createdMs: now(), mustChangePassword: true, failures: 0, lockedUntil: 0 });
+      students.set(id, { id, displayName: displayName.trim(), password: tempPassword, status: 'active', createdMs: now(), mustChangePassword: true, failures: 0, lockedUntil: 0, workspaceGrants: [...workspaceAccess.newProfileWorkspaces] });
       log('student-created', id);
       return id;
     },
@@ -274,6 +284,32 @@ export function createPreviewCore(now: () => number = Date.now): CoreApi & { see
       admin!.recoveryKey = key();
       return admin!.recoveryKey;
     },
+    async adminWorkspaceSettings(token) {
+      need(token, 'admin');
+      return structuredClone(workspaceAccess);
+    },
+    async adminSetWorkspaceSettings(token, settings) {
+      need(token, 'admin');
+      for (const p of [settings.beginnerLessonsPercent, settings.intermediateLessonsPercent])
+        if (!Number.isInteger(p) || p < 0 || p > 100) fail('invalid-data', 'An unlock threshold must be a whole percentage from 0 to 100.');
+      checkGrants(settings.newProfileWorkspaces);
+      workspaceAccess = structuredClone(settings);
+      log('workspace-access-changed');
+    },
+    async adminSetStudentWorkspaces(token, studentId, grants) {
+      need(token, 'admin');
+      checkGrants(grants);
+      const s = students.get(studentId) ?? fail('unknown-student', 'That profile no longer exists.');
+      s.workspaceGrants = [...grants];
+      log('student-workspaces-changed', studentId);
+    },
+    async studentWorkspaceAccess(token) {
+      const info = need(token, 'student');
+      if (info.mustChangePassword) fail('password-change-required', 'Choose a new password first.');
+      const s = students.get((info.principal as { id: string }).id) ?? fail('unknown-student', 'That profile no longer exists.');
+      const { newProfileWorkspaces: _n, ...rules } = workspaceAccess;
+      return { ...rules, grants: [...s.workspaceGrants] };
+    },
     async readRecord<T>(token: string, record: string) {
       return (records.get(studentKey(token, record)) as Envelope<T>) ?? null;
     },
@@ -293,7 +329,7 @@ export function createPreviewCore(now: () => number = Date.now): CoreApi & { see
       if (!admin) await api.setupAdmin('Jason', 'admin-pass-1');
       for (const name of ['Jamie', 'Alex', 'Sam', 'Riley']) {
         const id = hex(16);
-        students.set(id, { id, displayName: name, password: 'student-pass', status: 'active', createdMs: now(), mustChangePassword: false, failures: 0, lockedUntil: 0 });
+        students.set(id, { id, displayName: name, password: 'student-pass', status: 'active', createdMs: now(), mustChangePassword: false, failures: 0, lockedUntil: 0, workspaceGrants: [] });
       }
     },
   };

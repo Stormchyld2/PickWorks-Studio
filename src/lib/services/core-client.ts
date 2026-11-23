@@ -37,6 +37,26 @@ export interface StudentAdminView {
   mustChangePassword: boolean;
   lockedForSecs: number;
   failedAttempts: number;
+  /** Workspaces the administrator opened for this student. Missing when none. */
+  workspaceGrants?: string[];
+}
+
+/** Installation-wide workspace access, set by the administrator. Thresholds are whole percentages 0 to 100. */
+export interface WorkspaceAccessSettings {
+  unlockAll: boolean;
+  automaticLearningUnlock: boolean;
+  beginnerLessonsPercent: number;
+  intermediateLessonsPercent: number;
+  newProfileWorkspaces: string[];
+}
+
+/** What the signed-in student may know about their own access. */
+export interface StudentWorkspaceAccess {
+  unlockAll: boolean;
+  automaticLearningUnlock: boolean;
+  beginnerLessonsPercent: number;
+  intermediateLessonsPercent: number;
+  grants: string[];
 }
 
 export interface AuditEntry {
@@ -151,6 +171,11 @@ export const core = {
   adminImportBackup: (token: string) => call<string | null>('admin_import_backup', { token }),
   adminRecentAudit: (token: string, limit = 100) => call<AuditEntry[]>('admin_recent_audit', { token, limit }),
   adminNewRecoveryKey: (token: string, adminPassword: string) => call<string>('admin_new_recovery_key', { token, adminPassword }),
+  adminWorkspaceSettings: (token: string) => call<WorkspaceAccessSettings>('admin_workspace_settings', { token }),
+  adminSetWorkspaceSettings: (token: string, settings: WorkspaceAccessSettings) => call<void>('admin_set_workspace_settings', { token, settings }),
+  adminSetStudentWorkspaces: (token: string, studentId: string, grants: string[]) => call<void>('admin_set_student_workspaces', { token, studentId, grants }),
+  /** The signed-in student's own access facts (installation rules and their grants). */
+  studentWorkspaceAccess: (token: string) => call<StudentWorkspaceAccess>('student_workspace_access', { token }),
 
   readRecord: <T>(token: string, record: string) => call<Envelope<T> | null>('data_read', { token, record }),
   writeRecord: <T>(token: string, record: string, envelope: Envelope<T>) => call<void>('data_write', { token, record, envelope }),
