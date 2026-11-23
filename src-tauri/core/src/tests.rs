@@ -490,3 +490,144 @@ fn an_interrupted_audit_write_loses_no_later_entry() {
     assert_eq!(storage::read_log_file(&audit_file).unwrap().damaged, 0, "the new entry starts on its own line");
     assert!(storage::damaged_path(&audit_file).exists(), "the fragment is kept beside the log");
 }
+
+/// Every file in the three restored folders, by relative path.
+fn installation_snapshot(f: &Fixture) -> std::collections::BTreeMap<String, Vec<u8>> {
+    fn walk(base: &std::path::Path, dir: &std::path::Path, out: &mut std::collections::BTreeMap<String, Vec<u8>>) {
+        let Ok(rd) = std::fs::read_dir(dir) else { return };
+        for e in rd.flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                walk(base, &p, out);
+            } else {
+                out.insert(p.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/"), std::fs::read(&p).unwrap());
+            }
+        }
+    }
+    let mut out = std::collections::BTreeMap::new();
+    for part in ["accounts", "students", "application"] {
+        walk(f.core.root().path(), &f.core.root().path().join(part), &mut out);
+    }
+    out
+}
+
+/// A backup holding Alex, then a live installation that has moved on:
+/// Alex deleted, Bea added with her own records. Returns (backup, Alex, Bea).
+fn installation_that_moved_on(f: &mut Fixture) -> (String, String, String) {
+    let alex = f.with_student("Alex", "alex-pass-1");
+    let s = f.core.sign_in_student(&alex, "alex-pass-1").unwrap();
+    f.core.write_record(&s.token, "progress", &env(1)).unwrap();
+    let t = f.admin();
+    let name = f.core.admin_backup_installation(&t).unwrap();
+    f.core.admin_set_status(&t, &alex, AccountStatus::Archived).unwrap();
+    f.core.admin_delete_student(&t, &alex, "Alex").unwrap();
+    f.advance_secs(1);
+    let bea = f.with_student("Bea", "bea-pass-12");
+    let s = f.core.sign_in_student(&bea, "bea-pass-12").unwrap();
+    f.core.write_record(&s.token, "progress", &env(7)).unwrap();
+    f.advance_secs(1);
+    (name, alex, bea)
+}
+
+fn audit_actions(f: &mut Fixture) -> Vec<String> {
+    let t = f.admin();
+    f.core.admin_recent_audit(&t, 100).unwrap().into_iter().map(|e| e.action).collect()
+}
+
+const SWAP_STEPS: [(&str, usize); 6] = [("aside", 0), ("swapped", 0), ("aside", 1), ("swapped", 1), ("aside", 2), ("swapped", 2)];
+
+#[test]
+fn a_restore_that_fails_part_way_leaves_the_data_exactly_as_it_was() {
+    let mut f = fixture();
+    let (name, alex, bea) = installation_that_moved_on(&mut f);
+    for (step, part) in SWAP_STEPS.into_iter().chain([("stage", 0), ("stage", 2)]) {
+        let t = f.admin();
+        let before = installation_snapshot(&f);
+        backup::fault::set(step, part, false);
+        let r = f.core.admin_restore_installation(&t, &name, "admin-pass-1");
+        backup::fault::clear();
+        assert!(r.is_err(), "fault at {step} {part} is reported");
+        assert!(installation_snapshot(&f) == before, "fault at {step} {part}: every file is as it was before the restore");
+        assert!(!f.core.root().path().join("restore-transaction").exists(), "no staging left behind");
+        assert!(f.core.admin_list_students(&t).is_ok(), "the session continues after a failed restore");
+    }
+    assert!(f.core.sign_in_student(&bea, "bea-pass-12").is_ok());
+    assert!(f.core.sign_in_student(&alex, "alex-pass-1").is_err());
+    assert!(!audit_actions(&mut f).contains(&"restore-installation".to_string()), "a failed restore is not recorded as done");
+    // The same backup then restores normally.
+    let t = f.admin();
+    f.core.admin_restore_installation(&t, &name, "admin-pass-1").unwrap();
+    assert!(f.core.sign_in_student(&alex, "alex-pass-1").is_ok());
+    assert!(f.core.sign_in_student(&bea, "bea-pass-12").is_err());
+    assert!(!f.core.root().path().join("restore-transaction").exists());
+}
+
+#[test]
+fn a_restore_interrupted_by_a_crash_is_rolled_back_when_the_app_reopens() {
+    for (step, part) in SWAP_STEPS {
+        let mut f = fixture();
+        let (name, alex, bea) = installation_that_moved_on(&mut f);
+        let t = f.admin();
+        let before = installation_snapshot(&f);
+        backup::fault::set(step, part, true);
+        assert!(f.core.admin_restore_installation(&t, &name, "admin-pass-1").is_err());
+        backup::fault::clear();
+        assert!(f.core.root().path().join("restore-transaction/journal.json").exists(), "{step} {part}: stopped mid-swap");
+        f.restart();
+        assert!(installation_snapshot(&f) == before, "{step} {part}: complete pre-restore data is back");
+        assert!(!f.core.root().path().join("restore-transaction").exists());
+        assert!(f.core.sign_in_student(&bea, "bea-pass-12").is_ok());
+        assert!(f.core.sign_in_student(&alex, "alex-pass-1").is_err());
+        let actions = audit_actions(&mut f);
+        assert!(actions.contains(&"restore-installation-rolled-back".to_string()), "{actions:?}");
+        assert!(!actions.contains(&"restore-installation".to_string()));
+        // Opening again finds nothing more to do.
+        f.restart();
+        assert!(installation_snapshot(&f) == before);
+    }
+}
+
+#[test]
+fn a_crash_while_staging_or_after_commit_never_mixes_data() {
+    // Crash while staging: live data was never touched.
+    let mut f = fixture();
+    let (name, _alex, bea) = installation_that_moved_on(&mut f);
+    let t = f.admin();
+    let before = installation_snapshot(&f);
+    backup::fault::set("stage", 1, true);
+    assert!(f.core.admin_restore_installation(&t, &name, "admin-pass-1").is_err());
+    backup::fault::clear();
+    f.restart();
+    assert!(installation_snapshot(&f) == before);
+    assert!(!f.core.root().path().join("restore-transaction").exists());
+    assert!(f.core.sign_in_student(&bea, "bea-pass-12").is_ok());
+
+    // Crash after the commit was recorded: the restored data stays.
+    let mut f = fixture();
+    let (name, alex, bea) = installation_that_moved_on(&mut f);
+    let t = f.admin();
+    backup::fault::set("committed", 0, true);
+    assert!(f.core.admin_restore_installation(&t, &name, "admin-pass-1").is_err());
+    backup::fault::clear();
+    f.restart();
+    assert!(!f.core.root().path().join("restore-transaction").exists());
+    assert!(f.core.sign_in_student(&alex, "alex-pass-1").is_ok(), "restored data kept");
+    assert!(f.core.sign_in_student(&bea, "bea-pass-12").is_err());
+    assert!(!audit_actions(&mut f).contains(&"restore-installation-rolled-back".to_string()));
+}
+
+#[test]
+fn a_backup_damaged_after_listing_is_refused_before_anything_changes() {
+    let mut f = fixture();
+    let (name, _alex, bea) = installation_that_moved_on(&mut f);
+    let t = f.admin();
+    let before = installation_snapshot(&f);
+    let creds = f.core.root().backups_dir().join(&name).join("accounts/credentials.json");
+    std::fs::write(&creds, b"{}").unwrap();
+    assert!(backup::restore_installation(f.core.root(), &name).is_err());
+    assert!(installation_snapshot(&f) == before);
+    assert!(!f.core.root().path().join("restore-transaction").exists());
+    assert!(f.core.admin_list_students(&t).is_ok());
+    assert!(f.core.sign_in_student(&bea, "bea-pass-12").is_ok());
+}
+

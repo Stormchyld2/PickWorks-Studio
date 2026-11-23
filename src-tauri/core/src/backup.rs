@@ -271,18 +271,257 @@ pub fn restore_student(root: &DataRoot, name: &str, student_id: &str) -> Result<
     replace_dir(&root.student_dir(student_id)?, &backup_dir(root, name)?.join("student"))
 }
 
-/// Restores accounts, credentials, all students and app settings.
+// ----- Installation restore (all or nothing) ---------------------------------
+//
+// An installation restore replaces three folders (accounts, students,
+// application). It runs as a small transaction inside the data folder, in
+// `restore-transaction/`:
+//
+// 1. **Stage.** Every part is copied from the backup into `staged/`, the copy
+//    is checked against the backup's checksums, and its files are flushed to
+//    disk. A full disk, a read error or a damaged file fails here, while the
+//    live data is untouched; the staging folder is then removed.
+// 2. **Swap.** A journal (`journal.json`, state `swapping`) is written. Each
+//    live part is renamed to `previous/<part>` and the staged part renamed
+//    into its place. Renames stay inside the data folder, so they need no
+//    extra space. If any step fails, every part already swapped is put back.
+// 3. **Commit.** The journal is marked `committed` and the transaction folder
+//    removed.
+//
+// If the app stops part-way (crash, power loss), `recover_interrupted_restore`
+// runs when the app next opens: a `swapping` journal is rolled back so the
+// complete pre-restore data returns; a `committed` journal or a folder with no
+// journal (the swap never started, or a rollback had already finished) is only
+// cleaned up. The safety backup taken before every restore is unchanged.
+
+const TXN_DIR: &str = "restore-transaction";
+const JOURNAL_VERSION: u32 = 1;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+enum TxnState {
+    Swapping,
+    Committed,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RestoreJournal {
+    state: TxnState,
+    backup: String,
+    /// Whether each live part existed before the swap, in INSTALLATION_PARTS order.
+    existed: Vec<bool>,
+}
+
+/// What `recover_interrupted_restore` found when the app opened.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RestoreRecovery {
+    /// A restore stopped mid-swap; the data from before it is back in place.
+    RolledBack { backup: String },
+    /// A restore had finished; only its temporary folders were left.
+    CleanedUp,
+}
+
+/// Fault injection for tests: fail (or simulate a crash) at a named step.
+#[cfg(test)]
+pub(crate) mod fault {
+    use std::cell::Cell;
+    thread_local! {
+        /// (step, part index, crash). `crash` stops without any clean-up, as
+        /// if the app had been killed at that point.
+        pub static AT: Cell<Option<(&'static str, usize, bool)>> = const { Cell::new(None) };
+    }
+    pub fn set(step: &'static str, part: usize, crash: bool) {
+        AT.set(Some((step, part, crash)));
+    }
+    pub fn clear() {
+        AT.set(None);
+    }
+}
+
+fn fault_point(step: &'static str, part: usize) -> Result<()> {
+    #[cfg(test)]
+    if let Some((s, p, _)) = fault::AT.get() {
+        if s == step && p == part {
+            return Err(CoreError::Io(std::io::Error::other(format!("injected fault at {step} {part}"))));
+        }
+    }
+    let _ = (step, part);
+    Ok(())
+}
+
+fn crash_simulated() -> bool {
+    #[cfg(test)]
+    return fault::AT.get().is_some_and(|f| f.2);
+    #[cfg(not(test))]
+    false
+}
+
+fn txn_dir(root: &DataRoot) -> PathBuf {
+    root.path().join(TXN_DIR)
+}
+
+fn write_journal(txn: &Path, journal: &RestoreJournal) -> Result<()> {
+    storage::write_versioned(&txn.join("journal.json"), JOURNAL_VERSION, journal)
+}
+
+/// Flushes every file under `dir` to disk (write access is needed for this on Windows).
+fn sync_tree(dir: &Path) -> Result<()> {
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            sync_tree(&entry.path())?;
+        } else if ty.is_file() {
+            fs::OpenOptions::new().write(true).open(entry.path())?.sync_all()?;
+        }
+    }
+    storage::sync_dir(dir);
+    Ok(())
+}
+
+/// Moves `from` to `to`, replacing anything already at `to`.
+fn move_replacing(from: &Path, to: &Path) -> Result<()> {
+    if to.exists() {
+        fs::remove_dir_all(to)?;
+    }
+    if let Some(parent) = to.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::rename(from, to)?;
+    Ok(())
+}
+
+/// Removes a finished or abandoned transaction folder: the journal first, so
+/// a crash during removal never leaves a journal that would act again.
+fn remove_txn(txn: &Path) -> Result<()> {
+    let journal = txn.join("journal.json");
+    for p in [journal.clone(), journal.with_extension("json.bak"), journal.with_extension("json.tmp")] {
+        if p.exists() {
+            fs::remove_file(p)?;
+        }
+    }
+    if txn.exists() {
+        fs::remove_dir_all(txn)?;
+    }
+    Ok(())
+}
+
+/// Copies the backup's parts into `staged/` and proves the copy is complete.
+fn stage(backup: &Path, staged: &Path, expected: &Checksums) -> Result<()> {
+    fs::create_dir_all(staged)?;
+    for (i, part) in INSTALLATION_PARTS.iter().enumerate() {
+        copy_dir(&backup.join(part), &staged.join(part))?;
+        fault_point("stage", i)?;
+    }
+    if compute_checksums(staged)? != *expected {
+        return Err(CoreError::Corrupt("the backup couldn't be copied intact; there may not be enough free space".into()));
+    }
+    sync_tree(staged)
+}
+
+fn swap(root: &DataRoot, txn: &Path) -> Result<()> {
+    for (i, part) in INSTALLATION_PARTS.iter().enumerate() {
+        let live = root.path().join(part);
+        if live.exists() {
+            move_replacing(&live, &txn.join("previous").join(part))?;
+        }
+        fault_point("aside", i)?;
+        fs::rename(txn.join("staged").join(part), &live)?;
+        fault_point("swapped", i)?;
+    }
+    storage::sync_dir(root.path());
+    Ok(())
+}
+
+/// Puts back every part that was swapped. Safe to run more than once.
+fn roll_back(root: &DataRoot, txn: &Path, existed: &[bool]) -> Result<()> {
+    for (i, part) in INSTALLATION_PARTS.iter().enumerate() {
+        let live = root.path().join(part);
+        let previous = txn.join("previous").join(part);
+        let discard = txn.join("discard").join(part);
+        if previous.exists() {
+            if live.exists() {
+                move_replacing(&live, &discard)?;
+            }
+            fs::rename(&previous, &live)?;
+        } else if !existed.get(i).copied().unwrap_or(true) && live.exists() {
+            // The part didn't exist before; what is there now came from the backup.
+            move_replacing(&live, &discard)?;
+        }
+    }
+    storage::sync_dir(root.path());
+    Ok(())
+}
+
+/// Restores accounts, credentials, all students and app settings, all or
+/// nothing (see the section comment above).
 pub fn restore_installation(root: &DataRoot, name: &str) -> Result<()> {
     let manifest = read_manifest(root, name)?;
     if manifest.kind != BackupKind::Installation {
         return Err(CoreError::InvalidData("That is a single-student backup.".into()));
     }
-    verify(root, name)?;
     let dir = backup_dir(root, name)?;
-    for part in INSTALLATION_PARTS {
-        replace_dir(&root.path().join(part), &dir.join(part))?;
+    // A damaged backup is refused before anything is copied.
+    let expected = verify_dir(&dir)?;
+    // Settle any earlier restore that was interrupted before starting a new one.
+    recover_interrupted_restore(root)?;
+    let txn = txn_dir(root);
+    remove_txn(&txn)?;
+
+    if let Err(e) = stage(&dir, &txn.join("staged"), &expected) {
+        if !crash_simulated() {
+            let _ = remove_txn(&txn);
+        }
+        return Err(e);
     }
-    Ok(())
+
+    let existed: Vec<bool> = INSTALLATION_PARTS.iter().map(|p| root.path().join(p).exists()).collect();
+    let mut journal = RestoreJournal { state: TxnState::Swapping, backup: name.to_string(), existed };
+    if let Err(e) = write_journal(&txn, &journal) {
+        let _ = remove_txn(&txn);
+        return Err(e);
+    }
+    if let Err(e) = swap(root, &txn) {
+        if crash_simulated() {
+            return Err(e);
+        }
+        // If the rollback itself fails, the journal stays and the rollback is
+        // retried when the app next opens.
+        roll_back(root, &txn, &journal.existed)?;
+        remove_txn(&txn)?;
+        return Err(e);
+    }
+    journal.state = TxnState::Committed;
+    if let Err(e) = write_journal(&txn, &journal) {
+        // Not committed: undo now, so this session and the next agree.
+        roll_back(root, &txn, &journal.existed)?;
+        remove_txn(&txn)?;
+        return Err(e);
+    }
+    if crash_simulated() {
+        fault_point("committed", 0)?;
+    }
+    remove_txn(&txn)
+}
+
+/// Finishes an installation restore that was interrupted (see above). Called
+/// when the app opens and before every installation restore.
+pub fn recover_interrupted_restore(root: &DataRoot) -> Result<Option<RestoreRecovery>> {
+    let txn = txn_dir(root);
+    if !txn.exists() {
+        return Ok(None);
+    }
+    let journal: Option<RestoreJournal> = storage::read_versioned(&txn.join("journal.json"), JOURNAL_VERSION, &[])?;
+    let outcome = match journal {
+        Some(j) if j.state == TxnState::Swapping => {
+            roll_back(root, &txn, &j.existed)?;
+            RestoreRecovery::RolledBack { backup: j.backup }
+        }
+        _ => RestoreRecovery::CleanedUp,
+    };
+    remove_txn(&txn)?;
+    Ok(Some(outcome))
 }
 
 // ----- Copies outside the app (USB drive or another folder) ----------------

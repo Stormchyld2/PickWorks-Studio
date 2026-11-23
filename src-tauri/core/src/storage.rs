@@ -110,7 +110,7 @@ fn tmp_path(path: &Path) -> PathBuf {
     PathBuf::from(s)
 }
 
-fn sync_dir(dir: &Path) {
+pub(crate) fn sync_dir(dir: &Path) {
     // Directory fsync makes the rename durable on Linux/Android. Windows does
     // not support opening directories this way; NTFS rename is durable enough.
     #[cfg(unix)]
