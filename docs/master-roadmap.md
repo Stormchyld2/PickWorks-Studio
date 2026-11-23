@@ -94,12 +94,12 @@
 | **Phase 1** | Hardware verification, fixes, acceptance of existing PRs (#1 to #4, merged in order only on Jason's authorisation) | None | Current app accepted |
 | **Phase 2** | Learning core: courses, missions, per-student placement wizard, directed progression and prerequisite gates, mastery verification and reviews, progress, XP, levels, achievements, real-data dashboard, Learning Studio tour; workspace navigation Stages A and B | Phase 1 | Learn, Practice and Progress become real; workspace selector |
 | **X0** | Shared architectural foundations, as seven milestones (below) | Phase 1; each milestone's own dependencies | None (foundations only) |
-| **X1** | Chord reference tools (Visual Chord Library, Voicing and Alternate Explorers, Compare, Chord Finder); **Print Studio Core**; **Offline Field Library**; **Low-Power Field** and Field Dashboard; Reference workspace opens with its tour | X0.1–X0.5, X0.7; Jason's review of the 18 flagged shapes; Spike C (PDF writer) | Chord tools, printing and Save to PDF, Field mode |
+| **X1** | Chord reference tools (Visual Chord Library, Voicing and Alternate Explorers, Compare, Chord Finder); **Print Studio Core**; **Offline Field Library**; **Low-Power Field** and Field Dashboard; Reference workspace opens with its tour | X0.1–X0.5, X0.7; the 75-shape manifest (approved 2026-11-23); Spike C (PDF writer), which gates **only** the Print Studio PDF work (Print Studio Core and Save to PDF), not the chord tools, Field Library or Low-Power Field (decision 19) | Chord tools, printing and Save to PDF, Field mode |
 | **X2** | Songwriting Studio, Arrangement Board, Personal Songbook, Performance Mode; **Expanded Print Studio** (songbooks, lead sheets, lesson worksheets); **field binder**; No-Power Preparation; Play & Create opens with its tour | X0.6, X1; Phase 2 lesson content (for lesson worksheets and binder lessons) | Write, perform and print songs; field binder |
 | **X3** | Chord Progression Generator G1 (rock, pop, folk, blues; Lock Chord + Regenerate); Rhythm & Strumming Studio (editor, presets, visual playback, charts); Music Theory Tools; Melody & Harmony guidance on the fretboard; initial Ear Training (intervals, major and minor, with existing tones); **style pack schema v1** shared by the generator and the future backing engine | X2 (Send to Song, pattern attachment); X0.5 (TimerClock); Phase 2 missions, mastery and XP (for ear training) | Generate, strum, theory tools, first ear training, all without a synthesizer |
 | **X4** | MIDI synthesis and playback; **load, play, loop, mute, solo and mix existing arrangements** (volume, pan, Practice preset, voice management); generator G2; rhythm audio and accompaniment; ear training chords, progressions and rhythm | X3; Spike B (including offline rendering); Spike D first pass; sound licence verification | Hear songs, progressions, patterns and ear-training chords |
-| **X5** | TAB Editor, Standard Notation Editor, combined view, melody composition in the Assistant, MIDI file import and export, TAB and notation printing, notation accessibility | X4; Spike A | Write TAB, notation and melodies |
-| **X6** | Riff Recorder, Idea Vault, pitch-preserving speed change; **Backing Track Generator**: arrangement generation (drums, bass, rhythm guitar, keys), natural performance processing, Natural and Performance presets, locks, regeneration, variations, editing, offline MIDI, WAV and stem export; four styles (rock, blues, pop, folk/acoustic) that pass the listening tests | X4 (and X0.6 media storage); Spike D; style packs passing backing-track-generator.md section 13 | Record ideas, generate and play along with backing tracks |
+| **X5** (six milestones, below) | TAB Editor, Standard Notation Editor, combined view, melody composition in the Assistant, MIDI file import and export, TAB and notation printing, notation accessibility | X4; Spike A | Write TAB, notation and melodies |
+| **X6** (X6a and X6b, below) | Riff Recorder, Idea Vault, pitch-preserving speed change; **Backing Track Generator**: arrangement generation (drums, bass, rhythm guitar, keys), natural performance processing, Natural and Performance presets, locks, regeneration, variations, editing, offline MIDI, WAV and stem export; four styles (rock, blues, pop, folk/acoustic) that pass the listening tests | X4 (and X0.6 media storage); Spike D; style packs passing backing-track-generator.md section 13 | Record ideas, generate and play along with backing tracks |
 | **X7** | MusicXML import and export; advanced generator styles G3 (country, worship, jazz, advanced complexity, mood controls) and G4 (modal); advanced backing styles as data packs (country, worship, jazz, southern rock, classic rock, funk, ballads), more articulations and quality improvements from listening tests, FLAC export; final integration and end-to-end testing | X5, X6 | Interchange, more styles, finished workflow |
 
 ### X0 milestones (each independently testable)
@@ -117,6 +117,21 @@ Each milestone is its own branch and pull request, with its own tests, no visibl
 | **X0.7 Unified diagram rendering** | `neckLayout` shared by screen and print, `fretGrid`, SVG serializers, fret-number and open-string labels, spoken descriptions | X0.1 | notation-rendering.md tests pass; screen and print geometry identical |
 
 X0.1, X0.2, X0.5 and X0.7 have no dependency on each other beyond those listed and can run in any order. X0.4 waits for workspace navigation Stage B.
+
+### X5 and X6 milestones (approved 2026-11-23, decision 20)
+
+Like X0, each milestone is its own branch and pull request with its own tests, and none starts without Jason's explicit approval of that stage.
+
+| Milestone | Contents | Depends on |
+| --- | --- | --- |
+| **X5.1** | TAB view with a playback-synced cursor (read-only) | X4 |
+| **X5.2** | TAB editing | X5.1 |
+| **X5.3** | Standard notation rendering | Spike A result |
+| **X5.4** | Notation editing and the combined TAB and notation view | X5.2, X5.3 |
+| **X5.5** | MIDI file import and export | X0.6, X4 |
+| **X5.6** | TAB and notation printing, plus full notation accessibility (creative-workstation.md section 16) | X5.4, Print Studio Core |
+| **X6a** | Riff Recorder, Idea Vault, pitch-preserving speed change | X4, X0.6 media storage |
+| **X6b** | Backing Track Generator (arrangement generation, presets, locks, regeneration, editing, export, four styles) | X4; Spike D; style packs passing backing-track-generator.md section 13 |
 
 ### Phase 2 is protected
 
@@ -343,14 +358,22 @@ Complexity: **S** (days), **M** (1 to 2 weeks), **L** (several weeks), **XL** (a
 - **D7** Spikes stay unauthorised; their evaluation criteria and thresholds are now documented for separate approval.
 - **D8** (2026-11-23) Wave 1 confirmed by Jason: learning engine contracts, the Adaptive Skill Assessment & Placement Engine and the metronome Wave 1 UI are authorised (scope in the Wave 1 section below). Automatic Learning Unlock counts lessons covered by verified placement evidence; the lesson override is named Open All Lessons. Storage and enforcement split (facts stored, access derived; Open All Lessons grants in account data) approved, see fretboard-mastery-placement.md.
 
+
+**Finalized by Jason (2026-11-23, decisions 1–21):**
+
+- **D9** Workspace decisions 1–12 approved, including the selector mockups (expanded selector, collapsed rail, collapsed popover, Workspace Settings). Learning Studio is permanently unlocked; other workspaces unlock at 80% Beginner and 50% Intermediate lessons covered, or by an administrator grant or Unlock All Workspaces. Student preferences show or hide an available workspace but never lock it. Unlocking never creates completions, mastery or XP. **Stage A may proceed; Stage B waits for Jason's approval after Windows hardware verification.** See architecture.md, Workspaces.
+- **D10** Chord decisions 13–16 approved: the 75-shape manifest with the approved primary fingerings and alternatives (corrections recorded in the manifest), students see only approved shapes in released builds, and the Chord Finder may begin after chord Stage 1 using validated shapes only. Implementation still follows the X0.3 and X1 stage approvals.
+- **D11** (was R2, decision 17) Each X stage and milestone needs Jason's explicit approval before implementation. Stages may be planned but are never started automatically.
+- **D12** (was R3, decision 18) Ear-training thresholds approved exactly as in creative-workstation.md section 8: whole-number qualifying counts rather than rounded percentages, first answers only, 0.3 s guess limit, untimed mode and rhythm windows up to ±120 ms with full progression eligibility, 80% to open the next set, reviews at 2, 7 and 21 days, below 70% over 5 review attempts returns an item to learning without erasing history, achievements or XP, quarter XP for all-mastered missions, a daily cap of six missions' worth that limits XP only, and no missed-day penalties.
+- **D13** (decision 19) The Spike C gate applies to the Print Studio PDF work only.
+- **D14** (decision 20) X5 splits into six milestones and X6 into X6a (recorder) and X6b (Backing Track Generator); see the table above.
+- **D15** (decision 21) The metronome pendulum stays synchronised to the shared audio timing engine ([transport-timing.md](transport-timing.md)); it never runs its own clock.
+
 **Still open:**
 
-- **R1** (was D6) Move the architecture documents from PR #4 to a separate documentation PR?
-- **R2** Confirm that the requirements-v1 work-scope rule ("engines may be built from the current spec") does not apply to the X-stage documents, so each stage and milestone needs your authorisation (my recommendation, matching your instructions).
-- **R3** Review the initial ear-training thresholds, daily XP cap and rhythm timing windows before X3 implementation (values in creative-workstation.md section 8).
+- **R1** (was D6) Move the architecture documents from PR #4 to a separate documentation PR? (PR #4 has since been merged.)
 - **R4** Authorise Spikes A, B, C and D separately when convenient (Spike C is the first needed, before X1; Spike D before X4's sound set is fixed).
 - **R6** Backing Track Generator approvals (before X4 and X6): sound-set budgets, the listening panel and pass bar, and whether rendered WAV files may be kept inside songs (backing-track-generator.md section 14).
-- **R5** Earlier open items unchanged by this pass: the 18 flagged chord shapes; the 4 chord-system decisions; the workspace navigation plan's open decisions.
 
 ## 8. Implementation risks found in this review
 
@@ -373,7 +396,7 @@ The owner has explicitly authorised **Wave 1 engine development and the metronom
 
 1. Establish reusable, typed, pure-TypeScript learning contracts and orchestration across curriculum/lessons, assessment/placement, practice, performance, mastery, fretboard, Chord System and future instrument modules. Define stable skill IDs, evidence schemas and access decisions without circular engine imports or duplicate skill records.
 2. Define Fretboard Mastery prerequisite graph and evidence gates alongside the **Adaptive Skill Assessment & Placement Engine**. Three universal background questions route a practical adaptive assessment (~5–12 prompts, more when evidence insufficient). A validated candidate item bank (~60–80) is a Wave 1 target, not a substitute for verification. Per-student placement, prior-lesson access, locked future lessons and per-student/per-curriculum Admin **Open All Lessons** (access only, audited and revocable; distinct from Unlock All Workspaces) are Wave 1 engine deliverables. The full wizard, Admin UI and other learning screens are later integration work. Detailed behavior: [fretboard-mastery-placement.md](fretboard-mastery-placement.md).
-3. **Metronome Wave 1 UI:** On Windows add a compact pendulum-like dot traversing a semicircular/half-arc track above-right of the tempo setting, synchronized to the authoritative audio beat. Make Play/Stop, Tap Tempo, Volume and Time Signature compact **equal-size 2×2 control blocks**, with tempo display above. On Android place the indicator responsively near tempo and preserve touch targets and no overflow. Respect reduced motion; do not create a second audio clock. Preserve existing functions and test synchronization and layout.
+3. **Metronome Wave 1 UI:** On Windows add a compact pendulum-like dot traversing a semicircular/half-arc track above-right of the tempo setting, synchronized to the authoritative audio beat. Make Play/Stop, Tap Tempo, Volume and Time Signature compact **equal-size 2×2 control blocks**, with tempo display above. On Android place the indicator responsively near tempo and preserve touch targets and no overflow. Respect reduced motion; do not create a second audio clock (confirmed as decision 21, 2026-11-23). Preserve existing functions and test synchronization and layout.
 4. Test each engine seam and persistence/authorization behavior before wiring the wizard, dashboard, Learn, Practice, Progress and Admin UI. The metronome redesign can be implemented independently within Wave 1. Preserve Windows-first/Android-later and local JSON/Rust ownership boundaries.
 
 **Sequence note:** The older recommendation immediately below remains historical planning context; this Wave 1 decision takes precedence where its priority/order differs. It does not approve unrelated roadmap features.
