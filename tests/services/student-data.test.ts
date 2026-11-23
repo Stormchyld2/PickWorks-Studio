@@ -78,6 +78,39 @@ describe('StudentData', () => {
     expect((await data.preferences()).display.leftHanded).toBe(true);
   });
 
+  it('upgrades a student\'s saved version 1 preferences on load and saves them back as version 2', async () => {
+    const { data, client } = setup();
+    // Exactly what Phase 1 builds wrote: version 1, no workspace group.
+    const v1 = {
+      display: { leftHanded: true, textSize: 'larger', highContrast: true, reducedMotion: true, focusMode: false },
+      audio: { inputDeviceId: 'mic-1', inputChannel: 1, outputDeviceId: null, masterVolume: 0.5 },
+      tuner: { a4: 440, presetId: 'standard', precise: true, chime: false, mode: 'chromatic' },
+      practice: { metronomeBpm: 95, sessionMinutes: 20, reminders: false, askBeforeSignOut: false, highlightOnSignIn: true },
+      rewards: { showXp: false, showBadges: true, showStreak: true },
+    };
+    client.records.set('preferences', { schemaVersion: 1, data: v1 });
+    const loaded = await data.preferences();
+    const { workspace, ...rest } = loaded;
+    expect(rest).toEqual(v1); // every saved setting survives unchanged
+    expect(workspace).toEqual(defaultPreferences().workspace);
+    // Nothing is rewritten just by reading.
+    expect((client.records.get('preferences') as { schemaVersion: number }).schemaVersion).toBe(1);
+    await data.savePreferences({ ...loaded, workspace: { ...workspace, sidebarCollapsed: true, shown: { 'learning-studio': true } } });
+    const saved = client.records.get('preferences') as { schemaVersion: number; data: typeof loaded };
+    expect(saved.schemaVersion).toBe(PREFERENCES.version);
+    expect((await data.preferences()).workspace).toEqual({ ...workspace, sidebarCollapsed: true, shown: { 'learning-studio': true } });
+    expect((await data.preferences()).display).toEqual(v1.display);
+  });
+
+  it('never saves access settings into the student\'s preferences', async () => {
+    const { data, client } = setup();
+    const sneaky = { ...defaultPreferences(), workspace: { ...defaultPreferences().workspace, unlockAll: true, grants: ['play-create'] } };
+    await data.savePreferences(sneaky as ReturnType<typeof defaultPreferences>);
+    const saved = client.records.get('preferences') as { data: { workspace: Record<string, unknown> } };
+    expect(saved.data.workspace).not.toHaveProperty('unlockAll');
+    expect(saved.data.workspace).not.toHaveProperty('grants');
+  });
+
   it('refuses everything after sign-out instead of queueing it', async () => {
     const { data, signOut } = setup();
     signOut();

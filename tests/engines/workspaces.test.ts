@@ -10,6 +10,9 @@ import {
   DEFAULT_ADMIN_WORKSPACE_SETTINGS,
   canHide,
   fallbackWorkspace,
+  parseAdminWorkspaceSettings,
+  thresholdFromPercent,
+  thresholdToPercent,
   meetsLearningThresholds,
   startupWorkspace,
   visibleWorkspaces,
@@ -145,6 +148,55 @@ describe('workspace access', () => {
     const before = structuredClone({ ...i, workspaces: undefined });
     workspaceAccess(i);
     expect({ ...i, workspaces: undefined }).toEqual(before);
+  });
+});
+
+describe('administrator unlock thresholds (0 to 100%)', () => {
+  const settings = (beginnerLessons: number, intermediateLessons: number) => ({
+    ...DEFAULT_ADMIN_WORKSPACE_SETTINGS,
+    thresholds: { beginnerLessons, intermediateLessons },
+  });
+
+  it('accepts every value from 0% to 100%, including both ends', () => {
+    for (const [b, i] of [[0, 0], [1, 1], [0.8, 0.5], [0.01, 0.99]]) {
+      expect(parseAdminWorkspaceSettings(settings(b, i)).thresholds).toEqual({ beginnerLessons: b, intermediateLessons: i });
+    }
+    expect(parseAdminWorkspaceSettings(DEFAULT_ADMIN_WORKSPACE_SETTINGS)).toEqual(DEFAULT_ADMIN_WORKSPACE_SETTINGS);
+  });
+
+  it('refuses values below 0%, above 100% or not numbers', () => {
+    for (const bad of [-0.01, -1, 1.01, 80, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => parseAdminWorkspaceSettings(settings(bad, 0.5)), String(bad)).toThrow();
+      expect(() => parseAdminWorkspaceSettings(settings(0.8, bad)), String(bad)).toThrow();
+    }
+    expect(() => parseAdminWorkspaceSettings({ ...settings(0.8, 0.5), thresholds: { beginnerLessons: '80' } })).toThrow();
+    expect(() => parseAdminWorkspaceSettings(null)).toThrow();
+  });
+
+  it('never decides access from invalid settings', () => {
+    // A negative threshold would otherwise unlock everything for a student with no lessons covered.
+    expect(() => workspaceAccess(input({ admin: settings(-1, -1) }))).toThrow();
+    expect(() => workspaceAccess(input({ admin: settings(Number.NaN, 0.5) }))).toThrow();
+    expect(() => workspaceAccess(input({ admin: settings(1.5, 0.5) }))).toThrow();
+  });
+
+  it('converts whole percentages typed by an administrator', () => {
+    expect(thresholdFromPercent(0)).toBe(0);
+    expect(thresholdFromPercent(80)).toBe(0.8);
+    expect(thresholdFromPercent(100)).toBe(1);
+    for (const bad of [-1, 101, 50.5, Number.NaN]) expect(() => thresholdFromPercent(bad), String(bad)).toThrow(RangeError);
+    expect(thresholdToPercent(0.5)).toBe(50);
+    expect(() => thresholdToPercent(2)).toThrow();
+  });
+
+  it('at 100% needs every lesson covered, at 0% needs only that lessons exist', () => {
+    const full = { beginner: { covered: 10, total: 10 }, intermediate: { covered: 10, total: 10 } };
+    const almost = { beginner: { covered: 9, total: 10 }, intermediate: { covered: 10, total: 10 } };
+    expect(states(input({ admin: settings(1, 1), coverage: full }))['play-create']).toBe('visible');
+    expect(states(input({ admin: settings(1, 1), coverage: almost }))['play-create']).toBe('locked');
+    expect(states(input({ admin: settings(0, 0) }))['play-create']).toBe('visible');
+    const noLessons = { beginner: { covered: 0, total: 0 }, intermediate: { covered: 0, total: 0 } };
+    expect(states(input({ admin: settings(0, 0), coverage: noLessons }))['play-create']).toBe('locked');
   });
 });
 

@@ -14,6 +14,7 @@
  * completions, mastery records or XP: unlocking or opening a workspace is a
  * navigation decision only.
  */
+import { z } from 'zod';
 import {
   DEFAULT_WORKSPACE,
   DEFAULT_WORKSPACE_UNLOCK,
@@ -37,6 +38,47 @@ export const DEFAULT_ADMIN_WORKSPACE_SETTINGS: AdminWorkspaceSettings = {
   automaticLearningUnlock: true,
   thresholds: { ...DEFAULT_WORKSPACE_UNLOCK },
 };
+
+/**
+ * A threshold is a share of lessons from 0 (0%) to 1 (100%). Anything else is
+ * refused rather than clamped: a negative value would unlock every workspace
+ * for everyone, and a value above 100% would make the unlock impossible, so a
+ * bad value must never be stored or used quietly.
+ */
+export const thresholdSchema = z.number().finite().min(0).max(1);
+
+export const workspaceUnlockThresholdsSchema = z.object({
+  beginnerLessons: thresholdSchema,
+  intermediateLessons: thresholdSchema,
+});
+
+export const adminWorkspaceSettingsSchema = z.object({
+  unlockAll: z.boolean(),
+  automaticLearningUnlock: z.boolean(),
+  thresholds: workspaceUnlockThresholdsSchema,
+});
+
+/** Validates administrator settings (for example before saving). Throws on anything outside the rules. */
+export function parseAdminWorkspaceSettings(value: unknown): AdminWorkspaceSettings {
+  return adminWorkspaceSettingsSchema.parse(value);
+}
+
+/**
+ * Converts a whole-number percentage typed by an administrator (0 to 100) to a
+ * threshold. Throws on fractions of a percent, negatives, values over 100 and
+ * anything that isn't a number.
+ */
+export function thresholdFromPercent(percent: number): number {
+  if (!Number.isInteger(percent) || percent < 0 || percent > 100) {
+    throw new RangeError('An unlock threshold must be a whole percentage from 0 to 100.');
+  }
+  return percent / 100;
+}
+
+/** The threshold as a whole-number percentage, for display. */
+export function thresholdToPercent(threshold: number): number {
+  return Math.round(thresholdSchema.parse(threshold) * 100);
+}
 
 /**
  * Lessons covered at one level. A lesson is covered when the student completed
@@ -105,6 +147,8 @@ function unlockReason(id: WorkspaceId, input: WorkspaceAccessInput): UnlockReaso
 
 /** The state of every configured workspace for one student, in configuration order. */
 export function workspaceAccess(input: WorkspaceAccessInput): WorkspaceAccess[] {
+  // Refuse invalid administrator settings instead of deciding access from them.
+  adminWorkspaceSettingsSchema.parse(input.admin);
   const list = (input.workspaces ?? WORKSPACES).map((w): WorkspaceAccess => {
     if (!w.implemented) return { id: w.id, state: 'not-implemented', unlockedBy: null, fallback: false };
     const unlockedBy = unlockReason(w.id, input);
