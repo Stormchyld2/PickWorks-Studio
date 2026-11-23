@@ -40,16 +40,70 @@ The existing locked **note-mastery rule** remains unchanged: most recent 10 atte
 - **Assessment controls:** Adaptive sessions have bounded length, no silent guessing, alternate items for reassessment and interruption-safe persistence. An unfinished placement awards no new unlocks.
 - **Separation:** Do not equate assessment placement with completion, note mastery or XP. Do not change the approved rolling-window note-mastery algorithm.
 
-## Administrator override: Unlock All
+## Administrator override: Open All Lessons
 
-The administrator may grant **Unlock All Lessons** for an individual student and curriculum if placement misses their ability. This is an **access override only**, not a change to placement evidence, mastered notes, XP, achievements, completion records or assessment results.
+The administrator may grant **Open All Lessons** for an individual student and curriculum if placement misses their ability. This is an **access override only**, not a change to placement evidence, mastered notes, XP, achievements, completion records or assessment results.
 
 - Admin Student Management shows the student's normal placement/frontier and whether an override is active. Granting and revoking require an explicit confirmation and are audited with administrator identity, student ID, action, timestamp and optional reason.
 - The authorization must be enforced in the same Rust-owned student access path as other privileged operations; students cannot activate it through UI state, route parameters or edited client payloads.
 - With an active override, all directed lessons in the selected curriculum are accessible. **Earlier lessons remain accessible in every mode.** Revoking the override returns access to the student's highest legitimately earned/verified frontier without deleting progress completed while the override was active. Define how those completed lessons contribute to subsequent prerequisites before implementation.
 - Overrides are per student and per curriculum, not global; they survive sign-out/restart and appear in backup/restore under the normal student-data rules. Never leak one student's override to another.
 - Future lessons remain locked for students **without** an active override, except when earned progression or verified reassessment legitimately advances their frontier.
-- The UI should clearly label an override as "Administrator unlocked" rather than "Mastered."
+- The UI should clearly label an override as "Opened by administrator" rather than "Mastered."
+- **Naming:** this lesson-access override is called **Open All Lessons** everywhere (UI, audit actions, code). It is a different control from the workspace setting **Unlock All Workspaces** (Workspace Navigation plan), which changes which workspaces are available and never changes lesson access; neither control implies the other.
+
+## Workspace unlock and placement (resolved 2026-11-23)
+
+**The gap:** Automatic Learning Unlock opens the other workspaces when a student has completed 80% of Beginner and 50% of Intermediate lessons (thresholds configurable in the curriculum). Placement never records completions for skipped lessons, so a student placed ahead would never reach the threshold, however much they can demonstrably do.
+
+**Rule:** the threshold counts **covered** lessons, not only completed ones. A lesson is covered when either:
+
+1. the student **completed** it through its normal gate, or
+2. the student's **verified placement or reassessment evidence** satisfies every prerequisite skill that lesson teaches (the same evidence that let the placement engine start them beyond it).
+
+Not covered:
+
+- lessons opened only through **Open All Lessons** (access is not evidence);
+- lessons the student merely viewed or explored;
+- self-reported ability.
+
+**Covered is a derived value**, computed by the curriculum engine from completions and the placement evidence. It is never written as a completion, and it never awards XP, missions, achievements or note mastery. The Progress screen may show "Covered by placement" next to such lessons, distinct from "Completed".
+
+**Effects on existing behaviour:**
+
+- Automatic Learning Unlock still never touches XP, lessons or mastery, as the workspace plan requires.
+- An administrator can still use Unlock All Workspaces or a per-student workspace override regardless of coverage.
+- If evidence later declines, already-unlocked workspaces stay unlocked. Workspace unlocks are never taken back automatically, matching the "recommend review, never relock earned access" rule above.
+
+## Storage and enforcement (proposed 2026-11-23, needs owner approval)
+
+**Principle: store facts, derive access.** No stored list of unlocked lessons exists to drift, contradict or be restored out of date. Access is always computed from three kinds of stored facts:
+
+| Fact | Where it lives | Written by | Format |
+| --- | --- | --- | --- |
+| Assessment observations (placement and reassessment answers, with item id and version) | Student folder: `placement-evidence.jsonl` | The student's own session, through the existing Rust `append_log` ownership path | Append-only log (crash-safe since Fix 1) |
+| Lesson completions | Student folder: existing progress records and logs | The student's own session | Existing records |
+| Placement result snapshot (verified prerequisite set, recommended start, engine and curriculum version) | Student folder: `placement` record | The student's own session | Versioned JSON; recomputable from the evidence, kept for speed and explanation |
+| **Open All Lessons** grants | `accounts/lesson-access.json` (installation data, next to the account index) | Rust core, administrator session only | Versioned JSON: student id, curriculum id, granted and revoked times; every change audited |
+
+**Why the override does not live in the student's folder:**
+
+- The administrator never needs a new write path into a student's records. Student data isolation stays exactly as it is, with no new privileged read or write path to security-review.
+- A **student backup restore cannot bring back a revoked override**, because student backups contain only the student folder. An installation restore brings back grants together with the accounts they belong to, which is consistent.
+- Students can read their own grants through a narrow Rust command, but never write them.
+- Deleting a student removes their grants in the same operation.
+
+**Who enforces what:**
+
+- **Rust core:** student data isolation, and administrator-only writes to the grant file (both are security boundaries).
+- **One TypeScript curriculum engine:** computes the lesson frontier from evidence + completions + grants. Lesson gates are pedagogy, not security: the student owns their machine and data. They must still never be bypassable through the app (route guards and the lesson runner both ask the engine).
+- **Gate logic stays out of Rust** so there is exactly one implementation, keeping the "no duplicate engines" rule.
+
+**Migration:**
+
+- Existing students have no evidence and no placement record. They start at fundamentals with earlier progress intact.
+- The wizard is offered once, on their next sign-in, and can be skipped.
+- Nothing is rewritten.
 
 ## Directed course structure
 
@@ -101,14 +155,19 @@ Wave 1 order: inspect existing engine APIs; define contracts; implement prerequi
 11. Accessibility, left-handed view, offline operation and honest empty states remain intact.
 12. Three universal background questions appear before adaptive practical tasks; self-report does not affect unlocks by itself.
 13. A chord-specific weakness does not invalidate demonstrated fretboard skill; a single mistaken answer is confirmed rather than treated as decisive.
-14. Admin Unlock All grants access only to the selected student's curriculum, is audited and does not fabricate mastery, XP or completions.
-15. Revoking Unlock All restores the legitimately verified access frontier without erasing earned evidence; a different student remains unaffected.
+14. Admin Open All Lessons grants access only to the selected student's curriculum, is audited and does not fabricate mastery, XP or completions.
+15. Revoking Open All Lessons restores the legitimately verified access frontier without erasing earned evidence; a different student remains unaffected.
+
+16. A student placed beyond Beginner lessons counts them as covered for Automatic Learning Unlock; no completion, XP or mastery record is created.
+17. Lessons opened only by Open All Lessons do not count toward Automatic Learning Unlock.
+18. Restoring an older student backup after Open All Lessons was revoked does not bring the override back.
 
 ## Open implementation decisions
 
 - Exact course lesson IDs, prerequisite graph and stage completion gates.
 - Adaptive placement item bank, evidence sufficiency, assessment duration and how to handle mixed skills.
-- Exact authorization/audit API for administrator overrides, including how completed lessons under override contribute to prerequisite gates.
+- Approval of the proposed storage and enforcement split (section above).
+- How lessons completed while Open All Lessons was active contribute to later prerequisite gates (proposal: a completed lesson counts like any completion, because completion has its own evidence gate).
 - Whether reassessment is launched from Progress, Settings, Learn or multiple places.
 - Student-facing explanation and remediation for a failed placement gate.
 
