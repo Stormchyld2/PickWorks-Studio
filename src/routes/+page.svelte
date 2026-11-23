@@ -200,10 +200,10 @@
   .bar span { display: block; height: 100%; background: var(--pw-primary); border-radius: 6px; }
   .cside { display: flex; flex-direction: column; gap: 4px; padding-left: 26px; border-left: 1px solid var(--pw-border); min-width: 190px; }
   .cside b { font-size: 1.25rem; }
-  .grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
   .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-  .mastery { display: flex; flex-direction: column; gap: 12px; }
-  .recent { display: flex; flex-direction: column; }
+  .mastery { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .recent { display: flex; flex-direction: column; flex: 1; }
   .recent.has-history { min-height: 220px; }
   .recent-empty { display: flex; align-items: flex-start; gap: 14px; padding: 10px 0 4px; }
   .recent-empty b { display: block; font-size: 1rem; }
@@ -229,7 +229,7 @@
   .mstats span { color: var(--pw-text-muted); font-size: 0.9rem; }
   .nextskill { display: flex; flex-direction: column; gap: 2px; }
   .nextskill b { font-size: 1.1rem; }
-  .mastery .go { margin-top: 4px; }
+  .mastery .go { margin-top: auto; }
   .note { margin: 10px 0 0; }
   .lastskill { margin: -4px 0 10px; }
   .again { align-self: flex-start; margin-top: auto; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--pw-primary); color: var(--pw-text); font-weight: 600; }
