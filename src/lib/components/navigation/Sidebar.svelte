@@ -3,18 +3,36 @@
   import PanelLeftClose from '@lucide/svelte/icons/panel-left-close';
   import PanelLeftOpen from '@lucide/svelte/icons/panel-left-open';
   import LogOut from '@lucide/svelte/icons/log-out';
-  import { PRIMARY_NAV, SECONDARY_NAV, isActive, type NavItem } from './nav-items';
+  import { PRIMARY_NAV, SECONDARY_NAV, activeHref, type NavItem } from './nav-items';
+  import WorkspaceSelector from './WorkspaceSelector.svelte';
 
   let {
     collapsed = $bindable(false),
     primary = PRIMARY_NAV,
     secondary = SECONDARY_NAV,
+    tools = [],
+    workspaces = false,
+    oncollapse,
     onsignout,
-  }: { collapsed?: boolean; primary?: NavItem[]; secondary?: NavItem[]; onsignout?: () => void } = $props();
+  }: {
+    collapsed?: boolean;
+    primary?: NavItem[];
+    secondary?: NavItem[];
+    /** The shared Tools group (Tuner, Metronome), shown in every workspace. */
+    tools?: NavItem[];
+    /** Shows the workspace selector (students only; the administrator never sees it). */
+    workspaces?: boolean;
+    /** Told when the student collapses or expands the sidebar, so it can be remembered. */
+    oncollapse?: (collapsed: boolean) => void;
+    onsignout?: () => void;
+  } = $props();
+
+  // Exactly one item is highlighted: the most specific match.
+  const current = $derived(activeHref([...primary, ...tools, ...secondary].map((i) => i.href), page.url.pathname));
 </script>
 
 {#snippet link(item: NavItem)}
-  {@const active = isActive(item.href, page.url.pathname)}
+  {@const active = item.href === current}
   <a
     href={item.href}
     class="nav-link"
@@ -39,9 +57,22 @@
     {/if}
   </div>
 
+  {#if workspaces}<WorkspaceSelector {collapsed} />{/if}
+
   <ul>
     {#each primary as item (item.href)}<li>{@render link(item)}</li>{/each}
   </ul>
+
+  {#if tools.length}
+    {#if collapsed}
+      <div class="grpline" role="separator"></div>
+    {:else}
+      <div class="grp" id="nav-tools">Tools</div>
+    {/if}
+    <ul aria-labelledby={collapsed ? undefined : 'nav-tools'} aria-label={collapsed ? 'Tools' : undefined}>
+      {#each tools as item (item.href)}<li>{@render link(item)}</li>{/each}
+    </ul>
+  {/if}
 
   <div class="spacer"></div>
 
@@ -59,7 +90,10 @@
 
   <button
     class="collapse"
-    onclick={() => (collapsed = !collapsed)}
+    onclick={() => {
+      collapsed = !collapsed;
+      oncollapse?.(collapsed);
+    }}
     aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
     aria-expanded={!collapsed}
   >
@@ -107,6 +141,18 @@
     border: 0;
     cursor: pointer;
     text-align: left;
+  }
+  .grp {
+    margin: 10px 16px 2px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--pw-text-muted);
+  }
+  .grpline {
+    border-top: 1px solid var(--pw-border);
+    margin: 8px 6px;
   }
   .tagline {
     margin-top: 2px;

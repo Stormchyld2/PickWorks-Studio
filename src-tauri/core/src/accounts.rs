@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::auth::Throttle;
-use crate::error::Result;
+use crate::error::{CoreError, Result};
 use crate::storage::{read_versioned, write_versioned, DataRoot};
 
 pub const INDEX_VERSION: u32 = 1;
@@ -34,6 +34,11 @@ pub struct StudentAccount {
     pub created_ms: u64,
     /// Set after an administrator reset: the student must choose a new password.
     pub must_change_password: bool,
+    /// Workspaces the administrator opened for this student (directly, or
+    /// from the new-profile defaults when the profile was created). Only the
+    /// administrator can change them; they never touch learning records.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub workspace_grants: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -53,6 +58,58 @@ pub struct AccountIndex {
     /// On by default; the administrator can turn it off.
     #[serde(default = "default_true")]
     pub self_registration: bool,
+    /// Installation-wide workspace access (Workspace Navigation, Stage B).
+    #[serde(default)]
+    pub workspace_access: WorkspaceAccessSettings,
+}
+
+/// Every workspace id the app knows. Learning Studio is always available and
+/// is never granted or locked, so only the others can be granted.
+pub const WORKSPACE_IDS: &[&str] = &["learning-studio", "play-create", "reference"];
+pub const GRANTABLE_WORKSPACES: &[&str] = &["play-create", "reference"];
+
+/// Administrator workspace access settings. Thresholds are whole percentages
+/// from 0 to 100 of Beginner and Intermediate lessons covered.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct WorkspaceAccessSettings {
+    /// "Unlock All Workspaces for Students".
+    pub unlock_all: bool,
+    /// "Automatic Learning Unlock".
+    pub automatic_learning_unlock: bool,
+    pub beginner_lessons_percent: u8,
+    pub intermediate_lessons_percent: u8,
+    /// Workspaces new profiles start with (applies to profiles created later).
+    pub new_profile_workspaces: Vec<String>,
+}
+
+impl Default for WorkspaceAccessSettings {
+    fn default() -> Self {
+        WorkspaceAccessSettings { unlock_all: false, automatic_learning_unlock: true, beginner_lessons_percent: 80, intermediate_lessons_percent: 50, new_profile_workspaces: Vec::new() }
+    }
+}
+
+impl WorkspaceAccessSettings {
+    /// Refuses thresholds above 100% and unknown or ungrantable workspaces.
+    pub fn validate(&self) -> Result<()> {
+        if self.beginner_lessons_percent > 100 || self.intermediate_lessons_percent > 100 {
+            return Err(CoreError::InvalidData("An unlock threshold must be a whole percentage from 0 to 100.".into()));
+        }
+        check_grants(&self.new_profile_workspaces)
+    }
+}
+
+/// A grant list may only name workspaces that can be granted, each once.
+pub fn check_grants(ids: &[String]) -> Result<()> {
+    for (i, id) in ids.iter().enumerate() {
+        if !GRANTABLE_WORKSPACES.contains(&id.as_str()) {
+            return Err(CoreError::InvalidData(format!("\"{id}\" is not a workspace that can be opened for students.")));
+        }
+        if ids[..i].contains(id) {
+            return Err(CoreError::InvalidData(format!("\"{id}\" is listed twice.")));
+        }
+    }
+    Ok(())
 }
 
 fn default_true() -> bool {
@@ -61,7 +118,7 @@ fn default_true() -> bool {
 
 impl Default for AccountIndex {
     fn default() -> Self {
-        AccountIndex { admin: None, students: Vec::new(), self_registration: true }
+        AccountIndex { admin: None, students: Vec::new(), self_registration: true, workspace_access: WorkspaceAccessSettings::default() }
     }
 }
 

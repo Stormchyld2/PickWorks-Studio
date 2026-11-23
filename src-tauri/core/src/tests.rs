@@ -631,3 +631,179 @@ fn a_backup_damaged_after_listing_is_refused_before_anything_changes() {
     assert!(f.core.sign_in_student(&bea, "bea-pass-12").is_ok());
 }
 
+
+// ----- Workspace access (Workspace Navigation, Stage B) ---------------------
+
+fn ws(unlock_all: bool, auto: bool, b: u8, i: u8, new_profiles: &[&str]) -> accounts::WorkspaceAccessSettings {
+    accounts::WorkspaceAccessSettings {
+        unlock_all,
+        automatic_learning_unlock: auto,
+        beginner_lessons_percent: b,
+        intermediate_lessons_percent: i,
+        new_profile_workspaces: new_profiles.iter().map(|s| s.to_string()).collect(),
+    }
+}
+
+#[test]
+fn workspace_access_defaults_are_safe_and_survive_old_index_files() {
+    let mut f = fixture();
+    let id = f.with_student("Jamie", "student-pass");
+    let t = f.admin();
+    assert_eq!(f.core.admin_workspace_settings(&t).unwrap(), ws(false, true, 80, 50, &[]));
+    // An index written before Stage B (no workspace fields) still loads, with the defaults.
+    let path = f.core.root().accounts("account-index.json");
+    let mut v: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    v["data"].as_object_mut().unwrap().remove("workspaceAccess");
+    for s in v["data"]["students"].as_array_mut().unwrap() {
+        s.as_object_mut().unwrap().remove("workspaceGrants");
+    }
+    std::fs::write(&path, serde_json::to_vec(&v).unwrap()).unwrap();
+    f.restart();
+    let t = f.admin();
+    assert_eq!(f.core.admin_workspace_settings(&t).unwrap(), ws(false, true, 80, 50, &[]));
+    f.core.sign_out(&t).unwrap();
+    let s = f.core.sign_in_student(&id, "student-pass").unwrap();
+    let a = f.core.student_workspace_access(&s.token).unwrap();
+    assert_eq!(a, StudentWorkspaceAccess { unlock_all: false, automatic_learning_unlock: true, beginner_lessons_percent: 80, intermediate_lessons_percent: 50, grants: vec![] });
+}
+
+#[test]
+fn only_the_administrator_changes_workspace_access_and_every_change_is_audited() {
+    let mut f = fixture();
+    let id = f.with_student("Jamie", "student-pass");
+    let s = f.core.sign_in_student(&id, "student-pass").unwrap();
+    assert!(matches!(f.core.admin_workspace_settings(&s.token), Err(CoreError::Forbidden)));
+    assert!(matches!(f.core.admin_set_workspace_settings(&s.token, ws(true, true, 80, 50, &[])), Err(CoreError::Forbidden)));
+    assert!(matches!(f.core.admin_set_student_workspaces(&s.token, &id, vec!["reference".into()]), Err(CoreError::Forbidden)));
+    assert!(matches!(f.core.admin_set_workspace_settings("not-a-token", ws(true, true, 80, 50, &[])), Err(CoreError::NoSession)));
+    let t = f.admin();
+    // The student's old token stopped working when the administrator signed in.
+    assert!(matches!(f.core.student_workspace_access(&s.token), Err(CoreError::NoSession)));
+    assert!(matches!(f.core.student_workspace_access(&t), Err(CoreError::Forbidden)));
+    f.core.admin_set_workspace_settings(&t, ws(true, false, 70, 40, &["reference"])).unwrap();
+    f.core.admin_set_student_workspaces(&t, &id, vec!["play-create".into()]).unwrap();
+    let actions = audit_actions(&mut f);
+    assert!(actions.contains(&"workspace-access-changed".to_string()));
+    assert!(actions.contains(&"student-workspaces-changed".to_string()));
+    let t = f.admin();
+    let log = f.core.admin_recent_audit(&t, 50).unwrap();
+    let e = log.iter().find(|e| e.action == "student-workspaces-changed").unwrap();
+    assert_eq!(e.student_id.as_deref(), Some(id.as_str()));
+    assert_eq!(e.detail.as_deref(), Some("play-create"));
+}
+
+#[test]
+fn workspace_thresholds_and_grants_are_validated() {
+    let mut f = fixture();
+    let id = f.with_student("Jamie", "student-pass");
+    let t = f.admin();
+    for (b, i) in [(101, 50), (80, 101), (255, 255)] {
+        assert!(matches!(f.core.admin_set_workspace_settings(&t, ws(false, true, b, i, &[])), Err(CoreError::InvalidData(_))), "{b} {i}");
+    }
+    for (b, i) in [(0, 0), (100, 100), (80, 50)] {
+        f.core.admin_set_workspace_settings(&t, ws(false, true, b, i, &[])).unwrap();
+        assert_eq!(f.core.admin_workspace_settings(&t).unwrap().beginner_lessons_percent, b);
+    }
+    // Learning Studio is never granted (it is always available); unknown ids and repeats are refused.
+    for bad in [vec!["learning-studio"], vec!["future"], vec!["reference", "reference"]] {
+        let g: Vec<String> = bad.iter().map(|s| s.to_string()).collect();
+        assert!(matches!(f.core.admin_set_student_workspaces(&t, &id, g.clone()), Err(CoreError::InvalidData(_))), "{bad:?}");
+        let mut s = ws(false, true, 80, 50, &[]);
+        s.new_profile_workspaces = g;
+        assert!(matches!(f.core.admin_set_workspace_settings(&t, s), Err(CoreError::InvalidData(_))), "{bad:?}");
+    }
+    assert!(matches!(f.core.admin_set_student_workspaces(&t, "0123456789abcdef0123456789abcdef", vec![]), Err(CoreError::UnknownStudent)));
+}
+
+#[test]
+fn hand_edited_out_of_range_settings_fall_back_to_the_safe_defaults() {
+    let mut f = fixture();
+    let id = f.with_student("Jamie", "student-pass");
+    let path = f.core.root().accounts("account-index.json");
+    let mut v: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    v["data"]["workspaceAccess"] = json!({"unlockAll": true, "automaticLearningUnlock": true, "beginnerLessonsPercent": 200, "intermediateLessonsPercent": 50, "newProfileWorkspaces": []});
+    std::fs::write(&path, serde_json::to_vec(&v).unwrap()).unwrap();
+    let s = f.core.sign_in_student(&id, "student-pass").unwrap();
+    let a = f.core.student_workspace_access(&s.token).unwrap();
+    assert!(!a.unlock_all, "invalid settings never unlock anything");
+    assert_eq!((a.beginner_lessons_percent, a.intermediate_lessons_percent), (80, 50));
+}
+
+#[test]
+fn new_profiles_start_with_the_new_profile_workspaces_and_grants_stay_private() {
+    let mut f = fixture();
+    let jamie = f.with_student("Jamie", "student-pass");
+    let t = f.admin();
+    f.core.admin_set_workspace_settings(&t, ws(false, true, 80, 50, &["reference"])).unwrap();
+    let alex = f.core.admin_create_student(&t, "Alex", "temporary1").unwrap();
+    f.core.admin_set_student_workspaces(&t, &jamie, vec!["play-create".into()]).unwrap();
+    // Self-registered profiles get the same defaults.
+    f.core.sign_out(&t).unwrap();
+    let sam = f.core.register_student("Sam", "student-pass", None).unwrap();
+    assert_eq!(f.core.student_workspace_access(&sam.token).unwrap().grants, vec!["reference".to_string()]);
+    // Each student sees only their own grants.
+    let j = f.core.sign_in_student(&jamie, "student-pass").unwrap();
+    assert_eq!(f.core.student_workspace_access(&j.token).unwrap().grants, vec!["play-create".to_string()]);
+    // A student still owing a password change can't read access yet.
+    let a = f.core.sign_in_student(&alex, "temporary1").unwrap();
+    assert!(matches!(f.core.student_workspace_access(&a.token), Err(CoreError::PasswordChangeRequired)));
+    f.core.change_own_password(&a.token, "temporary1", "student-pass").unwrap();
+    assert_eq!(f.core.student_workspace_access(&a.token).unwrap().grants, vec!["reference".to_string()]);
+    // Changing the defaults later never changes existing profiles.
+    let t = f.admin();
+    f.core.admin_set_workspace_settings(&t, ws(false, true, 80, 50, &[])).unwrap();
+    let students = f.core.admin_list_students(&t).unwrap();
+    let grants = |id: &str| students.iter().find(|s| s.account.id == id).unwrap().account.workspace_grants.clone();
+    assert_eq!(grants(&alex), vec!["reference".to_string()]);
+    assert_eq!(grants(&jamie), vec!["play-create".to_string()]);
+}
+
+#[test]
+fn workspace_access_changes_never_touch_student_records() {
+    let mut f = fixture();
+    let id = f.with_student("Jamie", "student-pass");
+    let s = f.core.sign_in_student(&id, "student-pass").unwrap();
+    f.core.write_record(&s.token, "preferences", &env(7)).unwrap();
+    f.core.append_log(&s.token, "attempts", &json!({"n": 1})).unwrap();
+    f.core.sign_out(&s.token).unwrap();
+    let dir = f.core.root().student_dir(&id).unwrap();
+    let snapshot = |d: &std::path::Path| {
+        let mut out = std::collections::BTreeMap::new();
+        for e in walkdir(d) {
+            out.insert(e.clone(), std::fs::read(&e).unwrap());
+        }
+        out
+    };
+    let before = snapshot(&dir);
+    let t = f.admin();
+    f.core.admin_set_workspace_settings(&t, ws(true, false, 10, 10, &["play-create", "reference"])).unwrap();
+    f.core.admin_set_student_workspaces(&t, &id, vec!["play-create".into(), "reference".into()]).unwrap();
+    f.core.admin_set_student_workspaces(&t, &id, vec![]).unwrap();
+    assert_eq!(snapshot(&dir), before, "the student's folder is byte-for-byte unchanged");
+}
+
+fn walkdir(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut out = Vec::new();
+    for e in std::fs::read_dir(dir).unwrap() {
+        let p = e.unwrap().path();
+        if p.is_dir() { out.extend(walkdir(&p)); } else { out.push(p); }
+    }
+    out.sort();
+    out
+}
+
+#[test]
+fn installation_restore_brings_back_workspace_access_with_the_accounts() {
+    let mut f = fixture();
+    let id = f.with_student("Jamie", "student-pass");
+    let t = f.admin();
+    f.core.admin_set_student_workspaces(&t, &id, vec!["reference".into()]).unwrap();
+    let backup = f.core.admin_backup_installation(&t).unwrap();
+    f.core.admin_set_student_workspaces(&t, &id, vec![]).unwrap();
+    f.core.admin_set_workspace_settings(&t, ws(true, true, 80, 50, &[])).unwrap();
+    f.core.admin_restore_installation(&t, &backup, "admin-pass-1").unwrap();
+    let t = f.admin();
+    assert!(!f.core.admin_workspace_settings(&t).unwrap().unlock_all);
+    let s = f.core.admin_list_students(&t).unwrap();
+    assert_eq!(s[0].account.workspace_grants, vec!["reference".to_string()]);
+}
