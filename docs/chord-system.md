@@ -160,9 +160,11 @@ This matches the workspace navigation plan (Fretboard Explorer stays in Learning
 - Per-student data stays in the student's own folder (for example recently viewed chords, if added); the catalog is shared and read-only.
 - All screens use the existing logo, theme, glow cards, blue accents and amber highlights. Diagrams follow the existing renderer's colours.
 
-## Decisions for Jason
+## Decisions (resolved by Jason, 2026-11-23)
 
-1. **Unreviewed shapes:** in released builds, should students see only approved shapes (my recommendation), or all validated shapes with a "not yet reviewed" label?
-2. **Chord Finder tab name:** "Chord Finder" as the tab, with the "What chord am I playing?" prompt inside and on links (my recommendation), or "What Chord Am I Playing?" as the tab name itself?
-3. **Chord packs:** ship packs only with app updates for now (my recommendation), or also allow administrators to import a pack file inside the app?
-4. **Stage order:** build Stages 1 to 5 in order (my recommendation), with the Reverse Chord Finder able to start after Stage 1 because it depends only on the theory engine?
+1. **Unreviewed shapes:** in released builds, students see only approved shapes.
+2. **Chord Finder tab name:** "Chord Finder" is the tab, with the "What chord am I playing?" prompt inside it and on links.
+3. **Chord packs:** packs ship only with app updates for now. There is no in-app pack import.
+4. **Stage order:** Stages 1 to 5 are built in order. The Reverse Chord Finder may begin after Stage 1, using validated shapes only.
+
+**The manifest is approved.** The 75-shape manifest, with Jason's corrections and the approved primary fingerings and alternatives, is in [chords/chord-manifest.csv](chords/chord-manifest.csv). The review record is in [chords/manifest-review.md](chords/manifest-review.md). Each stage still needs its own authorisation; X0.3 (chord Stage 1) has not started, and the app still ships the original 27 shapes. The data is **validated by program only, not user-verified**: the Project Owner checks diagrams and playability by eye once the Chord Finder exists. Four shapes (Cmaj9, Cm9, G13, E7#9) need the maj9, m9, 13 and 7#9 qualities added to the production theory engine (X0.2) before the full library is released.
